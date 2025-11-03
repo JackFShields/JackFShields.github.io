@@ -5,9 +5,9 @@
   <title>Jack's Portfolio</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    body { margin: 0; background: #1a1a2e; overflow: hidden; font-family: Arial; }
+    body { margin: 0; background: #1a1a2e; overflow: hidden; font-family: Arial, sans-serif; }
     #container { width: 100vw; height: 100vh; }
-    .hint { position: fixed; bottom: 20px; left: 20px; color: #eee; font-size: 14px; }
+    .hint { position: fixed; bottom: 20px; left: 20px; color: #eee; font-size: 14px; opacity: 0.8; }
   </style>
 </head>
 <body>
@@ -18,42 +18,75 @@
   <script>
     // Scene setup
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.getElementById('container').appendChild(renderer.domElement);
     
-    // Lighting
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(5, 5, 5);
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0x404040));
+    // Position camera higher and angled down
+    camera.position.set(0, 2, 5);
+    camera.lookAt(0, 0, 0);
     
-    // Create cube with different colored faces
+    // Better lighting
+    const light = new THREE.DirectionalLight(0xffffff, 1);
+    light.position.set(5, 8, 5);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0x606060));
+    
+    // Create canvases for each face
+    function createTextCanvas(text, bgColor) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+      
+      // Background
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, 512, 512);
+      
+      // Text
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 48px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      // Handle multi-line text
+      const lines = text.split('\n');
+      const lineHeight = 60;
+      const startY = 256 - (lines.length - 1) * lineHeight / 2;
+      
+      lines.forEach((line, i) => {
+        ctx.fillText(line, 256, startY + i * lineHeight);
+      });
+      
+      return new THREE.CanvasTexture(canvas);
+    }
+    
+    // Create materials with text
     const materials = [
-      new THREE.MeshBasicMaterial({ color: 0xff0000 }), // right
-      new THREE.MeshBasicMaterial({ color: 0x00ff00 }), // left
-      new THREE.MeshBasicMaterial({ color: 0x0000ff }), // top
-      new THREE.MeshBasicMaterial({ color: 0xffff00 }), // bottom
-      new THREE.MeshBasicMaterial({ color: 0xff00ff }), // front
-      new THREE.MeshBasicMaterial({ color: 0x00ffff })  // back
+      new THREE.MeshBasicMaterial({ map: createTextCanvas('Minesweeper\nProject', '#e74c3c') }), // right
+      new THREE.MeshBasicMaterial({ map: createTextCanvas('Project 2', '#27ae60') }), // left
+      new THREE.MeshBasicMaterial({ map: createTextCanvas('Welcome to\nMy Portfolio!', '#3498db') }), // top
+      new THREE.MeshBasicMaterial({ map: createTextCanvas('Contact', '#f39c12') }), // bottom
+      new THREE.MeshBasicMaterial({ map: createTextCanvas('Project 3', '#9b59b6') }), // front
+      new THREE.MeshBasicMaterial({ map: createTextCanvas('Project 4', '#1abc9c') })  // back
     ];
     
-    const geometry = new THREE.BoxGeometry(2, 2, 2);
+    const geometry = new THREE.BoxGeometry(2.5, 2.5, 2.5);
     const cube = new THREE.Mesh(geometry, materials);
     scene.add(cube);
     
-    camera.position.z = 5;
+    // Subtle initial rotation to show it's 3D
+    cube.rotation.x = -0.1;
+    cube.rotation.y = 0.2;
     
-    // Mouse rotation
+    // Mouse rotation (horizontal only)
     let mouseDown = false;
     let mouseX = 0;
-    let mouseY = 0;
     
     renderer.domElement.addEventListener('mousedown', (e) => {
       mouseDown = true;
       mouseX = e.clientX;
-      mouseY = e.clientY;
     });
     
     renderer.domElement.addEventListener('mousemove', (e) => {
