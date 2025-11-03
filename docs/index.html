@@ -1,118 +1,356 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Jack's Portfolio</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <title>Infinite Carousel Cube</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
-    body { margin: 0; background: #1a1a2e; overflow: hidden; font-family: Arial, sans-serif; }
-    #container { width: 100vw; height: 100vh; }
-    .hint { position: fixed; bottom: 20px; left: 20px; color: #eee; font-size: 14px; opacity: 0.8; }
+    :root{--bg:#0f1724;--hint:#cfe7ff}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--hint);font-family:Inter,system-ui,Roboto,Arial}
+    #container{width:100vw;height:100vh;display:block;overflow:hidden}
+    .hint{position:fixed;left:18px;bottom:18px;background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:8px;font-size:13px}
   </style>
 </head>
 <body>
   <div id="container"></div>
-  <div class="hint">Drag to rotate • Click a face to open project</div>
-  
+  <div class="hint">Drag left/right to spin • Click a face to open project</div>
+
+  <!-- Three.js (non-module build that works on GitHub Pages file and Pages) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
   <script>
-    // Scene setup
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+  /**
+   * Infinite horizontal carousel cube
+   * - Only horizontal rotation (Y axis)
+   * - Four side faces act as an infinite carousel of projects
+   * - Front face initially shows projects[0] (Minesweeper)
+   * - Dragging rightwards (mouse drag left->right) should advance projects 1,2,3...
+   */
+
+  // Basic scene
+  const container = document.getElementById('container');
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 3.6, 5.2);
+  camera.lookAt(0, 0, 0);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  container.appendChild(renderer.domElement);
+
+  // Lighting
+  const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+  dir.position.set(5, 8, 5);
+  scene.add(dir);
+  scene.add(new THREE.AmbientLight(0x6b7788, 0.6));
+
+  // Axle visual (thin rod)
+  const rodMat = new THREE.MeshStandardMaterial({ color: 0x99aabb, metalness: 0.7, roughness: 0.25 });
+  const rodGeo = new THREE.CylinderGeometry(0.03, 0.03, 6, 16);
+  const rod = new THREE.Mesh(rodGeo, rodMat);
+  rod.rotation.z = Math.PI / 2;
+  rod.position.y = 0.15;
+  scene.add(rod);
+
+  // Projects (you can later fetch /projects.json and replace this array)
+  const projects = [
+    { title: "Minesweeper", snippet: "Interactive Minesweeper rebuild", url: "/PolyWeave-Mines/", color: "#e74c3c" },
+    { title: "Project 2",    snippet: "Placeholder 2",           url: "#",                       color: "#27ae60" },
+    { title: "Project 3",    snippet: "Placeholder 3",           url: "#",                       color: "#9b59b6" },
+    { title: "Project 4",    snippet: "Placeholder 4",           url: "#",                       color: "#1abc9c" },
+    { title: "Project 5",    snippet: "Placeholder 5",           url: "#",                       color: "#f39c12" },
+    { title: "Project 6",    snippet: "Placeholder 6",           url: "#",                       color: "#34495e" }
+  ];
+
+  // Create 6 canvas textures (Box geometry material order: +X, -X, +Y, -Y, +Z, -Z)
+  // We'll use +Z (index 4) = front, +X (0)=right, -Z(5)=back, -X(1)=left. Top(+Y=2) will show welcome.
+  const canvases = new Array(6);
+  const textures = new Array(6);
+  const materials = new Array(6);
+  for (let i = 0; i < 6; i++) {
+    canvases[i] = document.createElement('canvas');
+    canvases[i].width = canvases[i].height = 1024;
+    textures[i] = new THREE.CanvasTexture(canvases[i]);
+    textures[i].minFilter = THREE.LinearFilter;
+    materials[i] = new THREE.MeshStandardMaterial({ map: textures[i], metalness: 0.2, roughness: 0.6 });
+  }
+
+  // Helper: draw a face canvas
+  function drawFaceCanvas(canvas, title, snippet, indexLabel, color) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // background / subtle noise block
+    ctx.fillStyle = '#071425';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // colored band
+    ctx.fillStyle = color || '#497fb6';
+    ctx.globalAlpha = 0.08;
+    ctx.fillRect(48, 48, canvas.width-96, canvas.height-96);
+    ctx.globalAlpha = 1;
+
+    // Title
+    ctx.fillStyle = '#e6eef6';
+    ctx.font = 'bold 86px Inter, Arial';
+    ctx.textAlign = 'left';
+    wrapText(ctx, title, 128, 210, canvas.width - 256, 82);
+
+    // snippet
+    ctx.fillStyle = '#b9d7ee';
+    ctx.font = '400 44px Inter, Arial';
+    wrapText(ctx, snippet, 128, 420, canvas.width - 256, 48);
+
+    // small thumbnail mock
+    ctx.fillStyle = '#0b1220';
+    ctx.fillRect(canvas.width - 380, 120, 280, 180);
+    ctx.strokeStyle = '#18364a';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(canvas.width - 380, 120, 280, 180);
+
+    // index label bottom-right
+    ctx.fillStyle = '#90bfe0';
+    ctx.font = '600 26px Inter, Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(indexLabel || '', canvas.width - 120, canvas.height - 90);
+  }
+
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+    let yy = y;
+    for (let n = 0; n < words.length; n++) {
+      const test = line + words[n] + ' ';
+      const metrics = ctx.measureText(test);
+      const testWidth = metrics.width;
+      if (testWidth > maxWidth && n > 0) {
+        ctx.fillText(line, x, yy);
+        line = words[n] + ' ';
+        yy += lineHeight;
+      } else {
+        line = test;
+      }
+    }
+    ctx.fillText(line, x, yy);
+  }
+
+  // Create the cube
+  const boxGeo = new THREE.BoxGeometry(1.9, 1.9, 1.9);
+  const cube = new THREE.Mesh(boxGeo, materials);
+  cube.position.y = 0.1;
+  scene.add(cube);
+
+  // Carousel bookkeeping:
+  // We'll track a logical index "frontIndex" meaning which project index (in projects array) is currently shown on the front face (+Z).
+  // Initially frontIndex = 0 (Minesweeper)
+  let frontIndex = 0;
+
+  // Helper to assign project to slot -> map to canvas/material index
+  // Slot order (logical left-to-right around cube when looking at the front): front(0), right(1), back(2), left(3)
+  // But material indices on BoxGeometry are: +X:0 (right), -X:1 (left), +Y:2 (top), -Y:3 (bottom), +Z:4 (front), -Z:5 (back)
+  function slotToMaterialIndex(slot) {
+    // slot 0 = front -> material 4
+    // slot 1 = right -> material 0
+    // slot 2 = back  -> material 5
+    // slot 3 = left  -> material 1
+    if (slot === 0) return 4;
+    if (slot === 1) return 0;
+    if (slot === 2) return 5;
+    if (slot === 3) return 1;
+    return 4;
+  }
+
+  // Draw top (welcome) and bottom (info) faces
+  function drawTopBottom() {
+    // top -> material index 2
+    drawFaceCanvas(canvases[2], "Welcome to my site", "Drag left/right to explore projects. Click any face to open.", "welcome", "#2f9bd8");
+    textures[2].needsUpdate = true;
+    // bottom -> material index 3
+    drawFaceCanvas(canvases[3], "More Projects", "Open the menu to view list.", "info", "#b86e24");
+    textures[3].needsUpdate = true;
+  }
+
+  // Update the four horizontal faces according to frontIndex
+  function updateHorizontalFaces() {
+    const len = projects.length;
+    // mapping: slot 0(front) -> projects[frontIndex]
+    // slot 1(right) -> projects[frontIndex + 1]
+    // slot 2(back)  -> projects[frontIndex + 2]
+    // slot 3(left)  -> projects[frontIndex + 3]
+    for (let slot = 0; slot < 4; slot++) {
+      const proj = projects[(frontIndex + slot) % len];
+      const matIndex = slotToMaterialIndex(slot);
+      drawFaceCanvas(canvases[matIndex], proj.title, proj.snippet, `#${((frontIndex + slot) % len) + 1}`, proj.color);
+      textures[matIndex].needsUpdate = true;
+    }
+  }
+
+  // initialize faces
+  drawTopBottom();
+  updateHorizontalFaces();
+
+  // Interaction: restrict rotation to Y axis only and implement "infinite" cycling
+  let dragging = false;
+  let lastX = 0;
+  let angularVelocity = 0;
+  const sensitivity = 0.0065;
+
+  renderer.domElement.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    lastX = e.clientX;
+    angularVelocity = 0;
+    renderer.domElement.setPointerCapture(e.pointerId);
+  });
+
+  renderer.domElement.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - lastX;
+    lastX = e.clientX;
+    const dAngle = dx * sensitivity;
+    // apply rotation around world Y
+    cube.rotation.y += dAngle;
+    angularVelocity = dAngle;
+    // after applying rotation, we will detect quarter-turn transitions in the animation loop
+  });
+
+  renderer.domElement.addEventListener('pointerup', (e) => {
+    dragging = false;
+    renderer.domElement.releasePointerCapture(e.pointerId);
+  });
+
+  // Click to open project (raycast)
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  renderer.domElement.addEventListener('click', (ev) => {
+    if (dragging) return; // avoid click while dragging
+    const rect = renderer.domElement.getBoundingClientRect();
+    mouse.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObject(cube, true);
+    if (!intersects.length) return;
+    const matIndex = intersects[0].face.materialIndex;
+    // If top/bottom clicked ignore (or you can handle welcome)
+    if (matIndex === 2 || matIndex === 3) {
+      // top/bottom clicked — do nothing for now
+      return;
+    }
+    // map material index to slot (0..3)
+    let slot = null;
+    if (matIndex === 4) slot = 0; // front
+    else if (matIndex === 0) slot = 1; // right
+    else if (matIndex === 5) slot = 2; // back
+    else if (matIndex === 1) slot = 3; // left
+    if (slot === null) return;
+    const projIndex = (frontIndex + slot) % projects.length;
+    const p = projects[projIndex];
+    if (p && p.url) window.open(p.url, '_blank');
+  });
+
+  // We'll detect when cube.rotation.y crosses quarter-turn boundaries.
+  // Normalize rotation to [0, 2PI)
+  function normalizeAngle(a) {
+    const twoPi = Math.PI * 2;
+    let v = a % twoPi;
+    if (v < 0) v += twoPi;
+    return v;
+  }
+
+  // Compute which "slot" is currently most front-facing based on cube.rotation.y
+  // We define front-facing when rotation is approx 0 (mod 2pi): slot 0 front.
+  // We'll compute currentSlot = round(( -rotationY ) / (PI/2)) mod 4
+  function computeFrontSlotFromRotation(rotY) {
+    // negative because when cube rotates positive Y, content moves left-to-right visually
+    const angle = -rotY;
+    const q = Math.round(angle / (Math.PI / 2));
+    // modulo 4
+    return ((q % 4) + 4) % 4;
+  }
+
+  let lastFrontSlot = computeFrontSlotFromRotation(cube.rotation.y);
+
+  // Animation loop
+  let last = performance.now();
+  function animate(now) {
+    requestAnimationFrame(animate);
+    const dt = (now - last) / 1000;
+    last = now;
+
+    // simple inertial decay when not dragging
+    if (!dragging) {
+      if (Math.abs(angularVelocity) > 1e-5) {
+        cube.rotation.y += angularVelocity;
+        angularVelocity *= 0.92;
+        if (Math.abs(angularVelocity) < 1e-5) angularVelocity = 0;
+      }
+    }
+
+    // lock X/Z rotations: keep cube upright (small tilt allowed visually but we avoid adding X/Z)
+    // compute only yaw and slerp to yaw-only quaternion to avoid numerical drift
+    const e = new THREE.Euler().setFromQuaternion(cube.quaternion, 'YXZ');
+    const yawOnly = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, e.y, 0));
+    cube.quaternion.slerp(yawOnly, 0.2);
+
+    // detect front slot transitions
+    const currentSlot = computeFrontSlotFromRotation(cube.rotation.y);
+    if (currentSlot !== lastFrontSlot) {
+      // determine direction: +1 means we moved to next project index (user dragged rightwards)
+      // If slot increased modulo 4 in forward order, direction = +1, else -1
+      // Compute delta in modular arithmetic
+      const delta = ((currentSlot - lastFrontSlot) + 4) % 4;
+      // delta of 1 means clockwise change in slot index; since mapping of rotation->slot used negative sign,
+      // we interpret delta=1 as user spun left-to-right visually, which should advance frontIndex by +1.
+      let step = 0;
+      if (delta === 1) step = 1;
+      else if (delta === 3) step = -1; // wrapped backwards
+      else if (delta === 2) {
+        // jumped two slots quickly; take sign from angularVelocity
+        step = angularVelocity > 0 ? 2 : -2;
+      }
+      // advance frontIndex by step (positive -> next project)
+      if (step !== 0) {
+        frontIndex = ((frontIndex + step) % projects.length + projects.length) % projects.length;
+        updateHorizontalFaces();
+      }
+      lastFrontSlot = currentSlot;
+    }
+
+    renderer.render(scene, camera);
+  }
+  requestAnimationFrame(animate);
+
+  // Resize handling
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-    document.getElementById('container').appendChild(renderer.domElement);
-    
-    // Position camera higher to see top better
-    camera.position.set(0, 3.5, 5);
-    camera.lookAt(0, 0, 0);
-    
-    // Better lighting
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(5, 8, 5);
-    scene.add(light);
-    scene.add(new THREE.AmbientLight(0x606060));
-    
-    // Create canvases for each face
-    function createTextCanvas(text, bgColor) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 512;
-      canvas.height = 512;
-      const ctx = canvas.getContext('2d');
-      
-      // Background
-      ctx.fillStyle = bgColor;
-      ctx.fillRect(0, 0, 512, 512);
-      
-      // Text
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 48px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      // Handle multi-line text
-      const lines = text.split('\n');
-      const lineHeight = 60;
-      const startY = 256 - (lines.length - 1) * lineHeight / 2;
-      
-      lines.forEach((line, i) => {
-        ctx.fillText(line, 256, startY + i * lineHeight);
-      });
-      
-      return new THREE.CanvasTexture(canvas);
+  });
+
+  // Optional: fetch /projects.json to replace the projects array automatically (non-blocking)
+  (async function tryLoadProjectsJson(){
+    try {
+      const res = await fetch('/projects.json', { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!Array.isArray(data) || data.length === 0) return;
+      // Ensure projects[0] is Minesweeper if present; otherwise first element becomes front
+      // Replace projects array while preserving frontIndex value (0 -> show first entry)
+      projects.length = 0;
+      data.forEach(p => projects.push({
+        title: p.title || p.name || "Untitled",
+        snippet: p.snippet || p.description || "",
+        url: p.url || p.link || "#",
+        color: p.color || '#5aa'
+      }));
+      // reset frontIndex to zero so front shows first project in file
+      frontIndex = 0;
+      updateHorizontalFaces();
+    } catch (e) {
+      // ignore
     }
-    
-    // Create materials - ordered for counter-clockwise rotation
-    // Order: right, left, top, bottom, front, back
-    const materials = [
-      new THREE.MeshBasicMaterial({ map: createTextCanvas('Project 2', '#27ae60') }), // right
-      new THREE.MeshBasicMaterial({ map: createTextCanvas('Project 4', '#1abc9c') }), // left  
-      new THREE.MeshBasicMaterial({ map: createTextCanvas('Welcome!', '#3498db') }), // top
-      new THREE.MeshBasicMaterial({ map: createTextCanvas('More Info', '#f39c12') }), // bottom
-      new THREE.MeshBasicMaterial({ map: createTextCanvas('Minesweeper\n(Project 1)', '#e74c3c') }), // front
-      new THREE.MeshBasicMaterial({ map: createTextCanvas('Project 3', '#9b59b6') })  // back
-    ];
-    
-    const geometry = new THREE.BoxGeometry(2.5, 2.5, 2.5);
-    const cube = new THREE.Mesh(geometry, materials);
-    scene.add(cube);
-    
-    // Start showing front face (Minesweeper)
-    cube.rotation.y = 0;
-    
-    // Mouse rotation (horizontal only)
-    let mouseDown = false;
-    let mouseX = 0;
-    
-    renderer.domElement.addEventListener('mousedown', (e) => {
-      mouseDown = true;
-      mouseX = e.clientX;
-    });
-    
-    renderer.domElement.addEventListener('mousemove', (e) => {
-      if (!mouseDown) return;
-      const deltaX = e.clientX - mouseX;
-      cube.rotation.y += deltaX * 0.01;
-      mouseX = e.clientX;
-    });
-    
-    renderer.domElement.addEventListener('mouseup', () => {
-      mouseDown = false;
-    });
-    
-    // Animation loop
-    function animate() {
-      requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-    }
-    animate();
-    
-    // Handle resize
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+  })();
+
   </script>
 </body>
 </html>
