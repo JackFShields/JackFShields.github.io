@@ -23,8 +23,8 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.getElementById('container').appendChild(renderer.domElement);
     
-    // Position camera higher and angled down
-    camera.position.set(0, 2, 5);
+    // Position camera higher to see top better
+    camera.position.set(0, 3.5, 5);
     camera.lookAt(0, 0, 0);
     
     // Better lighting
@@ -62,23 +62,23 @@
       return new THREE.CanvasTexture(canvas);
     }
     
-    // Create materials with text
+    // Create materials - ordered for counter-clockwise rotation
+    // Order: right, left, top, bottom, front, back
     const materials = [
-      new THREE.MeshBasicMaterial({ map: createTextCanvas('Minesweeper\nProject', '#e74c3c') }), // right
-      new THREE.MeshBasicMaterial({ map: createTextCanvas('Project 2', '#27ae60') }), // left
-      new THREE.MeshBasicMaterial({ map: createTextCanvas('Welcome to\nMy Portfolio!', '#3498db') }), // top
-      new THREE.MeshBasicMaterial({ map: createTextCanvas('Contact', '#f39c12') }), // bottom
-      new THREE.MeshBasicMaterial({ map: createTextCanvas('Project 3', '#9b59b6') }), // front
-      new THREE.MeshBasicMaterial({ map: createTextCanvas('Project 4', '#1abc9c') })  // back
+      new THREE.MeshBasicMaterial({ map: createTextCanvas('Project 2', '#27ae60') }), // right
+      new THREE.MeshBasicMaterial({ map: createTextCanvas('Project 4', '#1abc9c') }), // left  
+      new THREE.MeshBasicMaterial({ map: createTextCanvas('Welcome!', '#3498db') }), // top
+      new THREE.MeshBasicMaterial({ map: createTextCanvas('More Info', '#f39c12') }), // bottom
+      new THREE.MeshBasicMaterial({ map: createTextCanvas('Minesweeper\n(Project 1)', '#e74c3c') }), // front
+      new THREE.MeshBasicMaterial({ map: createTextCanvas('Project 3', '#9b59b6') })  // back
     ];
     
     const geometry = new THREE.BoxGeometry(2.5, 2.5, 2.5);
     const cube = new THREE.Mesh(geometry, materials);
     scene.add(cube);
     
-    // Subtle initial rotation to show it's 3D
-    cube.rotation.x = -0.1;
-    cube.rotation.y = 0.2;
+    // Start showing front face (Minesweeper)
+    cube.rotation.y = 0;
     
     // Mouse rotation (horizontal only)
     let mouseDown = false;
