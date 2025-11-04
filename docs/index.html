@@ -3,602 +3,500 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Portfolio Cube — Jack Shields</title>
+<title>Portfolio Cube — Robust Build</title>
 <style>
   :root{
-    --bg:#071425;
-    --panel-bg: rgba(255,255,255,0.035);
-    --panel-bg-2: rgba(255,255,255,0.01);
+    --bg: #071425;
+    --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
     --border: rgba(255,255,255,0.08);
     --text: #e6eef6;
     --muted: rgba(190,215,240,0.7);
-    --shadow-strong: rgba(0,0,0,0.6);
-    --accent-1: #e74c3c;
-    --accent-2: #27ae60;
-    --accent-3: #9b59b6;
-    --accent-4: #1abc9c;
-    --accent-5: #f39c12;
-    --accent-6: #34495e;
-    --max-width: 1300px;
+    --gap: 2vw;
+
+    /* Base sizes (responsive adjustments later) */
+    --cube-size: 336px;    /* ~20% bigger than earlier */
+    --bite-radius: 270px;  /* generous breathing room */
   }
 
-  /* Page layout */
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
-  .wrap{max-width:var(--max-width);margin:36px auto;padding:28px;box-sizing:border-box;position:relative}
-  /* two-column bento grid with gap where the cube sits */
-  .grid{
-    display:grid;
-    grid-template-columns: 42vw 2vw 58vw;
-    grid-template-rows: calc(20vh) 1fr calc(14vh);
-    gap:0;
-    align-items:start;
-    min-height:70vh;
-    position:relative;
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;-webkit-font-smoothing:antialiased}
+  .viewport{width:100vw;height:100vh;position:relative;overflow:hidden}
+
+  /* Generic panel style (title, description, image) */
+  .panel {
+    position:absolute;
+    background: var(--panel-grad);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 10px 36px rgba(0,0,0,0.36);
+    overflow: visible;
+    z-index: 1;
   }
 
-  .panel{
-    background: linear-gradient(180deg,var(--panel-bg),var(--panel-bg-2));
-    border:1px solid var(--border);
-    border-radius:12px;
-    box-shadow: 0 10px 30px var(--shadow-strong), inset 0 1px 0 rgba(255,255,255,0.01);
-    padding:28px;
+  /* Left column: title + description */
+  .title {
+    left: 2vw;
+    top: 2vh;
+    width: calc(42vw - var(--gap));
+    height: 36vh;
+  }
+  .title h1 { font-size: 30px; margin-bottom: 8px; }
+  .title p { color: var(--muted); margin-top: 6px; }
+
+  .description {
+    left: 2vw;
+    top: calc(2vh + 36vh + var(--gap));
+    width: calc(42vw - var(--gap));
+    height: calc(82vh - 36vh - var(--gap) - 2vh);
+  }
+  .description p { color: var(--muted); line-height: 1.45; }
+
+  /* Right image panel */
+  .image {
+    right: 2vw;
+    top: 2vh;
+    width: 54vw;
+    height: 80vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
     color:var(--muted);
-    overflow:hidden;
   }
 
-  /* left column top (title) */
-  .title{grid-column:1 / 2; grid-row:1 / 2; font-size:2.8rem; color:var(--text); display:flex; align-items:center; justify-content:flex-start; padding-left:40px}
-  .title small{display:block;font-size:0.9rem;color:var(--muted); margin-top:6px}
-
-  /* left column bottom (description) */
-  .desc{grid-column:1 / 2; grid-row:2 / 3; font-size:1rem; line-height:1.6; padding:28px}
-
-  /* right image panel */
-  .img-panel{grid-column:3 / 4; grid-row:1 / 4; display:flex; align-items:center; justify-content:center; font-size:2rem; color:var(--muted);}
-
-  /* bottom bar (nav) spanning entire width */
-  .nav{grid-column:1 / 4; grid-row:3 / 4; display:flex; align-items:center; justify-content:center; gap:20px; padding:18px 40px; flex-wrap:wrap}
-  .nav button{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border:1px solid rgba(255,255,255,0.04); color:var(--muted); padding:18px 26px; border-radius:12px; min-width:110px; cursor:pointer; box-shadow:0 8px 20px rgba(0,0,0,0.6)}
-  .nav button.active{color:var(--text); box-shadow:0 12px 30px rgba(0,0,0,0.7); transform:translateY(-3px)}
-
-  /* central gap where cube sits (absolute positioned to center in gap) */
-  .cube-gap{
-    position:absolute; left: calc(42vw + 1vw); top: 25vh; width: 2vw; height: 52vh; pointer-events:none; display:flex; align-items:center; justify-content:center;
-    /* create a wide center so cube can be placed */
-    transform: translateX(-50%);
+  /* Invisible anchor/footprint (center of bite and cube). Positioned in CSS to match gap midpoint */
+  .anchor {
+    position:absolute;
+    left: calc(42vw - var(--gap)/2);
+    top: 50%;
+    width: calc(var(--bite-radius) * 2);
+    height: calc(var(--bite-radius) * 2);
+    transform: translate(-50%, -50%);
+    pointer-events:none;
+    opacity:0;
+    z-index:2;
   }
 
-  /* actual cube container */
-  .cube-wrap{
-    width: clamp(180px, 18vw, 320px);
-    height: clamp(180px, 18vw, 320px);
-    position:relative;
-    perspective: 1400px;
-    pointer-events:auto;
-    z-index:60;
-  }
-
-  .cube{
+  /* SVG overlay: single circle that visually removes panels under it and provides rim stroke + inner shadow.
+     The circle is filled with the page bg so panels visually disappear where it overlaps.
+     Stroke + filter emulate continuous border and inner bevel so panels' border and shadow read continuous.
+  */
+  .bite-svg {
+    position:absolute;
+    left:0; top:0;
     width:100%; height:100%;
-    transform-style: preserve-3d;
-    transition: transform 600ms cubic-bezier(.2,.9,.2,1);
-    position:relative;
-    transform-origin: center center;
+    pointer-events:none;
+    z-index:3;
   }
 
-  .face{
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center; border-radius:16px;
-    background: linear-gradient(180deg, rgba(0,0,0,0.15), rgba(255,255,255,0.02));
-    border: 1px solid rgba(255,255,255,0.06);
-    box-shadow: 0 18px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
-    color:var(--text);
-    font-weight:700;
-    font-size:1.05rem;
-    transform-origin: center;
-    backface-visibility:hidden;
-    padding:18px;
-  }
-
-  /* face transforms (we only display 4 side faces + top & bottom as utilities) */
-  .face.front { transform: rotateY(0deg) translateZ(calc(var(--cube-depth))); }
-  .face.right { transform: rotateY(90deg) translateZ(calc(var(--cube-depth))); }
-  .face.back  { transform: rotateY(180deg) translateZ(calc(var(--cube-depth))); }
-  .face.left  { transform: rotateY(-90deg) translateZ(calc(var(--cube-depth))); }
-  .face.top   { transform: rotateX(90deg) translateZ(calc(var(--cube-depth))); font-size:0.9rem; }
-  .face.bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-depth))); font-size:0.9rem; }
-
-  /* little spike */
-  .spike{
-    position:absolute; left:50%; transform:translateX(-50%); top:-28px; width:8px; height:38px; background:linear-gradient(180deg,#89c3d9,#052a36); border-radius:6px; z-index:70; box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+  /* Cube container sits exactly at anchor center, vertically centered at 50% viewport height */
+  .cube-wrap {
+    position:absolute;
+    left: calc(42vw - var(--gap)/2);
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: var(--cube-size);
+    height: var(--cube-size);
+    z-index: 5;  /* above bite, above panels' rim elements */
     pointer-events:none;
   }
-  /* label inside faces */
-  .face .meta{ text-align:center }
-  .face .meta .title{ font-size:1.15rem; color:var(--text); margin-bottom:6px }
-  .face .meta .sub{ font-size:0.85rem; color:var(--muted) }
 
-  /* accent bar per-face top */
-  .accent{ position:absolute; height:6px; left:14px; right:14px; top:12px; border-radius:6px; }
-  /* overlay circle (bite) using SVG styles */
-  .bite-overlay{ position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:50; display:block }
-  /* subtle dim circle around cube */
-  .circle-backdrop{ position:absolute; width:calc(100%); height:100%; left:0; top:0; pointer-events:none }
+  .scene { width:100%; height:100%; perspective:1200px; position:relative; pointer-events:auto; user-select:none; touch-action:none; }
+  .cube {
+    width:100%; height:100%;
+    position:relative; transform-style:preserve-3d;
+    transform: translateZ(-140px) rotateX(-10deg) rotateY(0deg);
+    transition: transform .08s linear;
+    z-index:5;
+  }
 
-  /* responsive adjustments */
-  @media (max-width:980px){
-    .grid{ grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; gap:20px }
-    .cube-gap{ left:50%; top:auto; bottom: 14vh; transform:translateX(-50%) }
-    .img-panel{ order:3; min-height:260px }
-    .title{ font-size:2rem }
+  /* Face common */
+  .face {
+    position:absolute; left:0; top:0; width:100%; height:100%;
+    border-radius:12px;
+    background: var(--panel-grad);
+    border: 1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    box-shadow: 0 10px 36px rgba(0,0,0,0.6);
+    backface-visibility:hidden; cursor:pointer;
+    box-sizing:border-box;
+  }
+
+  /* Accent bar left on each face; filled by inline style set in HTML/JS to match project color */
+  .face .accent {
+    position:absolute; left:0; top:0; bottom:0; width:6px;
+    border-top-left-radius:12px; border-bottom-left-radius:12px;
+  }
+
+  .face h3 { font-size:22px; margin:0 0 6px 0; }
+  .face p { color:var(--muted); margin:0; font-size:13px; text-align:center; padding:0 10px; }
+
+  /* Face transforms */
+  .front  { transform: rotateY(0deg)   translateZ(calc(var(--cube-size)/2)); }
+  .right  { transform: rotateY(90deg)  translateZ(calc(var(--cube-size)/2)); }
+  .back   { transform: rotateY(180deg) translateZ(calc(var(--cube-size)/2)); }
+  .left   { transform: rotateY(270deg) translateZ(calc(var(--cube-size)/2)); }
+  .top    { transform: rotateX(90deg)  translateZ(calc(var(--cube-size)/2)); }
+  .bottom { transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
+
+  /* Projects bar: wrap capable, taller rectangular buttons */
+  .projects {
+    position:absolute; left:0; right:0; bottom:0;
+    display:flex; gap:14px; padding:2vh 2vw; flex-wrap:wrap; justify-content:center; align-items:center;
+    background: linear-gradient(to top, rgba(0,0,0,0.45), transparent);
+    z-index:7;
+  }
+  .proj-btn {
+    width:140px; height:84px; background:var(--panel-grad); border:1px solid var(--border); border-radius:10px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition:transform .18s, box-shadow .18s;
+  }
+  .proj-btn:hover { transform: translateY(-6px); box-shadow: 0 12px 30px rgba(0,0,0,0.45); }
+  .proj-btn strong { font-size:18px; }
+  .proj-btn span { font-size:12px; color:var(--muted); margin-top:6px; }
+
+  /* subtle responsive tuning */
+  @media (max-width: 980px) {
+    :root { --cube-size: 260px; --bite-radius: 160px; }
+    .title, .description { left:2vw; width: calc(100% - 4vw); }
+    .title { top:2vh; height: 20vh; }
+    .description { top: calc(2vh + 20vh + var(--gap)); height: 28vh; }
+    .image {
+      left:2vw; right:2vw; top: calc(2vh + 20vh + 28vh + calc(var(--gap)*2));
+      width: calc(100% - 4vw); height:32vh;
+    }
+    .cube-wrap { left: 50%; top: calc(2vh + 20vh + (28vh/2)); transform: translate(-50%, -50%); }
+    .anchor { left: 50%; top: calc(2vh + 20vh + (28vh/2)); transform: translate(-50%, -50%); }
   }
 </style>
 </head>
 <body>
-<div class="wrap" id="app">
-  <div class="grid">
-    <div class="panel title">
-      <div>
-        <div style="font-weight:800">Minesweeper</div>
-        <small>Interactive tile-based puzzle</small>
-      </div>
+  <div class="viewport" id="viewport">
+    <!-- Panels -->
+    <div class="panel title" id="titlePanel">
+      <h1 id="projTitle">Minesweeper</h1>
+      <p id="projSubtitle">Interactive tile-based puzzle</p>
+      <div style="margin-top:10px;color:var(--muted);font-size:13px"><a href="https://jackfshields.github.io" style="color:inherit;text-decoration:underline">JackFShields.github.io</a></div>
     </div>
 
-    <div class="cube-gap" aria-hidden="true">
-      <div class="cube-wrap" id="cubeWrap">
-        <div class="spike" aria-hidden="true"></div>
-        <div class="cube" id="cube" style="--cube-depth: calc( (min( clamp(180px,18vw,320px) ) / 2) );">
-          <div class="face front" data-slot="0">
-            <div class="accent" style="background:var(--accent-1)"></div>
-            <div class="meta"><div class="title">Project 1</div><div class="sub">Interactive tile puzzle</div></div>
+    <div class="panel description" id="descPanel">
+      <p id="projDesc">Classic minesweeper rebuilt with modern UI. Drag the cube to rotate projects, or click the numbered buttons below to jump to a project. The central cube sits exactly at mid-height; panels keep a smooth bevel and shadow around the circular bite.</p>
+    </div>
+
+    <div class="panel image" id="imagePanel">Minesweeper preview (no image)</div>
+
+    <!-- Invisible anchor used to derive bite and cube center -->
+    <div class="anchor" id="anchor" aria-hidden="true"></div>
+
+    <!-- SVG bite overlay (single circle) -->
+    <svg class="bite-svg" id="biteSVG" aria-hidden="true">
+      <defs>
+        <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur"/>
+          <feOffset dx="0" dy="6" result="offsetBlur"/>
+          <feComposite in="offsetBlur" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="innerShadow"/>
+          <feColorMatrix in="innerShadow" type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0   0 0 0 0.35" result="shadow"/>
+          <feMerge>
+            <feMergeNode in="shadow"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <!-- circle: fill is page background so it visually removes underlying panels where it overlaps -->
+      <circle id="biteCircle" cx="0" cy="0" r="0" fill="#071425" stroke="rgba(255,255,255,0.08)" stroke-width="2" filter="url(#innerShadow)"></circle>
+    </svg>
+
+    <!-- Cube centered on anchor (50% height midpoint) -->
+    <div class="cube-wrap" id="cubeWrap">
+      <div class="scene" id="scene">
+        <div class="cube" id="cube" role="application" aria-label="interactive cube">
+          <div class="face front" data-slot="front">
+            <div class="accent" style="background:#e74c3c"></div>
+            <h3>Project 1</h3>
+            <p>Interactive tile puzzle</p>
           </div>
-          <div class="face right" data-slot="1">
-            <div class="accent" style="background:var(--accent-2)"></div>
-            <div class="meta"><div class="title">Project 2</div><div class="sub">Utility tool</div></div>
+          <div class="face right" data-slot="right">
+            <div class="accent" style="background:#27ae60"></div>
+            <h3>Project 2</h3>
+            <p>Utility tool</p>
           </div>
-          <div class="face back" data-slot="2">
-            <div class="accent" style="background:var(--accent-3)"></div>
-            <div class="meta"><div class="title">Project 3</div><div class="sub">Another project</div></div>
+          <div class="face back" data-slot="back">
+            <div class="accent" style="background:#9b59b6"></div>
+            <h3>Project 3</h3>
+            <p>Algorithmic art</p>
           </div>
-          <div class="face left" data-slot="3">
-            <div class="accent" style="background:var(--accent-4)"></div>
-            <div class="meta"><div class="title">Project 4</div><div class="sub">Design experiment</div></div>
+          <div class="face left" data-slot="left">
+            <div class="accent" style="background:#1abc9c"></div>
+            <h3>Project 4</h3>
+            <p>UX experiments</p>
           </div>
-          <div class="face top" data-slot="4">
-            <div class="accent" style="background:var(--accent-5)"></div>
-            <div class="meta"><div class="title">Extra</div><div class="sub">Top face utility</div></div>
+          <div class="face top" data-slot="top">
+            <div class="accent" style="background:#f39c12"></div>
+            <h3>Project 5</h3>
+            <p>Extra face</p>
           </div>
-          <div class="face bottom" data-slot="5">
-            <div class="accent" style="background:var(--accent-6)"></div>
-            <div class="meta"><div class="title">Extra</div><div class="sub">Bottom face</div></div>
+          <div class="face bottom" data-slot="bottom">
+            <div class="accent" style="background:#34495e"></div>
+            <h3>Project 6</h3>
+            <p>Extra face</p>
           </div>
         </div>
-        <!-- circular bite overlay SVG -->
-        <svg class="bite-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <!-- full page rect with center circle cutout using mask trick -->
-          <defs>
-            <mask id="cutout">
-              <rect x="0" y="0" width="100" height="100" fill="white"/>
-              <!-- white rectangle minus black circle = hole -->
-              <circle cx="50" cy="50" r="22" fill="black"/>
-            </mask>
-            <filter id="innerShadow">
-              <feOffset dx="0" dy="2" result="off"/>
-              <feGaussianBlur stdDeviation="2" result="blur"/>
-              <feComposite operator="out" in="blur" in2="SourceGraphic" result="composite"/>
-              <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0" />
-            </filter>
-          </defs>
-          <!-- stroke around circle to simulate border continuation -->
-          <g transform="translate(0,0) scale(1)">
-            <rect x="0" y="0" width="100" height="100" fill="none" stroke="none" mask="url(#cutout)"/>
-            <circle cx="50" cy="50" r="22" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="0.8" filter="url(#innerShadow)"></circle>
-          </g>
-        </svg>
       </div>
     </div>
 
-    <div class="panel img-panel" id="imagePanel">
-      <div id="imagePlaceholder">Minesweeper preview (no image)</div>
-    </div>
-
-    <div class="panel desc" id="descPanel">
-      Classic minesweeper rebuilt with modern UI
-    </div>
-
-    <div class="nav" id="nav">
-      <!-- nav buttons generated by JS -->
-    </div>
+    <!-- Projects bar (wrap capable) -->
+    <div class="projects" id="projectsBar"></div>
   </div>
-</div>
 
 <script>
-/*
-  Portfolio Cube — single-file implementation
+/* ====== data: projects must map in order to cube faces (front, right, back, left, top, bottom) ====== */
+const projects = [
+  {title: 'Minesweeper', subtitle: 'Interactive tile-based puzzle', desc: 'Classic minesweeper rebuilt with modern UI', url:'#', color:'#e74c3c'},
+  {title: 'Project 2', subtitle: 'Utility tool', desc: 'Small utility demo', url:'#', color:'#27ae60'},
+  {title: 'Project 3', subtitle: 'Algorithmic art', desc: 'Generative visuals', url:'#', color:'#9b59b6'},
+  {title: 'Project 4', subtitle: 'UX experiments', desc: 'Micro interactions', url:'#', color:'#1abc9c'},
+  {title: 'Project 5', subtitle: 'Extra', desc: 'Misc experiments', url:'#', color:'#f39c12'},
+  {title: 'Project 6', subtitle: 'Extra 2', desc: 'More experiments', url:'#', color:'#34495e'}
+];
 
-  How the infinite-scroll works:
-  - We maintain an array `projects` and a logical `centerIndex` that maps which project is currently front.
-  - The CSS cube is rotated by `angle` (degrees). Faces are at multiples of 90deg.
-  - While dragging you change `angle`. When `angle` crosses +90 or -90, we increment centerIndex (mod n),
-    subtract/add 90 from angle, and call updateFaces() to swap content into face slots. This preserves visual continuity.
+/* DOM refs */
+const viewport = document.getElementById('viewport');
+const anchor = document.getElementById('anchor');
+const biteSVG = document.getElementById('biteSVG');
+const biteCircle = document.getElementById('biteCircle');
+const cubeWrap = document.getElementById('cubeWrap');
+const scene = document.getElementById('scene');
+const cube = document.getElementById('cube');
+const titlePanel = document.getElementById('titlePanel');
+const descPanel = document.getElementById('descPanel');
+const imagePanel = document.getElementById('imagePanel');
+const projectsBar = document.getElementById('projectsBar');
+
+/* build projects bar (wrap-capable) */
+function renderProjects(){
+  projectsBar.innerHTML = '';
+  projects.forEach((p,i)=>{
+    const btn = document.createElement('div');
+    btn.className = 'proj-btn';
+    btn.innerHTML = `<strong>${i+1}</strong><span>${p.title}</span>`;
+    btn.addEventListener('click', ()=> centerCubeOnProject(i));
+    projectsBar.appendChild(btn);
+  });
+}
+renderProjects();
+
+/* compute anchor center & radius from anchor bounding rect */
+function computeAnchor(){
+  const r = anchor.getBoundingClientRect();
+  return { x: r.left + r.width/2, y: r.top + r.height/2, r: Math.min(r.width, r.height)/2 };
+}
+
+/* Position SVG bite circle, update panel rim pseudo positions, and ensure no stroke shows outside panels:
+   - SVG circle is drawn on top of panels, filled with page bg so it "cuts" panels.
+   - Stroke + innerShadow filter provide the rim/ bevel look.
+   - Panels themselves keep their borders; we also place pseudo rim positions for subtle continuity
 */
+function positionBiteAndCube(){
+  const a = computeAnchor();
+  biteCircle.setAttribute('cx', a.x);
+  biteCircle.setAttribute('cy', a.y);
+  biteCircle.setAttribute('r', a.r);
+  // ensure SVG pixel dims match viewport so circle coords align with DOM coords
+  biteSVG.setAttribute('width', window.innerWidth);
+  biteSVG.setAttribute('height', window.innerHeight);
 
-(() => {
-  // ----- CONFIG -----
-  const GITHUB_USER = "jackfshields"; // change if needed
-  // Optionally set a personal access token with "repo" or "public_repo" scope to increase rate limit:
-  const GITHUB_TOKEN = ""; // paste a token if you want (keep secret in production; better: serve from backend)
-
-  const ACCENTS = ["var(--accent-1)","var(--accent-2)","var(--accent-3)","var(--accent-4)","var(--accent-5)","var(--accent-6)"];
-
-  // fallback sample projects (used until fetch completes or if fetch fails)
-  let projects = [
-    {name:"Minesweeper", desc:"Interactive tile-based puzzle", url:"#", image:null, accent:ACCENTS[0]},
-    {name:"Project 2", desc:"Utility tool", url:"#", image:null, accent:ACCENTS[1]},
-    {name:"Project 3", desc:"Experiment", url:"#", image:null, accent:ACCENTS[2]},
-    {name:"Project 4", desc:"Design studio", url:"#", image:null, accent:ACCENTS[3]},
-    {name:"Project 5", desc:"Orange project", url:"#", image:null, accent:ACCENTS[4]},
-    {name:"Project 6", desc:"Slate project", url:"#", image:null, accent:ACCENTS[5]},
-  ];
-
-  // ----- DOM -----
-  const cube = document.getElementById("cube");
-  const cubeWrap = document.getElementById("cubeWrap");
-  const nav = document.getElementById("nav");
-  const descPanel = document.getElementById("descPanel");
-  const imagePanel = document.getElementById("imagePanel");
-  const imagePlaceholder = document.getElementById("imagePlaceholder");
-
-  const faces = Array.from(cube.querySelectorAll('.face'));
-  const faceSlots = faces.map(f => f.getAttribute('data-slot')); // Not used directly but kept
-
-  // state
-  let centerIndex = 0; // which project is logically centered
-  let angle = 0; // cumulative rotation angle
-  let isPointerDown = false;
-  let startX=0, startY=0, lastX=0, lastTime=0;
-  let velocity = 0;
-  const CLICK_THRESHOLD = 6; // px
-  const CLICK_TIME = 300; // ms
-  let pointerDownTime = 0;
-  let lastUpdateTime = 0;
-  let inertiaFrame = null;
-  let dragging = false;
-  let wantingVertical = false; // small rubberband effect
-
-  // faceAngles (degrees) for the face nearest to front: front=0,right=90,back=180,left=-90
-  const faceOrder = ["front","right","back","left"]; // in DOM ordering we also have top/bottom
-
-  // Set computed cube depth CSS var based off size (half width)
-  function updateCubeDepth(){
-    const wrapRect = cubeWrap.getBoundingClientRect();
-    const depth = (wrapRect.width / 2) + 'px';
-    cube.style.setProperty('--cube-depth', depth);
-  }
-  window.addEventListener('resize', updateCubeDepth);
-  updateCubeDepth();
-
-  // --- utility: mapping projects to faces
-  function updateFaces(){
-    // pick 6 sequential projects starting at centerIndex (front) and assign to faces in this mapping:
-    // front -> centerIndex
-    // right -> centerIndex + 1
-    // back  -> centerIndex + 2
-    // left  -> centerIndex + 3
-    // top   -> centerIndex + 4
-    // bottom-> centerIndex + 5
-    const n = projects.length;
-    faces.forEach((face, i) => {
-      // data slot order in DOM: front, right, back, left, top, bottom
-      const project = projects[(centerIndex + i) % n];
-      const accent = project.accent || ACCENTS[(centerIndex + i) % ACCENTS.length];
-      const titleEl = face.querySelector('.meta .title');
-      const subEl = face.querySelector('.meta .sub');
-      const accentEl = face.querySelector('.accent');
-      if(titleEl) titleEl.textContent = project.name;
-      if(subEl) subEl.textContent = project.desc || "";
-      if(accentEl) accentEl.style.background = accent;
-      // attach url on click
-      face.onclick = (ev) => {
-        // if it was a drag we shouldn't open; click-vs-drag is handled higher up
-        window.open(project.url || "#", "_blank");
-      };
-    });
-
-    // update textual panels based on most visible face (front)
-    const frontProject = projects[centerIndex % n];
-    descPanel.textContent = frontProject.desc || "";
-    if(frontProject.image){
-      imagePanel.style.background = `linear-gradient(180deg, rgba(0,0,0,0.1), rgba(0,0,0,0.02)), url('${frontProject.image}') center/cover no-repeat`;
-      imagePlaceholder.textContent = "";
+  // update panels: compute closest local point and set CSS variables for optional rim decorations (if used later)
+  [titlePanel, descPanel, imagePanel].forEach(el=>{
+    const rect = el.getBoundingClientRect();
+    const cx = Math.max(rect.left, Math.min(a.x, rect.right));
+    const cy = Math.max(rect.top, Math.min(a.y, rect.bottom));
+    const localX = Math.round(cx - rect.left);
+    const localY = Math.round(cy - rect.top);
+    el.style.setProperty('--bite-x', `${localX}px`);
+    el.style.setProperty('--bite-y', `${localY}px`);
+    el.style.setProperty('--bite-radius', `${a.r}px`);
+    // show/hide by distance test (keeps pseudo decorations performant)
+    const dist = Math.hypot(cx - a.x, cy - a.y);
+    const margin = 6;
+    if(dist < a.r + margin){
+      el.setAttribute('data-bite', '1');
     } else {
-      imagePanel.style.background = "transparent";
-      imagePlaceholder.textContent = frontProject.name + " preview (no image)";
+      el.setAttribute('data-bite', '0');
     }
-    // update nav selection
-    updateNavActive();
+  });
+
+  // place cubeWrap center at anchor center in page coordinates
+  cubeWrap.style.left = `${a.x}px`;
+  cubeWrap.style.top = `${a.y}px`;
+  cubeWrap.style.transform = 'translate(-50%, -50%)';
+}
+
+/* === Cube rotation and interaction ===
+   - drag uses cumulative-delta model (startX → currentX) to avoid inversion
+   - click detection threshold is kept to differentiate tap vs drag
+   - inertia simulated by angular velocity
+*/
+let rotY = 0;
+let isDown = false;
+let startX = 0, startRot = 0, startT = 0;
+let angVel = 0;
+const SENS = 0.35;
+const CLICK_MOVE_THRESHOLD = 6;
+const CLICK_TIME_THRESHOLD = 300;
+
+scene.addEventListener('pointerdown', e=>{
+  isDown = true;
+  startX = e.clientX;
+  startRot = rotY;
+  startT = performance.now();
+  angVel = 0;
+  try{ scene.setPointerCapture(e.pointerId); }catch(e){}
+});
+scene.addEventListener('pointermove', e=>{
+  if(!isDown) return;
+  const dx = e.clientX - startX;
+  const target = startRot + dx * SENS;
+  angVel = target - rotY;
+  rotY = target;
+  applyRotation();
+});
+scene.addEventListener('pointerup', e=>{
+  try{ scene.releasePointerCapture(e.pointerId); }catch(e){}
+  const dt = performance.now() - startT;
+  const moved = Math.hypot(e.clientX - startX, e.clientY - startX);
+  const isClick = moved <= CLICK_MOVE_THRESHOLD && dt <= CLICK_TIME_THRESHOLD;
+  isDown = false;
+  angVel = Math.max(-20, Math.min(20, angVel));
+  if(isClick){
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const face = el && el.closest && el.closest('.face');
+    if(face) openFaceProject(face);
   }
+});
 
-  // nav buttons
-  function renderNav(){
-    nav.innerHTML = "";
-    for(let i=0;i<projects.length;i++){
-      const b = document.createElement('button');
-      b.textContent = (i+1) + " — " + projects[i].name;
-      b.onclick = (e) => {
-        goToProject(i);
-      };
-      nav.appendChild(b);
-    }
-    updateNavActive();
+/* Apply rotation (and update most-visible face => update left panels) */
+function applyRotation(){
+  cube.style.transform = `translateZ(-140px) rotateX(-10deg) rotateY(${rotY}deg)`;
+  updateMostVisibleFace();
+}
+
+/* Determine most visible face using angle heuristic (front=0°, right=90°, back=180°, left=270°)
+   This mapping is adjacent-order: front->projects[0], right->projects[1], back->projects[2], left->projects[3]
+*/
+function updateMostVisibleFace(){
+  const rad = (rotY % 360) * Math.PI / 180;
+  const slotAngles = [0, -Math.PI/2, Math.PI, Math.PI/2]; // front, right, back, left
+  const scores = slotAngles.map(sa=>{
+    const diff = normalizeAngleRad(-rad - sa);
+    return Math.max(0, Math.cos(diff)); // higher = more facing camera
+  });
+  let best = -1, bestIdx = 0;
+  scores.forEach((s,i)=>{ if(s>best){ best=s; bestIdx=i }});
+  const mapping = [0,1,2,3]; // front->0, right->1, back->2, left->3
+  const projIndex = mapping[bestIdx] % projects.length;
+  const p = projects[projIndex];
+  if(p){
+    // update left-side panels and image accent
+    document.getElementById('projTitle').textContent = p.title;
+    document.getElementById('projSubtitle').textContent = p.subtitle;
+    document.getElementById('projDesc').textContent = p.desc;
+    imagePanel.textContent = `${p.title} preview (no image)`;
+    imagePanel.style.borderLeft = `4px solid ${p.color}`;
   }
-  function updateNavActive(){
-    const btns = Array.from(nav.children);
-    btns.forEach((b, idx) => {
-      if(idx === (centerIndex % projects.length)) {
-        b.classList.add('active');
-      } else b.classList.remove('active');
-    });
+}
+function normalizeAngleRad(a){
+  const two = Math.PI * 2;
+  let v = (a + Math.PI) % two;
+  if(v < 0) v += two;
+  return v - Math.PI;
+}
+
+/* Clicking a face opens the matched project (mapping same as updateMostVisibleFace) */
+function openFaceProject(faceEl){
+  const map = { front:0, right:1, back:2, left:3, top:4, bottom:5 };
+  const slot = faceEl.dataset.slot;
+  const idx = (map[slot] ?? 0) % projects.length;
+  const p = projects[idx];
+  if(p && p.url) window.open(p.url, '_blank');
+}
+
+/* Animate rotation to center a desired project index (projIdx maps to slot via projIdx % 4) */
+function centerCubeOnProject(projIdx){
+  const slot = projIdx % 4; // 0 front, 1 right, 2 back, 3 left
+  const targetRel = -slot * 90;
+  animateRotationTo(rotY + targetRel, 420);
+}
+function animateRotationTo(targetDeg, duration=420){
+  const start = performance.now(), from = rotY;
+  function step(ts){
+    const t = Math.min(1, (ts - start)/duration);
+    const eased = 1 - Math.pow(1-t, 3); // ease-out-cubic
+    rotY = from + (targetDeg - from) * eased;
+    applyRotation();
+    if(t < 1) requestAnimationFrame(step);
   }
+  requestAnimationFrame(step);
+}
 
-  // rotate cube by setting CSS transform
-  function applyAngle(withTransition=true){
-    cube.style.transition = withTransition ? "transform 420ms cubic-bezier(.22,.9,.2,1)" : "none";
-    // clamp vertical tiny tilt (rubberband)
-    const tilt = wantingVertical ? Math.max(-8, Math.min(8, angle * 0.02)) : 0;
-    cube.style.transform = `rotateX(${tilt}deg) rotateY(${angle}deg)`;
+/* inertia loop (simple exponential friction) */
+let last = performance.now();
+function loop(now){
+  const dt = (now - last)/1000;
+  last = now;
+  if(!isDown && Math.abs(angVel) > 0.0005){
+    rotY += angVel;
+    angVel *= Math.pow(0.90, dt * 60);
+    applyRotation();
   }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
 
-  // When user crosses a 90-degree threshold, shift content array
-  function handleAngleCrossing(){
-    // If angle > 90 => we moved one face to the left (user dragged left-to-right meaning positive angle)
-    // We'll shift centerIndex -1 or +1 appropriately and reduce angle by 90 (so the cube looks continuous)
-    const n = projects.length;
-    while(angle > 90){
-      // moved to previous project
-      centerIndex = (centerIndex - 1 + n) % n;
-      angle -= 90;
-      updateFaces();
-    }
-    while(angle < -90){
-      // moved to next project
-      centerIndex = (centerIndex + 1) % n;
-      angle += 90;
-      updateFaces();
-    }
-  }
+/* Build the bottom projects bar and ensure it maps to faces in correct order */
+function buildBottomBar(){
+  projectsBar.innerHTML = '';
+  projects.forEach((p,i)=>{
+    const el = document.createElement('div');
+    el.className = 'proj-btn';
+    el.innerHTML = `<strong>${i+1}</strong><span>${p.title}</span>`;
+    el.addEventListener('click', ()=> centerCubeOnProject(i));
+    projectsBar.appendChild(el);
+  });
+}
+buildBottomBar();
 
-  // smooth inertia
-  function startInertia(){
-    cancelAnimationFrame(inertiaFrame);
-    let friction = 0.95;
-    const step = () => {
-      // apply velocity
-      if(Math.abs(velocity) < 0.02){
-        velocity = 0;
-        // snap to nearest 90deg
-        angle = Math.round(angle / 90) * 90;
-        handleAngleCrossing();
-        applyAngle(true);
-        inertiaFrame = null;
-        return;
-      }
-      angle += velocity;
-      velocity *= friction;
-      // small vertical rubberband decay
-      wantingVertical = Math.abs(velocity) < 0.5 && Math.abs(angle) < 20 ? false : wantingVertical;
-      handleAngleCrossing();
-      applyAngle(false);
-      inertiaFrame = requestAnimationFrame(step);
-    };
-    inertiaFrame = requestAnimationFrame(step);
-  }
+/* layout recalculations on load/resize: position bite circle and cube center precisely */
+function layoutUpdate(){
+  positionBiteAndCube();
+  applyRotation();
+}
+/* robust resize handling and debounce */
+let resizeTimer;
+window.addEventListener('resize', ()=>{ clearTimeout(resizeTimer); resizeTimer = setTimeout(layoutUpdate, 80); });
 
-  function onPointerDown(e){
-    isPointerDown = true;
-    dragging = false;
-    startX = e.clientX;
-    startY = e.clientY;
-    lastX = startX;
-    pointerDownTime = performance.now();
-    lastTime = pointerDownTime;
-    velocity = 0;
-    cancelAnimationFrame(inertiaFrame);
-    cube.setPointerCapture?.(e.pointerId);
-    cube.style.transition = "none";
-  }
+window.addEventListener('load', ()=>{ layoutUpdate(); setTimeout(layoutUpdate, 120); });
 
-  function onPointerMove(e){
-    if(!isPointerDown) return;
-    const now = performance.now();
-    const dx = e.clientX - lastX;
-    const dt = Math.max(8, now - lastTime);
-    velocity = (dx / dt) * 15 + velocity * 0.1; // crude velocity estimate
-    angle += (e.clientX - lastX) * 0.25; // sensitivity
-    // a tiny vertical movement produces a gentle rubberband wantingVertical state
-    if(Math.abs(e.clientY - startY) > 8){
-      wantingVertical = true;
-    }
-    handleAngleCrossing();
-    applyAngle(false);
-    lastX = e.clientX;
-    lastTime = now;
-    // if moved beyond threshold it's a drag (not a click)
-    if(Math.abs(e.clientX - startX) > CLICK_THRESHOLD || Math.abs(e.clientY - startY) > CLICK_THRESHOLD) dragging = true;
-  }
+/* bind face clicks (also supports opening via pointers) */
+Array.from(document.querySelectorAll('.face')).forEach(f=>{
+  f.addEventListener('click', ()=> openFaceProject(f));
+});
 
-  function onPointerUp(e){
-    isPointerDown = false;
-    cube.releasePointerCapture?.(e.pointerId);
-    const downDuration = performance.now() - pointerDownTime;
-    // click if small movement and short time
-    if(!dragging && downDuration < CLICK_TIME){
-      // this was a click; find the face that was clicked (mouse position vs cube faces)
-      const clickedFace = findClickedFace(e);
-      if(clickedFace){
-        // open project for that face
-        const projectsIndex = (centerIndex + faces.indexOf(clickedFace)) % projects.length;
-        const p = projects[projectsIndex];
-        if(p && p.url) window.open(p.url, "_blank");
-      }
-      return;
-    }
-    // start inertia
-    startInertia();
-    // small delay to release vertical rub
-    setTimeout(()=>{wantingVertical=false}, 420);
-  }
-
-  // helper to detect which face is under pointer (approx using bounding rect intersection)
-  function findClickedFace(e){
-    for(const f of faces){
-      const rect = f.getBoundingClientRect();
-      if(e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom){
-        return f;
-      }
-    }
-    return null;
-  }
-
-  // move directly to a project index (animated)
-  function goToProject(targetIndex){
-    // targetIndex is absolute project index
-    const n = projects.length;
-    // compute minimal rotation steps from centerIndex to targetIndex using our mapping across faces
-    // We'll rotate such that targetIndex becomes front.
-    let delta = (targetIndex - centerIndex + n) % n;
-    // choose shortest direction in cyclic list but preserve horizontal only increments of 90deg per step
-    // We'll assume step size 1 => 90deg
-    // But to maintain consistent behavior, we'll pick delta in [-n/2,n/2]
-    if(delta > n/2) delta -= n;
-    // rotate angle by -90 * delta (because increasing centerIndex moves front forward to right)
-    // We want the cube's angle to move so that new front is visible
-    angle += -90 * delta;
-    // normalize angle and then run crossing logic
-    handleAngleCrossing();
-    applyAngle(true);
-  }
-
-  // ----- GitHub fetching for repo list & README thumbnails -----
-  async function fetchGitHubProjects(){
-    try{
-      const headers = {};
-      if(GITHUB_TOKEN) headers['Authorization'] = 'token ' + GITHUB_TOKEN;
-      // fetch public repos
-      const repoRes = await fetch(`https://api.github.com/users/${GITHUB_USER}/repos?per_page=100&sort=updated`, {headers});
-      if(!repoRes.ok) throw new Error('Failed to load repos: ' + repoRes.status);
-      const repoData = await repoRes.json();
-      // simple filter: only repos with description or not archived
-      const filtered = repoData.filter(r => !r.private && !r.archived).slice(0, 12);
-      const fetched = await Promise.all(filtered.map(async r => {
-        // readme
-        let desc = r.description || "";
-        let thumb = null;
-        try{
-          const rd = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${r.name}/readme`, {headers});
-          if(rd.ok){
-            const rdJson = await rd.json();
-            if(rdJson && rdJson.content){
-              const md = decodeBase64(rdJson.content);
-              const img = findFirstImageInMarkdown(md, r);
-              if(img) thumb = img;
-              // if no nice desc from README fallback to repo description
-              if(!desc){
-                desc = extractFirstParagraphText(md) || desc;
-              }
-            }
-          }
-        }catch(err){
-          // ignore per-repo issues
-        }
-        return {
-          name: r.name,
-          desc: desc || "No description",
-          url: r.html_url,
-          image: thumb,
-          accent: ACCENTS[Math.floor(Math.random()*ACCENTS.length)]
-        };
-      }));
-
-      if(fetched.length >= 4){
-        projects = fetched;
-      } else {
-        // fallback: combine fetched with default
-        projects = fetched.concat(projects).slice(0, Math.max(6, fetched.length));
-      }
-      // ensure at least 6 entries (cycle)
-      while(projects.length < 6) projects.push({name:"Empty",desc:"Add more projects",url:"#",image:null,accent:ACCENTS[projects.length%ACCENTS.length]});
-      renderNav();
-      updateFaces();
-    }catch(err){
-      console.warn("GitHub fetch failed, using fallback projects", err);
-      renderNav();
-      updateFaces();
-    }
-  }
-
-  function decodeBase64(s){
-    try {
-      return atob(s.replace(/\n/g,''));
-    } catch(e) {
-      return "";
-    }
-  }
-  function findFirstImageInMarkdown(md, repo){
-    // look for markdown image ![alt](url) or HTML <img src="...">
-    const mdImg = md.match(/!\[[^\]]*\]\(([^)]+)\)/i);
-    if(mdImg && mdImg[1]) return normalizeImageUrl(mdImg[1], repo);
-    const htmlImg = md.match(/<img\s+[^>]*src=["']([^"']+)["']/i);
-    if(htmlImg && htmlImg[1]) return normalizeImageUrl(htmlImg[1], repo);
-    // try to find relative files like assets/screenshot.png by looking for common names
-    const match = md.match(/(screenshot|preview|cover|thumbnail|hero)[^\n]*\.(png|jpg|jpeg|webp|gif)/i);
-    if(match) return normalizeImageUrl(match[0], repo);
-    return null;
-  }
-  function normalizeImageUrl(url, repo){
-    // remove optional title parts, trim
-    url = url.split(' ')[0].replace(/['"]/g,'').trim();
-    if(url.startsWith('http')) return url;
-    if(url.startsWith('/')) {
-      // absolute path on github pages -> transform to raw
-      return `https://raw.githubusercontent.com/${GITHUB_USER}/${repo.name}/main${url}`;
-    }
-    // relative path -> raw on main branch
-    return `https://raw.githubusercontent.com/${GITHUB_USER}/${repo.name}/main/${url}`;
-  }
-  function extractFirstParagraphText(md){
-    // strip markdown and get first non-empty paragraph
-    const cleaned = md.replace(/!\[[^\]]*\]\([^\)]*\)/g,'').replace(/[#>*`~\-\[\]\(\)]/g,'');
-    const parts = cleaned.split(/\n\s*\n/).map(s=>s.trim()).filter(Boolean);
-    return parts[0] ? parts[0].slice(0, 240) : "";
-  }
-
-  // initialize UI
-  function init(){
-    renderNav();
-    updateFaces();
-    // pointer events
-    cube.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-    // ensure proper cursor
-    cube.style.cursor = "grab";
-    cube.addEventListener('pointerdown', ()=> cube.style.cursor = "grabbing");
-    window.addEventListener('pointerup', ()=> cube.style.cursor = "grab");
-
-    // reflow cube depth
-    updateCubeDepth();
-
-    // fetch projects from GitHub in background
-    fetchGitHubProjects();
-  }
-
-  // public
-  init();
-
-  // expose goToProject for nav (attached via closures)
-  window.goToProject = goToProject;
-
+/* initial mapping: set accents of faces to match projects data (keeps faces/colors in sync) */
+(function syncFaceAccents(){
+  const faces = document.querySelectorAll('.face');
+  faces.forEach((face, idx) => {
+    const p = projects[idx % projects.length];
+    const accent = face.querySelector('.accent');
+    if(accent && p) accent.style.background = p.color;
+  });
 })();
+
+/* Prevent common pitfalls checklist (runtime guards):
+   - Ensure bite SVG uses viewport coordinates (we set width/height on layoutUpdate).
+   - Ensure cubeWrap is positioned using page coordinates (we set left/top to anchor center).
+   - Use setPointerCapture with try/catch for cross-browser robustness.
+   - Use cumulative drag from start position (not frame deltas) to avoid inversion.
+*/
 </script>
 </body>
 </html>
