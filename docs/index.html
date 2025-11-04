@@ -2,15 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Layout Test - No Cube</title>
+  <title>Layout Test - Proper Spacing</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
+    :root {
+      --bg: #0a0f1b;
+      --panel: rgba(255,255,255,0.03);
+      --border: rgba(255,255,255,0.08);
+      --text: #e6eef6;
+      --muted: rgba(255,255,255,0.6);
+    }
+    
     body {
-      background: #0a0f1b;
-      color: #e6eef6;
-      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, sans-serif;
       height: 100vh;
       overflow: hidden;
     }
@@ -21,84 +29,99 @@
       position: relative;
     }
     
-    /* Title - top left, good size */
+    /* Title - top left */
     .title {
       position: absolute;
-      left: 60px;
-      top: 80px;
-      width: 380px;
-      height: 180px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px;
+      left: 50%;
+      top: 50%;
+      transform: translate(calc(-100% - 1.5vw), calc(-100% - 1.5vh));
+      width: 35vw;
+      height: 22vh;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
       padding: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
+      font-size: 28px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
     
-    /* Description - bottom left, substantial size */
+    /* Description - bottom left */
     .description {
       position: absolute;
-      left: 60px;
-      bottom: 180px;
-      width: 380px;
-      height: 240px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px;
+      left: 50%;
+      top: 50%;
+      transform: translate(calc(-100% - 1.5vw), 1.5vh);
+      width: 35vw;
+      height: 28vh;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
       padding: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
     
-    /* Image - right side, just over half width */
+    /* Image - right side */
     .img {
       position: absolute;
-      right: 60px;
-      top: 80px;
-      width: 55vw;
-      height: calc(100vh - 260px);
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px;
+      left: 50%;
+      top: 50%;
+      transform: translate(1.5vw, -50%);
+      width: 48vw;
+      height: 52vh;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 48px;
       color: rgba(255,255,255,0.3);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
     
-    /* Project buttons - bottom strip */
+    /* Project buttons - full width bottom */
     .projects {
       position: absolute;
-      bottom: 40px;
-      left: 60px;
-      right: 60px;
-      height: 80px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 12vh;
       display: flex;
-      gap: 12px;
       align-items: center;
+      padding: 0 2vw;
+      background: linear-gradient(to top, rgba(0,0,0,0.3), transparent);
     }
     
     .project-btn {
       flex: 1;
-      max-width: 120px;
-      height: 60px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 8px;
+      margin: 0 8px;
+      height: 70px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      font-size: 18px;
+      font-size: 20px;
+      transition: all 0.2s;
+    }
+    
+    .project-btn:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.4);
+      border-color: rgba(255,255,255,0.15);
     }
     
     .project-btn:first-child {
-      background: rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.12);
     }
   </style>
 </head>
