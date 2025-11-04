@@ -9,26 +9,28 @@
     html,body{height:100%;margin:0;background:var(--bg);color:var(--hint);font-family:Inter,system-ui,Roboto,Arial}
     #container{width:100vw;height:100vh;display:block;overflow:hidden}
     .hint{position:fixed;left:18px;bottom:18px;background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:8px;font-size:13px}
+    canvas { display:block }
   </style>
 </head>
 <body>
   <div id="container"></div>
-  <div class="hint">Drag left/right to spin • Click face to open project</div>
+  <div class="hint">Drag left/right to spin • Click a face to open project</div>
 
   <!-- three.js non-module build for GitHub Pages -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <script>
-  // — Infinite horizontal carousel cube (cleaned, click-vs-drag, behind-face swapping, vertical rod)
-  // Key fixes:
-  //  - Click only triggers when pointer movement is small (threshold) and short press
-  //  - Faces are swapped when they move to the BACK position (not visible) so swaps are hidden
-  //  - Vertical rod placed through the cube (no horizontal line artifact)
-  //  - Minesweeper image support: project can provide img property (relative path). If present, it fills the image area.
+  /**
+   * Infinite horizontal carousel cube
+   * - Cumulative-drag model so initial pointer position behind/around the cube doesn't invert direction
+   * - Click vs drag detection (small movement + short press = click)
+   * - Face swaps occur when the face moves to BACK (hidden), so new content appears off-screen
+   * - Vertical rod through cube as an axle visual
+   * - Project image support: provide img in projects for full-face image (leaves bottom area for title/snippet)
+   */
 
+  // Scene setup
   const container = document.getElementById('container');
-
-  // Scene & camera
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.set(0, 3.8, 5.6);
@@ -45,15 +47,14 @@
   scene.add(dir);
   scene.add(new THREE.AmbientLight(0x6b7788, 0.6));
 
-  // Vertical rod through cube (visual cue for constrained rotation)
+  // Vertical rod through cube (visual axle)
   const rodMat = new THREE.MeshStandardMaterial({ color: 0x99aabb, metalness: 0.8, roughness: 0.2 });
   const rodGeo = new THREE.CylinderGeometry(0.035, 0.035, 4.6, 20);
   const rod = new THREE.Mesh(rodGeo, rodMat);
   rod.position.y = 0.1;
   scene.add(rod);
 
-  // Projects list (can later be replaced by /projects.json)
-  // Add img property for minesweeper if you have a thumbnail, e.g. "/assets/mines-thumb.png"
+  // Projects list (replaceable by /projects.json); include img for Minesweeper if you have a thumbnail
   const projects = [
     { title: "Minesweeper", snippet: "Interactive tile puzzle", url: "/PolyWeave-Mines/", color: "#e74c3c", img: "/assets/mines-thumb.png" },
     { title: "Project 2",    snippet: "Placeholder 2",            url: "#",                       color: "#27ae60" },
@@ -62,12 +63,11 @@
     { title: "Project 5",    snippet: "Placeholder 5",            url: "#",                       color: "#f39c12" }
   ];
 
-  // Canvas textures for faces (order: +X:0, -X:1, +Y:2, -Y:3, +Z:4, -Z:5)
+  // Canvas textures for faces (+X:0, -X:1, +Y:2, -Y:3, +Z:4, -Z:5)
   const faceCanvases = [];
   const faceTextures = [];
   const faceMaterials = [];
-
-  for (let i=0;i<6;i++){
+  for (let i = 0; i < 6; i++) {
     const c = document.createElement('canvas');
     c.width = c.height = 1024;
     faceCanvases.push(c);
@@ -77,90 +77,21 @@
     faceMaterials.push(new THREE.MeshStandardMaterial({ map: tex, metalness: 0.15, roughness: 0.55 }));
   }
 
-  // Helper: draw project face — image across top ~70%, bottom area for title/snippet
-  function drawProjectFace(canvas, project, indexLabel) {
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-
-    // background
-    ctx.fillStyle = '#071425';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-
-    // light panel
-    ctx.fillStyle = project.color || '#497fb6';
-    ctx.globalAlpha = 0.06;
-    ctx.fillRect(64,64,canvas.width-128,canvas.height-128);
-    ctx.globalAlpha = 1;
-
-    // image area (top 70%)
-    const imgArea = { x: 88, y: 88, w: canvas.width-176, h: Math.floor((canvas.height-176)*0.72) };
-    // draw image if available and loaded
-    if (project.img) {
-      // draw placeholder gray while loading/if fail
-      ctx.fillStyle = '#0b1220';
-      ctx.fillRect(imgArea.x, imgArea.y, imgArea.w, imgArea.h);
-      // try to draw image element if cached
-      const img = faceImageCache[project.img];
-      if (img && img.complete && img.naturalWidth) {
-        // cover: fit image cropping to fill area
-        const sw = img.naturalWidth, sh = img.naturalHeight;
-        const scale = Math.max(imgArea.w/sw, imgArea.h/sh);
-        const swScaled = imgArea.w/scale, shScaled = imgArea.h/scale;
-        const sx = Math.max(0, (sw - swScaled)/2);
-        const sy = Math.max(0, (sh - shScaled)/2);
-        ctx.drawImage(img, sx, sy, swScaled, shScaled, imgArea.x, imgArea.y, imgArea.w, imgArea.h);
-      } else {
-        // fallback: draw crosshatch to indicate loading/placeholder
-        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-        for (let i=0;i<20;i++){
-          ctx.beginPath();
-          ctx.moveTo(imgArea.x + (i/20)*imgArea.w, imgArea.y);
-          ctx.lineTo(imgArea.x, imgArea.y + (i/20)*imgArea.h);
-          ctx.stroke();
-        }
-      }
-    } else {
-      // no image — decorative rectangle
-      ctx.fillStyle = '#0b1220';
-      ctx.fillRect(imgArea.x, imgArea.y, imgArea.w, imgArea.h);
-    }
-
-    // Title area (bottom)
-    ctx.fillStyle = '#e6eef6';
-    ctx.font = 'bold 72px Inter, Arial';
-    ctx.textAlign = 'left';
-    wrapText(ctx, project.title || "Untitled", 120, imgArea.y + imgArea.h + 80, canvas.width - 240, 64);
-
-    // Snippet
-    ctx.fillStyle = '#b9d7ee';
-    ctx.font = '400 40px Inter, Arial';
-    wrapText(ctx, project.snippet || "", 120, imgArea.y + imgArea.h + 170, canvas.width - 240, 44);
-
-    // index label bottom-right
-    ctx.fillStyle = '#90bfe0';
-    ctx.font = '600 28px Inter, Arial';
-    ctx.textAlign = 'right';
-    ctx.fillText(indexLabel || '', canvas.width - 120, canvas.height - 88);
+  // Image cache for project thumbnails
+  const faceImageCache = {};
+  function preloadImage(url) {
+    if (!url) return;
+    if (faceImageCache[url]) return;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = url;
+    img.onload = () => { faceImageCache[url] = img; renderAllFaceCanvases(); };
+    img.onerror = () => { faceImageCache[url] = null; };
+    faceImageCache[url] = img;
   }
+  projects.forEach(p => { if (p.img) preloadImage(p.img); });
 
-  // Helper: welcome/top face
-  function drawWelcomeFace(canvas) {
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = '#071425';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = '#2f9bd8';
-    ctx.globalAlpha = 0.08;
-    ctx.fillRect(64,64,canvas.width-128,canvas.height-128);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = '#e6eef6';
-    ctx.font = 'bold 84px Inter, Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Welcome to my portfolio', canvas.width/2, canvas.height/2 - 10);
-    ctx.font = '400 36px Inter, Arial';
-    ctx.fillText('Drag left/right to explore', canvas.width/2, canvas.height/2 + 54);
-  }
-
+  // Drawing helpers
   function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
     const words = text.split(' ');
     let line = '';
@@ -180,51 +111,101 @@
     ctx.fillText(line, x, yy);
   }
 
-  // face image cache to draw img into canvas when loaded
-  const faceImageCache = {};
-  function preloadImage(url) {
-    if (!url) return;
-    if (faceImageCache[url]) return;
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = url;
-    img.onload = () => {
-      faceImageCache[url] = img;
-      // when an image loads, re-render all faces so it appears
-      renderAllFaceCanvases();
-    };
-    img.onerror = () => { faceImageCache[url] = null; };
-    faceImageCache[url] = img;
+  // Project face: image across top ~70%, bottom band for title/snippet
+  function drawProjectFace(canvas, project, indexLabel) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    // background
+    ctx.fillStyle = '#071425';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    // subtle panel
+    ctx.fillStyle = project.color || '#497fb6';
+    ctx.globalAlpha = 0.06;
+    ctx.fillRect(64,64,canvas.width-128,canvas.height-128);
+    ctx.globalAlpha = 1;
+
+    // image area
+    const imgArea = { x: 88, y: 88, w: canvas.width - 176, h: Math.floor((canvas.height - 176) * 0.72) };
+    if (project.img) {
+      const img = faceImageCache[project.img];
+      if (img && img.complete && img.naturalWidth) {
+        // cover: scale & crop to fill
+        const sw = img.naturalWidth, sh = img.naturalHeight;
+        const scale = Math.max(imgArea.w / sw, imgArea.h / sh);
+        const swScaled = imgArea.w / scale, shScaled = imgArea.h / scale;
+        const sx = Math.max(0, (sw - swScaled) / 2);
+        const sy = Math.max(0, (sh - shScaled) / 2);
+        ctx.drawImage(img, sx, sy, swScaled, shScaled, imgArea.x, imgArea.y, imgArea.w, imgArea.h);
+      } else {
+        ctx.fillStyle = '#0b1220';
+        ctx.fillRect(imgArea.x, imgArea.y, imgArea.w, imgArea.h);
+      }
+    } else {
+      ctx.fillStyle = '#0b1220';
+      ctx.fillRect(imgArea.x, imgArea.y, imgArea.w, imgArea.h);
+    }
+
+    // title
+    ctx.fillStyle = '#e6eef6';
+    ctx.font = 'bold 72px Inter, Arial';
+    ctx.textAlign = 'left';
+    wrapText(ctx, project.title || 'Untitled', 120, imgArea.y + imgArea.h + 72, canvas.width - 240, 64);
+
+    // snippet
+    ctx.fillStyle = '#b9d7ee';
+    ctx.font = '400 40px Inter, Arial';
+    wrapText(ctx, project.snippet || '', 120, imgArea.y + imgArea.h + 150, canvas.width - 240, 44);
+
+    // index label
+    ctx.fillStyle = '#90bfe0';
+    ctx.font = '600 28px Inter, Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(indexLabel || '', canvas.width - 120, canvas.height - 88);
   }
 
-  projects.forEach(p => { if (p.img) preloadImage(p.img); });
+  function drawWelcomeFace(canvas) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = '#071425';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle = '#2f9bd8';
+    ctx.globalAlpha = 0.08;
+    ctx.fillRect(64,64,canvas.width-128,canvas.height-128);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#e6eef6';
+    ctx.font = 'bold 84px Inter, Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Welcome to my portfolio', canvas.width/2, canvas.height/2 - 10);
+    ctx.font = '400 36px Inter, Arial';
+    ctx.fillText('Drag left/right to explore', canvas.width/2, canvas.height/2 + 54);
+  }
 
-  // cube
+  // Cube and face assignment
   const boxGeo = new THREE.BoxGeometry(1.95, 1.95, 1.95);
   const cube = new THREE.Mesh(boxGeo, faceMaterials);
   cube.position.y = 0.1;
   scene.add(cube);
 
-  // logical frontIndex: which project is shown at the front (+Z material idx 4)
-  let frontIndex = 0; // start with projects[0] (Minesweeper) shown front
-  // Initialize faces so front shows projects[0]
+  // logical frontIndex (which project is at front +Z)
+  let frontIndex = 0; // start with projects[0] (Minesweeper)
+
   function renderAllFaceCanvases() {
-    // Material indices: 0:+X(right), 1:-X(left), 2:+Y(top), 3:-Y(bottom), 4:+Z(front), 5:-Z(back)
     const len = projects.length;
     const mapping = {
-      // slot layout (slot 0 = front, slot1 = right, slot2 = back, slot3 = left)
       front: (frontIndex + 0) % len,
       right: (frontIndex + 1) % len,
       back:  (frontIndex + 2) % len,
       left:  (frontIndex + 3) % len
     };
 
-    // draw top (welcome)
+    // top (material 2): welcome
     drawWelcomeFace(faceCanvases[2]);
     faceTextures[2].image = faceCanvases[2];
     faceTextures[2].needsUpdate = true;
 
-    // draw bottom (info placeholder)
+    // bottom (material 3): info
     const bottomCanvas = faceCanvases[3];
     const ctxb = bottomCanvas.getContext('2d');
     ctxb.clearRect(0,0,bottomCanvas.width,bottomCanvas.height);
@@ -258,42 +239,41 @@
     faceTextures[1].needsUpdate = true;
   }
 
-  // initial render
   renderAllFaceCanvases();
 
-  // Interaction: click vs drag detection
+  // Pointer interaction — cumulative drag model
   let isPointerDown = false;
   let pointerStartX = 0;
   let pointerStartY = 0;
   let pointerDownTime = 0;
-  let lastX = 0;
+  let startRotation = 0;
   let angVel = 0;
 
-  // thresholds
   const CLICK_MOVE_THRESHOLD = 6; // px
   const CLICK_TIME_THRESHOLD = 300; // ms
+  const SENSITIVITY = 0.0065;
 
   renderer.domElement.addEventListener('pointerdown', (e) => {
     isPointerDown = true;
     pointerStartX = e.clientX;
     pointerStartY = e.clientY;
-    lastX = e.clientX;
     pointerDownTime = performance.now();
+    startRotation = cube.rotation.y; // capture starting rotation
     angVel = 0;
     renderer.domElement.setPointerCapture(e.pointerId);
   });
 
   renderer.domElement.addEventListener('pointermove', (e) => {
     if (!isPointerDown) return;
-    const dx = e.clientX - lastX;
-    lastX = e.clientX;
-    const dAngle = dx * 0.0065; // sensitivity
-    cube.rotation.y += dAngle;
-    angVel = dAngle;
+    const totalDx = e.clientX - pointerStartX; // cumulative from initial down
+    const targetRotation = startRotation + totalDx * SENSITIVITY;
+    // velocity approximated from difference (used for inertia)
+    angVel = targetRotation - cube.rotation.y;
+    // apply rotation directly so direction won't invert due to pointer origin
+    cube.rotation.y = targetRotation;
   });
 
   renderer.domElement.addEventListener('pointerup', (e) => {
-    // Determine if this was a click (small move and short time)
     const dt = performance.now() - pointerDownTime;
     const moved = Math.hypot(e.clientX - pointerStartX, e.clientY - pointerStartY);
     const isClick = moved <= CLICK_MOVE_THRESHOLD && dt <= CLICK_TIME_THRESHOLD;
@@ -301,7 +281,7 @@
     isPointerDown = false;
 
     if (isClick) {
-      // Raycast to find face clicked
+      // click handling (raycast)
       const rect = renderer.domElement.getBoundingClientRect();
       const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       const my = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -311,130 +291,111 @@
       const hits = raycaster.intersectObject(cube, true);
       if (hits.length) {
         const matIdx = hits[0].face.materialIndex;
-        // ignore top(2)/bottom(3) clicks
-        if (matIdx === 2 || matIdx === 3) return;
-        // map material index to slot (front=0,right=1,back=2,left=3)
+        if (matIdx === 2 || matIdx === 3) return; // ignore top/bottom
         let slot = null;
-        if (matIdx === 4) slot = 0;
-        else if (matIdx === 0) slot = 1;
-        else if (matIdx === 5) slot = 2;
-        else if (matIdx === 1) slot = 3;
+        if (matIdx === 4) slot = 0;   // front
+        else if (matIdx === 0) slot = 1; // right
+        else if (matIdx === 5) slot = 2; // back
+        else if (matIdx === 1) slot = 3; // left
         if (slot === null) return;
         const projIndex = (frontIndex + slot) % projects.length;
         const p = projects[projIndex];
         if (p && p.url) window.open(p.url, '_blank');
       }
-    } else {
-      // set angular velocity for inertial spin
-      // cap to avoid spazzing
-      angVel = Math.max(-0.25, Math.min(0.25, angVel));
     }
+    // else leave angVel as last set by pointermove for inertia
+    // clamp angVel to sane bounds to avoid spazzing
+    angVel = Math.max(-0.5, Math.min(0.5, angVel));
   });
 
   // Utility: normalize angle to [0, 2PI)
-  function norm(a) {
-    const two = Math.PI*2;
+  function normalize(a) {
+    const two = Math.PI * 2;
     let v = a % two;
     if (v < 0) v += two;
     return v;
   }
 
-  // Determine which slot is BACK-facing given cube.rotation.y
-  // We'll compute index of back slot (0..3) where 0=front,1=right,2=back,3=left
-  function backSlotFromRotation(rotY) {
-    // The slot mapping (slot->angle center):
-    // slot 0 (front): angle ≈ 0
-    // slot 1 (right): angle ≈ -PI/2
-    // slot 2 (back):  angle ≈ -PI
-    // slot 3 (left):  angle ≈ -3PI/2 (or PI/2)
-    // Compute negative because visual rotation direction: use -rotY
-    const angle = norm(-rotY);
-    // convert to approx slot by rounding to nearest PI/2
-    const q = Math.round(angle / (Math.PI/2)) % 4;
-    // which q corresponds to slot index of the face currently at front; back slot is (front+2)%4
-    const frontSlot = ((q % 4) + 4) % 4;
-    const backSlot = (frontSlot + 2) % 4;
-    return backSlot;
+  // Compute front slot from rotation: returns 0..3 where 0=front,1=right,2=back,3=left
+  function frontSlotFromRotation(rotY) {
+    const angle = normalize(-rotY); // negative so positive rotation visually moves projects left
+    const q = Math.round(angle / (Math.PI / 2)) % 4;
+    return ((q % 4) + 4) % 4;
   }
 
-  // Track last back slot so we update only when a new face moves to back (hidden)
+  // Back slot is (front+2)%4
+  function backSlotFromRotation(rotY) {
+    return (frontSlotFromRotation(rotY) + 2) % 4;
+  }
+
   let lastBackSlot = backSlotFromRotation(cube.rotation.y);
 
   // Animation loop
-  let lastT = performance.now();
+  let lastTime = performance.now();
   function animate(now) {
     requestAnimationFrame(animate);
-    const dt = (now - lastT) / 1000;
-    lastT = now;
+    const dt = (now - lastTime) / 1000;
+    lastTime = now;
 
-    // apply inertial angular velocity when not dragging
+    // inertia when pointer not down
     if (!isPointerDown && Math.abs(angVel) > 1e-5) {
       cube.rotation.y += angVel;
-      // damping
-      angVel *= Math.pow(0.85, dt*60); // frame-rate independent damping
+      // frame-rate independent damping (smooth)
+      angVel *= Math.pow(0.88, dt * 60);
       if (Math.abs(angVel) < 1e-5) angVel = 0;
     }
 
-    // Keep cube upright: remove accidental tilt on X/Z by locking pitch/roll
+    // keep cube upright (remove accidental tilt)
     const e = new THREE.Euler().setFromQuaternion(cube.quaternion, 'YXZ');
     const yawOnly = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, e.y, 0));
-    cube.quaternion.slerp(yawOnly, 0.2);
+    cube.quaternion.slerp(yawOnly, 0.18);
 
-    // Detect back-slot changes. When a NEW slot becomes the back, we advance/retreat frontIndex accordingly,
-    // and update horizontal faces. This ensures swaps happen while the face is hidden.
-    // We compute current back slot based on rotation.
-    const currentBackSlot = backSlotFromRotation(cube.rotation.y);
-    if (currentBackSlot !== lastBackSlot) {
-      // determine direction of movement: if back slot advanced by +1 modulo 4, user rotated such that projects should advance by -1
-      const delta = ((currentBackSlot - lastBackSlot) + 4) % 4;
+    // detect when a NEW face becomes the back (hidden). Then advance/retreat frontIndex and update faces.
+    const currentBack = backSlotFromRotation(cube.rotation.y);
+    if (currentBack !== lastBackSlot) {
+      const delta = ((currentBack - lastBackSlot) + 4) % 4;
       let step = 0;
-      if (delta === 1) step = 1;    // user rotated rightwards → advance frontIndex by +1
-      else if (delta === 3) step = -1; // rotated leftwards → retreat frontIndex
-      else if (delta === 2) {
-        // big jump: choose sign from angVel
-        step = angVel > 0 ? 2 : -2;
-      }
+      if (delta === 1) step = 1;
+      else if (delta === 3) step = -1;
+      else if (delta === 2) step = (angVel > 0) ? 2 : -2;
       if (step !== 0) {
         frontIndex = ((frontIndex + step) % projects.length + projects.length) % projects.length;
-        renderAllFaceCanvases();
+        renderAllFaceCanvases(); // swap in new content while it's hidden
       }
-      lastBackSlot = currentBackSlot;
+      lastBackSlot = currentBack;
     }
 
     renderer.render(scene, camera);
   }
   requestAnimationFrame(animate);
 
-  // Resize
+  // Resize handler
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
-  // Non-blocking attempt to load /projects.json (if present) and replace projects array
+  // Attempt to load /projects.json non-blocking
   (async function tryLoadProjectsJson(){
     try {
       const res = await fetch('/projects.json', { cache: 'no-store' });
       if (!res.ok) return;
       const data = await res.json();
       if (!Array.isArray(data) || data.length === 0) return;
-      // map fields to our expected shape
       projects.length = 0;
       data.forEach(p => projects.push({
-        title: p.title || p.name || "Untitled",
-        snippet: p.snippet || p.description || "",
-        url: p.url || p.link || "#",
+        title: p.title || p.name || 'Untitled',
+        snippet: p.snippet || p.description || '',
+        url: p.url || p.link || '#',
         color: p.color || '#5aa',
         img: p.img || p.image || null
       }));
-      // ensure frontIndex = 0 so front shows first project
       frontIndex = 0;
-      // preload any images and re-render
       projects.forEach(p => { if (p.img) preloadImage(p.img); });
       renderAllFaceCanvases();
     } catch (e) {
-      // ignore errors
+      // ignore
     }
   })();
 
