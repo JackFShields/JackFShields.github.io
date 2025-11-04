@@ -1,404 +1,463 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Infinite Carousel Cube — Portfolio Prototype</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CSS Cube Portfolio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root{--bg:#071425;--hint:#cfe7ff}
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--hint);font-family:Inter,system-ui,Roboto,Arial}
-    #container{width:100vw;height:100vh;display:block;overflow:hidden}
-    .hint{position:fixed;left:18px;bottom:18px;background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:8px;font-size:13px}
-    canvas { display:block }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0f;
+      --panel: rgba(255,255,255,0.06);
+      --muted: rgba(255,255,255,0.14);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: #fff;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .wrap {
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1200px;
+      gap: 40px;
+      padding: 40px;
+    }
+
+    /* Scene / cube */
+    .scene {
+      width: 360px;
+      height: 360px;
+      position: relative;
+      transform-style: preserve-3d;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .cube {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transform: translateZ(-180px) rotateX(-10deg);
+      transition: transform 500ms cubic-bezier(.2,.9,.3,1);
+      will-change: transform;
+    }
+
+    .face {
+      position: absolute;
+      width: 360px;
+      height: 360px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 20px;
+      color: #eaf6ff;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+      backface-visibility: hidden;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .face .thumb {
+      position: absolute;
+      left: 16px;
+      top: 16px;
+      right: 16px;
+      height: 68%;
+      background: linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255,255,255,0.6);
+      font-weight: 600;
+      font-size: 18px;
+      border-radius: 8px;
+    }
+
+    .face h3 {
+      margin: 0 0 6px 0;
+      font-size: 22px;
+      line-height: 1;
+      letter-spacing: -0.2px;
+    }
+
+    .face p {
+      margin: 0 0 6px 0;
+      font-size: 13px;
+      opacity: 0.88;
+      color: rgba(230,238,246,0.9);
+    }
+
+    .meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: rgba(200,220,240,0.8);
+    }
+
+    .index {
+      color: #9fc8f0;
+      font-weight: 700;
+    }
+
+    /* Face positions */
+    .front  { transform: rotateY(  0deg) translateZ(180px); background: linear-gradient(180deg,#0d1b2a, rgba(13,27,42,0.15)); }
+    .back   { transform: rotateY(180deg) translateZ(180px); background: linear-gradient(180deg,#10221a, rgba(10,34,26,0.15)); }
+    .right  { transform: rotateY( 90deg) translateZ(180px); background: linear-gradient(180deg,#0a1330, rgba(10,19,48,0.14)); }
+    .left   { transform: rotateY(-90deg) translateZ(180px); background: linear-gradient(180deg,#2a0f21, rgba(42,15,33,0.12)); }
+    .top    { transform: rotateX( 90deg) translateZ(180px); background: linear-gradient(180deg,#13202b, rgba(19,32,43,0.12)); justify-content: center; align-items: center; }
+    .bottom { transform: rotateX(-90deg) translateZ(180px); background: linear-gradient(180deg,#1b1420, rgba(27,20,32,0.12)); justify-content: center; align-items: center; }
+
+    .face:hover { transform: translateZ(0) scale(1.01); box-shadow: 0 10px 28px rgba(2,6,23,0.7); }
+
+    /* Rod visual */
+    .rod {
+      width: 6px;
+      height: 620px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      border-radius: 4px;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.9;
+    }
+
+    /* Bento grid area (cards around cube) */
+    .bento {
+      width: 420px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.02);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      border: 1px solid rgba(255,255,255,0.04);
+      transition: transform 220ms ease, box-shadow 220ms ease;
+      cursor: pointer;
+    }
+
+    .card:hover { transform: translateY(-6px); box-shadow: 0 14px 36px rgba(2,6,23,0.6); }
+
+    .card .thumb {
+      width: 84px;
+      height: 64px;
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: rgba(255,255,255,0.85);
+    }
+
+    .card h4 { margin: 0; font-size: 15px; }
+    .card p { margin: 2px 0 0 0; font-size: 12px; color: rgba(230,238,246,0.8); }
+
+    .hint {
+      position: fixed;
+      left: 20px;
+      bottom: 18px;
+      font-size: 13px;
+      color: rgba(220,235,255,0.75);
+      opacity: 0.9;
+    }
+
+    /* Make layout responsive */
+    @media (max-width: 920px) {
+      .wrap { flex-direction: column; gap: 22px; padding: 20px; }
+      .bento { width: min(92vw, 720px); grid-template-columns: repeat(2, 1fr); }
+      .scene { width: 320px; height: 320px; }
+      .face { width: 320px; height: 320px; }
+      .cube { transform: translateZ(-160px) rotateX(-10deg); }
+    }
   </style>
 </head>
 <body>
-  <div id="container"></div>
-  <div class="hint">Drag left/right to spin • Click a face to open project</div>
+  <div class="wrap">
+    <div style="position:relative;">
+      <div class="rod" aria-hidden="true"></div>
+      <div class="scene" id="scene" role="application" aria-label="3D project cube">
+        <div class="cube" id="cube">
+          <div class="face front" data-slot="front" data-url="/PolyWeave-Mines/">
+            <div class="thumb">Minesweeper (thumb)</div>
+            <div style="position:relative; z-index:2;">
+              <h3>Minesweeper</h3>
+              <p>Interactive tile-based puzzle</p>
+              <div class="meta"><span class="index">#1</span><span>View project</span></div>
+            </div>
+          </div>
 
-  <!-- three.js non-module build for GitHub Pages -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+          <div class="face right" data-slot="right" data-url="#">
+            <div class="thumb">Proj 3</div>
+            <div style="position:relative; z-index:2;">
+              <h3>Project 3</h3>
+              <p>Exploratory demo</p>
+              <div class="meta"><span class="index">#3</span><span>Coming soon</span></div>
+            </div>
+          </div>
+
+          <div class="face back" data-slot="back" data-url="#">
+            <div class="thumb">Proj 2</div>
+            <div style="position:relative; z-index:2;">
+              <h3>Project 2</h3>
+              <p>Utility tool</p>
+              <div class="meta"><span class="index">#2</span><span>Details</span></div>
+            </div>
+          </div>
+
+          <div class="face left" data-slot="left" data-url="#">
+            <div class="thumb">Proj 4</div>
+            <div style="position:relative; z-index:2;">
+              <h3>Project 4</h3>
+              <p>Algorithmic art</p>
+              <div class="meta"><span class="index">#4</span><span>Details</span></div>
+            </div>
+          </div>
+
+          <div class="face top" data-slot="top" aria-hidden="true">
+            <div style="text-align:center;">
+              <h3>Welcome</h3>
+              <p>Drag horizontally to rotate</p>
+            </div>
+          </div>
+
+          <div class="face bottom" data-slot="bottom" aria-hidden="true">
+            <div style="text-align:center;">
+              <h3>More</h3>
+              <p>See more projects below</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bento" aria-hidden="false">
+      <div class="card" data-proj="0">
+        <div class="thumb">#1</div>
+        <div>
+          <h4>Minesweeper</h4>
+          <p>Interactive tile-based puzzle — click to open</p>
+        </div>
+      </div>
+      <div class="card" data-proj="1">
+        <div class="thumb">#2</div>
+        <div>
+          <h4>Project 2</h4>
+          <p>Utility tool — coming soon</p>
+        </div>
+      </div>
+      <div class="card" data-proj="2">
+        <div class="thumb">#3</div>
+        <div>
+          <h4>Project 3</h4>
+          <p>Exploratory demo</p>
+        </div>
+      </div>
+      <div class="card" data-proj="3">
+        <div class="thumb">#4</div>
+        <div>
+          <h4>Project 4</h4>
+          <p>Algorithmic art</p>
+        </div>
+      </div>
+      <div class="card" data-proj="4">
+        <div class="thumb">#5</div>
+        <div>
+          <h4>Project 5</h4>
+          <p>Placeholder</p>
+        </div>
+      </div>
+      <div class="card" data-proj="5">
+        <div class="thumb">#6</div>
+        <div>
+          <h4>Project 6</h4>
+          <p>Placeholder</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hint">Drag the cube horizontally; click faces or cards to open</div>
 
   <script>
-  /**
-   * Infinite horizontal carousel cube
-   * - Cumulative-drag model so initial pointer position behind/around the cube doesn't invert direction
-   * - Click vs drag detection (small movement + short press = click)
-   * - Face swaps occur when the face moves to BACK (hidden), so new content appears off-screen
-   * - Vertical rod through cube as an axle visual
-   * - Project image support: provide img in projects for full-face image (leaves bottom area for title/snippet)
-   */
+    // Simple CSS-cube horizontal rotation with drag (cumulative drag) and click-vs-drag detection.
+    // Clicking a face opens its URL; dragging rotates the cube without accidental inversion.
+    (function () {
+      const scene = document.getElementById('scene');
+      const cube = document.getElementById('cube');
+      const faces = Array.from(cube.querySelectorAll('.face'));
+      const cards = Array.from(document.querySelectorAll('.card'));
 
-  // Scene setup
-  const container = document.getElementById('container');
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 3.8, 5.6);
-  camera.lookAt(0, 0.3, 0);
+      const SENSITIVITY = 0.35; // degrees per 1 px (adjust for feel)
+      const CLICK_MOVE_THRESHOLD = 6; // px
+      const CLICK_TIME_THRESHOLD = 300; // ms
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-  container.appendChild(renderer.domElement);
+      let isPointerDown = false;
+      let startX = 0;
+      let startY = 0;
+      let startRotY = 0;
+      let pointerDownAt = 0;
+      let angVel = 0;
 
-  // Lighting
-  const dir = new THREE.DirectionalLight(0xffffff, 0.95);
-  dir.position.set(6, 8, 5);
-  scene.add(dir);
-  scene.add(new THREE.AmbientLight(0x6b7788, 0.6));
+      // track logical rotation in degrees around Y
+      let rotY = 0;
 
-  // Vertical rod through cube (visual axle)
-  const rodMat = new THREE.MeshStandardMaterial({ color: 0x99aabb, metalness: 0.8, roughness: 0.2 });
-  const rodGeo = new THREE.CylinderGeometry(0.035, 0.035, 4.6, 20);
-  const rod = new THREE.Mesh(rodGeo, rodMat);
-  rod.position.y = 0.1;
-  scene.add(rod);
-
-  // Projects list (replaceable by /projects.json); include img for Minesweeper if you have a thumbnail
-  const projects = [
-    { title: "Minesweeper", snippet: "Interactive tile puzzle", url: "/PolyWeave-Mines/", color: "#e74c3c", img: "/assets/mines-thumb.png" },
-    { title: "Project 2",    snippet: "Placeholder 2",            url: "#",                       color: "#27ae60" },
-    { title: "Project 3",    snippet: "Placeholder 3",            url: "#",                       color: "#9b59b6" },
-    { title: "Project 4",    snippet: "Placeholder 4",            url: "#",                       color: "#1abc9c" },
-    { title: "Project 5",    snippet: "Placeholder 5",            url: "#",                       color: "#f39c12" }
-  ];
-
-  // Canvas textures for faces (+X:0, -X:1, +Y:2, -Y:3, +Z:4, -Z:5)
-  const faceCanvases = [];
-  const faceTextures = [];
-  const faceMaterials = [];
-  for (let i = 0; i < 6; i++) {
-    const c = document.createElement('canvas');
-    c.width = c.height = 1024;
-    faceCanvases.push(c);
-    const tex = new THREE.CanvasTexture(c);
-    tex.minFilter = THREE.LinearFilter;
-    faceTextures.push(tex);
-    faceMaterials.push(new THREE.MeshStandardMaterial({ map: tex, metalness: 0.15, roughness: 0.55 }));
-  }
-
-  // Image cache for project thumbnails
-  const faceImageCache = {};
-  function preloadImage(url) {
-    if (!url) return;
-    if (faceImageCache[url]) return;
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = url;
-    img.onload = () => { faceImageCache[url] = img; renderAllFaceCanvases(); };
-    img.onerror = () => { faceImageCache[url] = null; };
-    faceImageCache[url] = img;
-  }
-  projects.forEach(p => { if (p.img) preloadImage(p.img); });
-
-  // Drawing helpers
-  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-    const words = text.split(' ');
-    let line = '';
-    let yy = y;
-    for (let n = 0; n < words.length; n++) {
-      const test = line + words[n] + ' ';
-      const metrics = ctx.measureText(test);
-      const testWidth = metrics.width;
-      if (testWidth > maxWidth && n > 0) {
-        ctx.fillText(line, x, yy);
-        line = words[n] + ' ';
-        yy += lineHeight;
-      } else {
-        line = test;
+      // helper: set CSS transform using degrees
+      function applyRotation(degY) {
+        rotY = degY;
+        cube.style.transform = `translateZ(-180px) rotateX(-10deg) rotateY(${degY}deg)`;
       }
-    }
-    ctx.fillText(line, x, yy);
-  }
 
-  // Project face: image across top ~70%, bottom band for title/snippet
-  function drawProjectFace(canvas, project, indexLabel) {
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+      // initialize to front
+      applyRotation(0);
 
-    // background
-    ctx.fillStyle = '#071425';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
+      // pointer events
+      scene.addEventListener('pointerdown', (e) => {
+        isPointerDown = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startRotY = rotY;
+        pointerDownAt = performance.now();
+        angVel = 0;
+        scene.setPointerCapture(e.pointerId);
+      });
 
-    // subtle panel
-    ctx.fillStyle = project.color || '#497fb6';
-    ctx.globalAlpha = 0.06;
-    ctx.fillRect(64,64,canvas.width-128,canvas.height-128);
-    ctx.globalAlpha = 1;
+      scene.addEventListener('pointermove', (e) => {
+        if (!isPointerDown) return;
+        const dx = e.clientX - startX;
+        const target = startRotY + dx * SENSITIVITY;
+        // angular velocity for inertia
+        angVel = target - rotY;
+        applyRotation(target);
+      });
 
-    // image area
-    const imgArea = { x: 88, y: 88, w: canvas.width - 176, h: Math.floor((canvas.height - 176) * 0.72) };
-    if (project.img) {
-      const img = faceImageCache[project.img];
-      if (img && img.complete && img.naturalWidth) {
-        // cover: scale & crop to fill
-        const sw = img.naturalWidth, sh = img.naturalHeight;
-        const scale = Math.max(imgArea.w / sw, imgArea.h / sh);
-        const swScaled = imgArea.w / scale, shScaled = imgArea.h / scale;
-        const sx = Math.max(0, (sw - swScaled) / 2);
-        const sy = Math.max(0, (sh - shScaled) / 2);
-        ctx.drawImage(img, sx, sy, swScaled, shScaled, imgArea.x, imgArea.y, imgArea.w, imgArea.h);
-      } else {
-        ctx.fillStyle = '#0b1220';
-        ctx.fillRect(imgArea.x, imgArea.y, imgArea.w, imgArea.h);
+      scene.addEventListener('pointerup', (e) => {
+        const dt = performance.now() - pointerDownAt;
+        const moved = Math.hypot(e.clientX - startX, e.clientY - startY);
+        const isClick = moved <= CLICK_MOVE_THRESHOLD && dt <= CLICK_TIME_THRESHOLD;
+        isPointerDown = false;
+        try { scene.releasePointerCapture(e.pointerId); } catch (err) {}
+
+        // clamp angVel so inertia is reasonable
+        angVel = Math.max(-8, Math.min(8, angVel));
+
+        if (isClick) {
+          // find clicked face via elementFromPoint (works reliably for CSS cube)
+          const el = document.elementFromPoint(e.clientX, e.clientY);
+          const faceEl = el && el.closest && el.closest('.face');
+          if (faceEl) {
+            const url = faceEl.getAttribute('data-url');
+            if (url && url !== '#') window.open(url, '_blank');
+          }
+        }
+      });
+
+      // basic inertia loop
+      let last = performance.now();
+      function tick(now) {
+        const dt = (now - last) / 1000;
+        last = now;
+
+        // apply inertia
+        if (!isPointerDown && Math.abs(angVel) > 0.0005) {
+          applyRotation(rotY + angVel);
+          // damping
+          angVel *= Math.pow(0.92, dt * 60);
+        } else {
+          angVel = 0;
+        }
+
+        requestAnimationFrame(tick);
       }
-    } else {
-      ctx.fillStyle = '#0b1220';
-      ctx.fillRect(imgArea.x, imgArea.y, imgArea.w, imgArea.h);
-    }
+      requestAnimationFrame(tick);
 
-    // title
-    ctx.fillStyle = '#e6eef6';
-    ctx.font = 'bold 72px Inter, Arial';
-    ctx.textAlign = 'left';
-    wrapText(ctx, project.title || 'Untitled', 120, imgArea.y + imgArea.h + 72, canvas.width - 240, 64);
-
-    // snippet
-    ctx.fillStyle = '#b9d7ee';
-    ctx.font = '400 40px Inter, Arial';
-    wrapText(ctx, project.snippet || '', 120, imgArea.y + imgArea.h + 150, canvas.width - 240, 44);
-
-    // index label
-    ctx.fillStyle = '#90bfe0';
-    ctx.font = '600 28px Inter, Arial';
-    ctx.textAlign = 'right';
-    ctx.fillText(indexLabel || '', canvas.width - 120, canvas.height - 88);
-  }
-
-  function drawWelcomeFace(canvas) {
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = '#071425';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = '#2f9bd8';
-    ctx.globalAlpha = 0.08;
-    ctx.fillRect(64,64,canvas.width-128,canvas.height-128);
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = '#e6eef6';
-    ctx.font = 'bold 84px Inter, Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Welcome to my portfolio', canvas.width/2, canvas.height/2 - 10);
-    ctx.font = '400 36px Inter, Arial';
-    ctx.fillText('Drag left/right to explore', canvas.width/2, canvas.height/2 + 54);
-  }
-
-  // Cube and face assignment
-  const boxGeo = new THREE.BoxGeometry(1.95, 1.95, 1.95);
-  const cube = new THREE.Mesh(boxGeo, faceMaterials);
-  cube.position.y = 0.1;
-  scene.add(cube);
-
-  // logical frontIndex (which project is at front +Z)
-  let frontIndex = 0; // start with projects[0] (Minesweeper)
-
-  function renderAllFaceCanvases() {
-    const len = projects.length;
-    const mapping = {
-      front: (frontIndex + 0) % len,
-      right: (frontIndex + 1) % len,
-      back:  (frontIndex + 2) % len,
-      left:  (frontIndex + 3) % len
-    };
-
-    // top (material 2): welcome
-    drawWelcomeFace(faceCanvases[2]);
-    faceTextures[2].image = faceCanvases[2];
-    faceTextures[2].needsUpdate = true;
-
-    // bottom (material 3): info
-    const bottomCanvas = faceCanvases[3];
-    const ctxb = bottomCanvas.getContext('2d');
-    ctxb.clearRect(0,0,bottomCanvas.width,bottomCanvas.height);
-    ctxb.fillStyle = '#071425';
-    ctxb.fillRect(0,0,bottomCanvas.width,bottomCanvas.height);
-    ctxb.fillStyle = '#95a5a6';
-    ctxb.font = 'bold 48px Inter, Arial';
-    ctxb.textAlign = 'center';
-    ctxb.fillText('More Projects', bottomCanvas.width/2, bottomCanvas.height/2);
-    faceTextures[3].image = bottomCanvas;
-    faceTextures[3].needsUpdate = true;
-
-    // front -> material 4
-    drawProjectFace(faceCanvases[4], projects[mapping.front], `#${mapping.front+1}`);
-    faceTextures[4].image = faceCanvases[4];
-    faceTextures[4].needsUpdate = true;
-
-    // right -> material 0
-    drawProjectFace(faceCanvases[0], projects[mapping.right], `#${mapping.right+1}`);
-    faceTextures[0].image = faceCanvases[0];
-    faceTextures[0].needsUpdate = true;
-
-    // back -> material 5
-    drawProjectFace(faceCanvases[5], projects[mapping.back], `#${mapping.back+1}`);
-    faceTextures[5].image = faceCanvases[5];
-    faceTextures[5].needsUpdate = true;
-
-    // left -> material 1
-    drawProjectFace(faceCanvases[1], projects[mapping.left], `#${mapping.left+1}`);
-    faceTextures[1].image = faceCanvases[1];
-    faceTextures[1].needsUpdate = true;
-  }
-
-  renderAllFaceCanvases();
-
-  // Pointer interaction — cumulative drag model
-  let isPointerDown = false;
-  let pointerStartX = 0;
-  let pointerStartY = 0;
-  let pointerDownTime = 0;
-  let startRotation = 0;
-  let angVel = 0;
-
-  const CLICK_MOVE_THRESHOLD = 6; // px
-  const CLICK_TIME_THRESHOLD = 300; // ms
-  const SENSITIVITY = 0.0065;
-
-  renderer.domElement.addEventListener('pointerdown', (e) => {
-    isPointerDown = true;
-    pointerStartX = e.clientX;
-    pointerStartY = e.clientY;
-    pointerDownTime = performance.now();
-    startRotation = cube.rotation.y; // capture starting rotation
-    angVel = 0;
-    renderer.domElement.setPointerCapture(e.pointerId);
-  });
-
-  renderer.domElement.addEventListener('pointermove', (e) => {
-    if (!isPointerDown) return;
-    const totalDx = e.clientX - pointerStartX; // cumulative from initial down
-    const targetRotation = startRotation + totalDx * SENSITIVITY;
-    // velocity approximated from difference (used for inertia)
-    angVel = targetRotation - cube.rotation.y;
-    // apply rotation directly so direction won't invert due to pointer origin
-    cube.rotation.y = targetRotation;
-  });
-
-  renderer.domElement.addEventListener('pointerup', (e) => {
-    const dt = performance.now() - pointerDownTime;
-    const moved = Math.hypot(e.clientX - pointerStartX, e.clientY - pointerStartY);
-    const isClick = moved <= CLICK_MOVE_THRESHOLD && dt <= CLICK_TIME_THRESHOLD;
-    renderer.domElement.releasePointerCapture(e.pointerId);
-    isPointerDown = false;
-
-    if (isClick) {
-      // click handling (raycast)
-      const rect = renderer.domElement.getBoundingClientRect();
-      const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const my = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-      const mouse = new THREE.Vector2(mx, my);
-      const raycaster = new THREE.Raycaster();
-      raycaster.setFromCamera(mouse, camera);
-      const hits = raycaster.intersectObject(cube, true);
-      if (hits.length) {
-        const matIdx = hits[0].face.materialIndex;
-        if (matIdx === 2 || matIdx === 3) return; // ignore top/bottom
-        let slot = null;
-        if (matIdx === 4) slot = 0;   // front
-        else if (matIdx === 0) slot = 1; // right
-        else if (matIdx === 5) slot = 2; // back
-        else if (matIdx === 1) slot = 3; // left
-        if (slot === null) return;
-        const projIndex = (frontIndex + slot) % projects.length;
-        const p = projects[projIndex];
-        if (p && p.url) window.open(p.url, '_blank');
+      // clicking cards centers the cube to that project's face
+      function normalizeAngle(a) {
+        // bring into [-180, 180)
+        let v = ((a + 180) % 360) - 180;
+        return v;
       }
-    }
-    // else leave angVel as last set by pointermove for inertia
-    // clamp angVel to sane bounds to avoid spazzing
-    angVel = Math.max(-0.5, Math.min(0.5, angVel));
-  });
 
-  // Utility: normalize angle to [0, 2PI)
-  function normalize(a) {
-    const two = Math.PI * 2;
-    let v = a % two;
-    if (v < 0) v += two;
-    return v;
-  }
+      // map slots to degrees: front=0, right=-90, back=180, left=90
+      const slotToDeg = { front: 0, right: -90, back: 180, left: 90 };
 
-  // Compute front slot from rotation: returns 0..3 where 0=front,1=right,2=back,3=left
-  function frontSlotFromRotation(rotY) {
-    const angle = normalize(-rotY); // negative so positive rotation visually moves projects left
-    const q = Math.round(angle / (Math.PI / 2)) % 4;
-    return ((q % 4) + 4) % 4;
-  }
-
-  // Back slot is (front+2)%4
-  function backSlotFromRotation(rotY) {
-    return (frontSlotFromRotation(rotY) + 2) % 4;
-  }
-
-  let lastBackSlot = backSlotFromRotation(cube.rotation.y);
-
-  // Animation loop
-  let lastTime = performance.now();
-  function animate(now) {
-    requestAnimationFrame(animate);
-    const dt = (now - lastTime) / 1000;
-    lastTime = now;
-
-    // inertia when pointer not down
-    if (!isPointerDown && Math.abs(angVel) > 1e-5) {
-      cube.rotation.y += angVel;
-      // frame-rate independent damping (smooth)
-      angVel *= Math.pow(0.88, dt * 60);
-      if (Math.abs(angVel) < 1e-5) angVel = 0;
-    }
-
-    // keep cube upright (remove accidental tilt)
-    const e = new THREE.Euler().setFromQuaternion(cube.quaternion, 'YXZ');
-    const yawOnly = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, e.y, 0));
-    cube.quaternion.slerp(yawOnly, 0.18);
-
-    // detect when a NEW face becomes the back (hidden). Then advance/retreat frontIndex and update faces.
-    const currentBack = backSlotFromRotation(cube.rotation.y);
-    if (currentBack !== lastBackSlot) {
-      const delta = ((currentBack - lastBackSlot) + 4) % 4;
-      let step = 0;
-      if (delta === 1) step = 1;
-      else if (delta === 3) step = -1;
-      else if (delta === 2) step = (angVel > 0) ? 2 : -2;
-      if (step !== 0) {
-        frontIndex = ((frontIndex + step) % projects.length + projects.length) % projects.length;
-        renderAllFaceCanvases(); // swap in new content while it's hidden
+      function centerOnSlot(slotName) {
+        const deg = slotToDeg[slotName] || 0;
+        // find nearest equivalent angle to current rotY to avoid long spin
+        const current = rotY;
+        // candidate angles: deg + k*360, pick one nearest current
+        let best = deg;
+        let minDiff = Math.abs(normalizeAngle(best - current));
+        for (let k = -1; k <= 1; k++) {
+          const cand = deg + k * 360;
+          const diff = Math.abs(normalizeAngle(cand - current));
+          if (diff < minDiff) { best = cand; minDiff = diff; }
+        }
+        // animate smoothly
+        const duration = 420;
+        const start = performance.now();
+        const from = current;
+        const to = best;
+        function animateStep(ts) {
+          const t = Math.min(1, (ts - start) / duration);
+          const eased = 1 - Math.pow(1 - t, 3);
+          const cur = from + (to - from) * eased;
+          applyRotation(cur);
+          if (t < 1) requestAnimationFrame(animateStep);
+        }
+        requestAnimationFrame(animateStep);
       }
-      lastBackSlot = currentBack;
-    }
 
-    renderer.render(scene, camera);
-  }
-  requestAnimationFrame(animate);
+      // card clicks map to project index -> slot
+      cards.forEach(card => {
+        card.addEventListener('click', () => {
+          const idx = Number(card.getAttribute('data-proj') || 0);
+          // map index -> slot around cube so that project 0 is front, 1 is right, 2 back, 3 left, 4 front (cycled)
+          const slotIndex = idx % 4; // 0..3
+          const slotNames = ['front', 'right', 'back', 'left'];
+          centerOnSlot(slotNames[slotIndex]);
+        });
+      });
 
-  // Resize handler
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
+      // face clicks open url (separate listener to ensure click vs drag already handled)
+      faces.forEach(face => {
+        face.addEventListener('click', (e) => {
+          // if it was part of drag, event won't be considered a click by pointer logic above
+          const url = face.getAttribute('data-url');
+          if (url && url !== '#') window.open(url, '_blank');
+        });
+      });
 
-  // Attempt to load /projects.json non-blocking
-  (async function tryLoadProjectsJson(){
-    try {
-      const res = await fetch('/projects.json', { cache: 'no-store' });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (!Array.isArray(data) || data.length === 0) return;
-      projects.length = 0;
-      data.forEach(p => projects.push({
-        title: p.title || p.name || 'Untitled',
-        snippet: p.snippet || p.description || '',
-        url: p.url || p.link || '#',
-        color: p.color || '#5aa',
-        img: p.img || p.image || null
-      }));
-      frontIndex = 0;
-      projects.forEach(p => { if (p.img) preloadImage(p.img); });
-      renderAllFaceCanvases();
-    } catch (e) {
-      // ignore
-    }
-  })();
-
+      // keyboard shortcuts: left/right to rotate
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'a') centerOnSlot('left');
+        else if (e.key === 'ArrowRight' || e.key === 'd') centerOnSlot('right');
+      });
+    })();
   </script>
 </body>
 </html>
