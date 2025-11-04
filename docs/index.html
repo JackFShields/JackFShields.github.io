@@ -1,517 +1,121 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Portfolio — Cube with Panel Bites</title>
-<style>
-  :root{
-    --bg:#071425;
-    --panel:rgba(255,255,255,0.03);
-    --border:rgba(255,255,255,0.06);
-    --text:#e6eef6;
-    --muted:rgba(190,215,240,0.7);
-    --accent:#2f9bd8;
-
-    /* layout proportions (adjust if needed) */
-    --title-w:20vw;       /* width of title area */
-    --desc-w:20vw;        /* desc uses same left column width */
-    --left-h:50vh;        /* combined top+desc area height influence */
-    --image-w:60vw;       /* image area width */
-    --proj-h:14vh;        /* projects bar height */
-    --cube-radius:18vw;   /* visual cube footprint radius (affects bite size) */
-    --bite-radius: calc(var(--cube-radius)); /* bite radius */
-  }
-
-  html,body{
-    height:100%;
-    margin:0;
-    background:var(--bg);
-    color:var(--text);
-    font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-  }
-
-  /* Grid sized to user's requested proportions */
-  .stage {
-    min-height:100vh;
-    display:grid;
-    grid-template-columns: var(--title-w) 1fr var(--image-w);
-    grid-template-rows: calc(100vh - var(--proj-h)) var(--proj-h);
-    gap:0;
-    align-items:start;
-    overflow:hidden;
-  }
-
-  /* Left column stacks title (20%) and description (~30% of page) */
-  .left {
-    grid-column:1 / 2;
-    grid-row:1 / 2;
-    padding: clamp(18px, 2.2vw, 28px);
-    display:flex;
-    flex-direction:column;
-    gap:18px;
-    box-sizing:border-box;
-  }
-
-  .title-panel, .desc-panel {
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:14px;
-    padding:18px;
-    position:relative;
-    overflow:visible;
-    box-shadow: 0 8px 30px rgba(2,6,23,0.6);
-  }
-
-  /* title approx 20% of screen height (top-left corner) */
-  .title-panel { flex: 0 0 calc(20vh); display:flex;flex-direction:column; justify-content:center; }
-  .title-panel h1 { font-size:clamp(20px,2.4vw,32px); margin:0 0 6px 0; }
-  .title-panel p { color:var(--muted); margin:0; }
-
-  /* desc approx 30% of screen */
-  .desc-panel { flex: 1 1 calc(30vh); min-height: calc(28vh); display:flex; align-items:flex-start; }
-  .desc-panel p { color:var(--muted); line-height:1.5; }
-
-  /* image panel on the right takes majority */
-  .image {
-    grid-column:3 / 4;
-    grid-row:1 / 2;
-    padding: clamp(18px, 2.2vw, 28px);
-    box-sizing:border-box;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-  }
-  .image-panel {
-    width:100%;
-    height:calc(100vh - var(--proj-h) - 48px);
-    background:var(--panel);
-    border:1px solid var(--border);
-    border-radius:14px;
-    padding:18px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    position:relative;
-    overflow:visible;
-    box-shadow: 0 10px 36px rgba(2,6,23,0.6);
-    text-align:center;
-    color:var(--muted);
-  }
-
-  /* projects bar along bottom spanning full width */
-  .projects {
-    grid-column:1 / 4;
-    grid-row:2 / 3;
-    height:var(--proj-h);
-    padding:10px clamp(14px,2vw,28px);
-    box-sizing:border-box;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:12px;
-    background:linear-gradient(180deg, transparent, rgba(255,255,255,0.01));
-  }
-
-  .proj-list {
-    width:100%;
-    max-width:1200px;
-    display:flex;
-    gap:12px;
-    align-items:center;
-    justify-content:flex-start;
-    overflow:auto;
-    padding-bottom:6px;
-  }
-  .proj-item {
-    flex: 0 0 auto;
-    background:var(--panel);
-    border:1px solid var(--border);
-    padding:10px 12px;
-    border-radius:10px;
-    min-width:140px;
-    cursor:pointer;
-    display:flex;
-    gap:10px;
-    align-items:center;
-  }
-  .proj-item .thumb { width:48px;height:36px;border-radius:6px;background:#071522; display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:700 }
-  .proj-item .meta { display:flex;flex-direction:column; font-size:13px }
-  .proj-item:hover { transform:translateY(-6px); box-shadow:0 12px 36px rgba(2,6,23,0.6) }
-
-  /* center column contains cube (visual middle area) */
-  .center {
-    grid-column:2 / 3;
-    grid-row:1 / 2;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    position:relative;
-    pointer-events:none; /* cube will opt-in to pointer-events */
-  }
-
-  /* cube scene */
-  .scene {
-    width:calc(var(--cube-size));
-    height:calc(var(--cube-size));
-    position:relative;
-    perspective:1200px;
-    pointer-events:auto;
-    user-select:none;
-    touch-action:none;
-  }
-
-  .cube {
-    width:100%;
-    height:100%;
-    transform-style:preserve-3d;
-    transform: translateZ(-60px) rotateX(-8deg) rotateY(0deg);
-    transition: transform .08s linear;
-  }
-
-  .panel-face {
-    position:absolute;
-    inset:0;
-    border-radius:10px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    flex-direction:column;
-    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    border:1px solid var(--border);
-    box-shadow: 0 8px 26px rgba(0,0,0,0.5);
-    backface-visibility:hidden;
-    cursor:pointer;
-  }
-  .panel-face h3{margin:0 0 6px 0}
-  .panel-face p{margin:0;color:var(--muted);font-size:13px}
-
-  /* face transforms */
-  .front { transform: rotateY(   0deg) translateZ(calc(var(--cube-size) / 2)); }
-  .right { transform: rotateY(  90deg) translateZ(calc(var(--cube-size) / 2)); }
-  .back  { transform: rotateY( 180deg) translateZ(calc(var(--cube-size) / 2)); }
-  .left  { transform: rotateY(- 90deg) translateZ(calc(var(--cube-size) / 2)); }
-
-  /* invisible circular footprint used by JS for calculations; not visible to user */
-  .footprint {
-    position:absolute;
-    left:50%;
-    top:50%;
-    width:calc(var(--cube-radius) * 2);
-    height:calc(var(--cube-radius) * 2);
-    transform:translate(-50%,-50%);
-    pointer-events:none;
-    z-index:2;
-    opacity:0; /* invisible */
-  }
-
-  /* Panels bite: implemented with ::after on the three info panels.
-     JS sets --bite-x and --bite-y relative to panel box and --bite-visible (0 or 1).
-     The pseudo element is a circle filled with the page background to create the bite.
-  */
-  .title-panel::after, .desc-panel::after, .image-panel::after {
-    content:'';
-    position:absolute;
-    width:calc(var(--bite-radius) * 2);
-    height:calc(var(--bite-radius) * 2);
-    left:var(--bite-x, -9999px);
-    top:var(--bite-y, -9999px);
-    transform:translate(-50%,-50%);
-    border-radius:50%;
-    background:var(--bg);
-    pointer-events:none;
-    opacity:var(--bite-visible, 0);
-    transition: left .12s linear, top .12s linear, opacity .18s linear;
-    z-index:5;
-  }
-
-  /* responsive */
-  @media (max-width:1100px){
-    :root{ --image-w:50vw; --title-w:26vw; --cube-radius:22vw; --bite-radius:22vw; }
-    .proj-item { min-width:120px }
-  }
-  @media (max-width:760px){
-    .stage { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
-    .left{ order:1; width:100%; }
-    .center{ order:2; width:100%; padding:18px }
-    .image{ order:3; width:100%; padding:18px }
-    .projects{ order:4; }
-    .title-panel{ height:auto }
-    .desc-panel{ height:auto; min-height:0 }
-  }
-</style>
+  <meta charset="utf-8">
+  <title>Layout Test - No Cube</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      background: #0a0f1b;
+      color: #e6eef6;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    .container {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+    
+    /* Title - top left, good size */
+    .title {
+      position: absolute;
+      left: 60px;
+      top: 80px;
+      width: 380px;
+      height: 180px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    /* Description - bottom left, substantial size */
+    .description {
+      position: absolute;
+      left: 60px;
+      bottom: 180px;
+      width: 380px;
+      height: 240px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* Image - right side, just over half width */
+    .img {
+      position: absolute;
+      right: 60px;
+      top: 80px;
+      width: 55vw;
+      height: calc(100vh - 260px);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      color: rgba(255,255,255,0.3);
+    }
+    
+    /* Project buttons - bottom strip */
+    .projects {
+      position: absolute;
+      bottom: 40px;
+      left: 60px;
+      right: 60px;
+      height: 80px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    
+    .project-btn {
+      flex: 1;
+      max-width: 120px;
+      height: 60px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+    }
+    
+    .project-btn:first-child {
+      background: rgba(255,255,255,0.08);
+    }
+  </style>
 </head>
 <body>
-  <div class="stage" id="stage">
-    <!-- left column -->
-    <div class="left">
-      <div class="title-panel panel" id="titlePanel">
-        <h1 id="projTitle">Minesweeper</h1>
-        <p id="projSubtitle">Interactive tile-based puzzle</p>
-      </div>
-
-      <div class="desc-panel panel" id="descPanel">
-        <p id="projDesc">Classic minesweeper rebuilt with modern UI. Click or drag the cube — the title, description and image update to the face that is most visible. The cube will cut a circular bite out of these three panels when they overlap visually.</p>
-      </div>
-    </div>
-
-    <!-- center cube -->
-    <div class="center">
-      <div class="scene" id="scene" aria-label="Cube scene">
-        <div class="footprint" id="footprint" aria-hidden="true"></div>
-        <div class="cube" id="cube" role="application">
-          <div class="panel-face front" data-slot="front"><h3>Project 1</h3><p>Interactive tile puzzle</p></div>
-          <div class="panel-face right" data-slot="right"><h3>Project 2</h3><p>Utility tool</p></div>
-          <div class="panel-face back" data-slot="back"><h3>Project 3</h3><p>Algorithmic art</p></div>
-          <div class="panel-face left" data-slot="left"><h3>Project 4</h3><p>UX experiments</p></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- right image -->
-    <div class="image">
-      <div class="image-panel panel" id="imagePanel">Minesweeper preview (no image)</div>
-    </div>
-
-    <!-- bottom projects -->
+  <div class="container">
+    <div class="title">Title</div>
+    <div class="description">Description</div>
+    <div class="img">img</div>
+    
     <div class="projects">
-      <div class="proj-list" id="projList">
-        <!-- JS fills project items -->
-      </div>
+      <div class="project-btn">1</div>
+      <div class="project-btn">2</div>
+      <div class="project-btn">3</div>
+      <div class="project-btn">4</div>
+      <div class="project-btn">5</div>
+      <div class="project-btn">6</div>
     </div>
   </div>
-
-<script>
-/*
-  Behavior:
-  - Panels (title, desc, image) receive circular bites where they intersect the cube's invisible footprint.
-  - Cube rotation uses cumulative drag; click vs drag detection included.
-  - Most-visible-face determined by angle heuristic (cosine) and drives title/desc/image content.
-  - Cards in bottom projects list center the cube on their index when clicked.
-  - No visible circle/footprint is shown; footprint is only used for computation.
-*/
-
-const projects = [
-  { title:'Minesweeper', subtitle:'Interactive tile-based puzzle', desc:'Classic minesweeper rebuilt with modern UI and multiple board sizes.', url:'/PolyWeave-Mines/', color:'#e74c3c' },
-  { title:'Project 2', subtitle:'Utility tool', desc:'Small utility app demo', url:'#', color:'#27ae60' },
-  { title:'Project 3', subtitle:'Algorithmic art', desc:'Generative visuals', url:'#', color:'#9b59b6' },
-  { title:'Project 4', subtitle:'UX experiments', desc:'Micro interactions', url:'#', color:'#1abc9c' },
-  { title:'Project 5', subtitle:'Extra', desc:'Extra project', url:'#', color:'#f39c12' },
-  { title:'Project 6', subtitle:'Extra 2', desc:'Extra project 2', url:'#', color:'#34495e' }
-];
-
-// DOM refs
-const cube = document.getElementById('cube');
-const scene = document.getElementById('scene');
-const footprint = document.getElementById('footprint');
-const titlePanel = document.getElementById('titlePanel');
-const descPanel = document.getElementById('descPanel');
-const imagePanel = document.getElementById('imagePanel');
-const projTitle = document.getElementById('projTitle');
-const projSubtitle = document.getElementById('projSubtitle');
-const projDesc = document.getElementById('projDesc');
-const projList = document.getElementById('projList');
-
-// populate bottom project list
-function buildProjList(){
-  projList.innerHTML = '';
-  projects.forEach((p,i) => {
-    const el = document.createElement('div');
-    el.className = 'proj-item';
-    el.innerHTML = `<div class="thumb">#${i+1}</div><div class="meta"><strong>${p.title}</strong><span style="color:var(--muted);font-size:12px">${p.subtitle}</span></div>`;
-    el.addEventListener('click', ()=> centerCubeOnProject(i));
-    projList.appendChild(el);
-  });
-}
-buildProjList();
-
-// cube rotation state
-let rotY = 0;
-let isDown = false;
-let startX = 0, startRot = 0, startT = 0, angVel = 0;
-const SENS = 0.35;
-const CLICK_MOVE_THRESHOLD = 6;
-const CLICK_TIME_THRESHOLD = 300;
-
-scene.addEventListener('pointerdown', (e) => {
-  isDown = true;
-  startX = e.clientX;
-  startRot = rotY;
-  startT = performance.now();
-  angVel = 0;
-  scene.setPointerCapture(e.pointerId);
-});
-scene.addEventListener('pointermove', (e) => {
-  if(!isDown) return;
-  const dx = e.clientX - startX;
-  const target = startRot + dx * SENS;
-  angVel = target - rotY;
-  rotY = target;
-  applyRotation();
-});
-scene.addEventListener('pointerup', (e) => {
-  try { scene.releasePointerCapture(e.pointerId); } catch {}
-  const dt = performance.now() - startT;
-  const moved = Math.hypot(e.clientX - startX, e.clientY - startX);
-  const isClick = moved <= CLICK_MOVE_THRESHOLD && dt <= CLICK_TIME_THRESHOLD;
-  isDown = false;
-  angVel = Math.max(-20, Math.min(20, angVel));
-  if(isClick){
-    // detect clicked face and open its project
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const face = el && el.closest && el.closest('.panel-face');
-    if(face){
-      // determine which project is on that face by visibility mapping
-      const slot = face.dataset.slot;
-      const index = slotToProjectIndex(slot);
-      const p = projects[index];
-      if(p && p.url) window.open(p.url, '_blank');
-    }
-  }
-});
-
-// apply cube rotation transform and update UI
-function applyRotation(){
-  cube.style.transform = `translateZ(-60px) rotateX(-8deg) rotateY(${rotY}deg)`;
-  updateMostVisibleFace();
-  updatePanelBites();
-}
-
-// determine mapping from slot name (front/right/back/left) to project index
-// We'll map sequentially around cube: front->projects[0], right->projects[1], back->projects[2], left->projects[3], then cycle
-function slotToProjectIndex(slot){
-  const base = 0; // front mapped to projects[0] initially
-  const mapping = { front:0, right:1, back:2, left:3 };
-  return (base + mapping[slot]) % projects.length;
-}
-
-// choose most visible horizontal face by angle heuristic
-function updateMostVisibleFace(){
-  const rad = (rotY * Math.PI) / 180;
-  const slotAngles = [0, -Math.PI/2, Math.PI, Math.PI/2]; // front, right, back, left
-  const scores = slotAngles.map(sa=>{
-    const diff = normalizeAngleRad(-rad - sa);
-    return Math.max(0, Math.cos(diff));
-  });
-  let best = -1, bestSlotIndex = 0;
-  scores.forEach((s,i)=>{ if(s > best){ best = s; bestSlotIndex = i; }});
-  const slotNames = ['front','right','back','left'];
-  const projIndex = slotToProjectIndex(slotNames[bestSlotIndex]);
-  const p = projects[projIndex];
-  if(p){
-    projTitle.textContent = p.title;
-    projSubtitle.textContent = p.subtitle;
-    projDesc.textContent = p.desc;
-    imagePanel.textContent = `${p.title} preview (no image)`;
-    imagePanel.style.borderLeft = `4px solid ${p.color || '#2f9bd8'}`;
-  }
-}
-
-// helper normalize radian angle to [-PI, PI)
-function normalizeAngleRad(a){
-  const two = Math.PI * 2;
-  let v = (a + Math.PI) % two;
-  if(v < 0) v += two;
-  return v - Math.PI;
-}
-
-/* Update panel bites:
-   For each panel (title, desc, image) compute closest point in panel rect to the cube footprint center.
-   If that closest point lies within the footprint radius + small margin, set CSS vars on panel:
-     --bite-x (px from panel left), --bite-y (px from panel top), --bite-visible (1)
-   Otherwise set --bite-visible:0 and push bite coords offscreen.
-*/
-function getFootprintCenter(){
-  // footprint element is centered over cube; we can compute its absolute center
-  const sceneRect = scene.getBoundingClientRect();
-  return {
-    x: sceneRect.left + sceneRect.width/2,
-    y: sceneRect.top + sceneRect.height/2,
-    radius: (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cube-radius')) || 120) * (document.documentElement.clientWidth / 100) / 2 || (sceneRect.width/2)
-  };
-}
-
-function updatePanelBiteFor(panelEl){
-  const panelRect = panelEl.getBoundingClientRect();
-  const fp = getFootprintCenter();
-  // closest point on panel rect to circle center
-  const closestX = Math.max(panelRect.left, Math.min(fp.x, panelRect.right));
-  const closestY = Math.max(panelRect.top, Math.min(fp.y, panelRect.bottom));
-  const dx = closestX - fp.x;
-  const dy = closestY - fp.y;
-  const dist = Math.hypot(dx, dy);
-  const margin = 6;
-  if(dist < fp.radius + margin){
-    const localX = Math.round(closestX - panelRect.left);
-    const localY = Math.round(closestY - panelRect.top);
-    panelEl.style.setProperty('--bite-x', `${localX}px`);
-    panelEl.style.setProperty('--bite-y', `${localY}px`);
-    panelEl.style.setProperty('--bite-visible', '1');
-  } else {
-    panelEl.style.setProperty('--bite-visible', '0');
-    panelEl.style.setProperty('--bite-x', `-9999px`);
-    panelEl.style.setProperty('--bite-y', `-9999px`);
-  }
-}
-
-function updatePanelBites(){
-  updatePanelBiteFor(titlePanel);
-  updatePanelBiteFor(descPanel);
-  updatePanelBiteFor(imagePanel);
-}
-
-// click-to-center: center cube so the project index is at front slot (simple cyclic mapping)
-function centerCubeOnProject(projIdx){
-  // find minimal rotation to bring (projIdx % 4) slot to front
-  const desiredSlot = projIdx % 4; // 0..3
-  const targetRel = -desiredSlot * 90;
-  const target = rotY + targetRel;
-  animateRotationTo(target, 420);
-}
-
-function animateRotationTo(targetDeg, duration=420){
-  const start = performance.now();
-  const from = rotY;
-  function step(ts){
-    const t = Math.min(1, (ts - start)/duration);
-    const eased = 1 - Math.pow(1-t, 3);
-    rotY = from + (targetDeg - from) * eased;
-    applyRotation();
-    if(t < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-}
-
-// inertia loop
-let last = performance.now();
-function loop(now){
-  const dt = (now - last) / 1000;
-  last = now;
-  if(!isDown && Math.abs(angVel) > 0.0005){
-    rotY += angVel;
-    angVel *= Math.pow(0.90, dt * 60);
-    applyRotation();
-  }
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
-
-// initial render
-applyRotation();
-updatePanelBites();
-window.addEventListener('resize', ()=> { updatePanelBites(); applyRotation(); });
-
-// face clicks open project
-Array.from(document.querySelectorAll('.panel-face')).forEach(face=>{
-  face.addEventListener('click', () => {
-    // determine which project is currently on that face (approx using slot)
-    const slot = face.dataset.slot;
-    const idx = slotToProjectIndex(slot);
-    if(projects[idx] && projects[idx].url) window.open(projects[idx].url,'_blank');
-  });
-});
-</script>
 </body>
 </html>
