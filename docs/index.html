@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Layout Test - Full Screen</title>
+  <title>Layout Test - Aligned</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,7 +12,7 @@
       --panel: rgba(255,255,255,0.03);
       --border: rgba(255,255,255,0.08);
       --text: #e6eef6;
-      --gap: 3vw;
+      --gap: 2vw;  /* tighter gap */
     }
     
     body {
@@ -29,13 +29,13 @@
       position: relative;
     }
     
-    /* Title - top left, aligns with image top */
+    /* Title - top left */
     .title {
       position: absolute;
       left: 2vw;
       top: 2vh;
-      width: calc(45vw - var(--gap) - 2vw);
-      height: 35vh;
+      width: calc(46vw - var(--gap));
+      height: 36vh;
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 16px;
@@ -51,9 +51,9 @@
     .description {
       position: absolute;
       left: 2vw;
-      bottom: 15vh;
-      width: calc(45vw - var(--gap) - 2vw);
-      height: calc(83vh - 35vh - var(--gap) - 2vh);
+      top: calc(2vh + 36vh + var(--gap));
+      width: calc(46vw - var(--gap));
+      height: calc(82vh - 36vh - var(--gap) - 2vh);
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 16px;
@@ -64,13 +64,13 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
     
-    /* Image - right side, full height minus bottom space */
+    /* Image - right side, perfectly aligned */
     .img {
       position: absolute;
       right: 2vw;
       top: 2vh;
-      width: 51vw;
-      height: 81vh;
+      width: 50vw;
+      height: 80vh;
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 16px;
@@ -82,24 +82,24 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
     
-    /* Project buttons - narrower, taller */
+    /* Project buttons - 3:5 ratio (height:width) */
     .projects {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
-      height: 13vh;
+      height: 16vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 14px;
       padding: 0 2vw;
-      background: linear-gradient(to top, rgba(0,0,0,0.3), transparent);
+      background: linear-gradient(to top, rgba(0,0,0,0.4), transparent);
     }
     
     .project-btn {
-      width: 100px;
-      height: 80px;
+      width: 140px;
+      height: 84px;  /* 3:5 ratio */
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 10px;
@@ -107,7 +107,7 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      font-size: 22px;
+      font-size: 24px;
       transition: all 0.2s;
     }
     
