@@ -3,29 +3,27 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Portfolio — Cube with Smooth Single Bite</title>
+<title>Portfolio Cube — Final</title>
 <style>
   :root{
     --bg:#071425;
-    --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
-    --panel-bg: rgba(255,255,255,0.03);
+    --panel: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
     --border: rgba(255,255,255,0.08);
     --text:#e6eef6;
-    --muted: rgba(190,215,240,0.70);
+    --muted: rgba(190,215,240,0.7);
     --gap: 2vw;
-
-    --cube-size: 220px;   /* base cube size */
-    --bite-radius: 140px; /* visual bite radius (px) */
+    --cube-size: 280px;     /* bigger cube */
+    --bite-radius: 220px;   /* larger bite for breathing room */
   }
 
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
   .viewport{width:100vw;height:100vh;position:relative;overflow:hidden}
 
 /* Panels */
   .panel{
     position:absolute;
-    background:var(--panel-grad);
+    background:var(--panel);
     border:1px solid var(--border);
     border-radius:14px;
     padding:22px;
@@ -39,11 +37,11 @@
   .title p{color:var(--muted)}
 
   .description{ left:2vw; top:calc(2vh + 36vh + var(--gap)); width:calc(42vw - var(--gap)); height:calc(82vh - 36vh - var(--gap) - 2vh); }
-  .description p{ color:var(--muted); line-height:1.45 }
+  .description p{ color:var(--muted); line-height:1.5 }
 
   .image{ right:2vw; top:2vh; width:54vw; height:80vh; display:flex;align-items:center;justify-content:center;color:var(--muted);text-align:center }
 
-/* Invisible footprint anchor (not shown) - used for positioning bite and cube */
+/* Anchor used to compute the center and radius for the single circle bite */
   .footprint-anchor{
     position:absolute;
     left: calc(42vw - var(--gap)/2);
@@ -56,19 +54,11 @@
     opacity:0;
   }
 
-/* SVG overlay that draws one single circular 'bite' visually.
-   It's placed above panels (so it hides them where it overlaps) and below cube (so cube is visible).
-   The circle is filled with page background to visually remove underlying panel parts, and
-   includes a stroke + inner subtle shadow so the border and shadow continuity reads correctly.
+/* SVG overlay (single circle) draws a clean curved cut with stroke + inner shadow
+   It sits above panels, below cube, and matches page background so panels appear bitten.
 */
-  .bite-svg {
-    position:absolute;
-    left:0;top:0;width:100%;height:100%;
-    pointer-events:none;
-    z-index:3;
-  }
+  .bite-svg { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:3; }
 
-/* Cube sits centered at the footprint anchor (same center), above the bite overlay */
   .cube-wrap{
     position:absolute;
     left: calc(42vw - var(--gap)/2);
@@ -81,14 +71,22 @@
   }
 
   .scene{ width:100%; height:100%; perspective:1000px; pointer-events:auto; user-select:none; touch-action:none; position:relative; }
-  .cube { width:100%; height:100%; transform-style:preserve-3d; transform: translateZ(-90px) rotateX(-10deg) rotateY(0deg); transition:transform .08s linear; position:relative; z-index:5; }
+  .cube { width:100%; height:100%; transform-style:preserve-3d; transform: translateZ(-140px) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; position:relative; z-index:5; }
+
+  /* Non-transparent faces with accent color bar on left edge (matches image panel accent) */
   .face{
     position:absolute; left:0; top:0; width:100%; height:100%;
-    border-radius:10px; background:var(--panel-grad); border:1px solid var(--border);
-    display:flex;align-items:center;justify-content:center;flex-direction:column; backface-visibility:hidden; box-shadow: 0 10px 36px rgba(0,0,0,0.6);
-    cursor:pointer;
+    border-radius:12px; background:var(--panel); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    backface-visibility:hidden; box-shadow: 0 10px 36px rgba(0,0,0,0.6); cursor:pointer;
+    box-sizing:border-box;
   }
-  .face h3{font-size:20px;margin:0 0 6px 0}
+  .face h3{ font-size:24px; margin:0 0 8px 0 }
+  .face p{ color:var(--muted) }
+
+  /* accent bar applied via inline style from JS to match panel border color */
+  .face .accent { position:absolute; left:0; top:0; bottom:0; width:6px; border-top-left-radius:12px; border-bottom-left-radius:12px; }
+
   .front{ transform: rotateY(0deg) translateZ(calc(var(--cube-size)/2)); }
   .right{ transform: rotateY(90deg) translateZ(calc(var(--cube-size)/2)); }
   .back{ transform: rotateY(180deg) translateZ(calc(var(--cube-size)/2)); }
@@ -96,7 +94,7 @@
   .top{ transform: rotateX(90deg) translateZ(calc(var(--cube-size)/2)); }
   .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
-/* Project buttons row: wraps when needed, taller rectangular ratio ~3:5 */
+/* Projects row (wrapping, taller rectangles ~3:5) */
   .projects {
     position:absolute; left:0; right:0; bottom:0;
     display:flex; gap:14px; padding:2vh 2vw; flex-wrap:wrap; justify-content:center; align-items:center;
@@ -104,20 +102,23 @@
     z-index:6;
   }
   .proj-btn {
-    width:140px; height:84px; background:var(--panel-grad); border:1px solid var(--border); border-radius:10px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition:transform .18s, box-shadow .18s;
+    width:140px; height:84px; background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;
+    transition:transform .18s,box-shadow .18s;
   }
   .proj-btn:hover{ transform:translateY(-6px); box-shadow:0 12px 30px rgba(0,0,0,0.45) }
+  .proj-btn strong{ font-size:18px }
+  .proj-btn span{ font-size:12px; color:var(--muted); margin-top:6px; }
 
-/* responsive tweaks */
+/* responsive adjustments */
   @media (max-width:980px){
-    :root{ --cube-size:200px; --bite-radius:120px }
+    :root{ --cube-size:240px; --bite-radius:160px }
     .title, .description { left:2vw; width:calc(100% - 4vw) }
-    .title{ top:2vh; height:20vh }
-    .description{ top:calc(2vh + 20vh + var(--gap)); height:28vh }
-    .image{ left:2vw; right:2vw; top:calc(2vh + 20vh + 28vh + calc(var(--gap)*2)); width:calc(100% - 4vw); height:32vh }
-    .cube-wrap{ left:50%; top:calc(2vh + 20vh + (28vh/2)); transform:translate(-50%,-50%) }
-    .footprint-anchor{ left:50%; top:calc(2vh + 20vh + (28vh/2)); transform:translate(-50%,-50%) }
+    .title{ top:2vh; height:22vh }
+    .description{ top:calc(2vh + 22vh + var(--gap)); height:28vh }
+    .image{ left:2vw; right:2vw; top:calc(2vh + 22vh + 28vh + calc(var(--gap)*2)); width:calc(100% - 4vw); height:32vh }
+    .cube-wrap{ left:50%; top:calc(2vh + 22vh + (28vh/2)); transform:translate(-50%,-50%) }
+    .footprint-anchor{ left:50%; top:calc(2vh + 22vh + (28vh/2)); transform:translate(-50%,-50%) }
   }
 </style>
 </head>
@@ -134,16 +135,11 @@
 
     <div class="panel image" id="imagePanel">Minesweeper preview (no image)</div>
 
-    <!-- anchor used to compute the single bite center; invisible -->
-    <div class="footprint-anchor" id="anchor"></div>
+    <div class="footprint-anchor" id="anchor" aria-hidden="true"></div>
 
-    <!-- SVG overlay that paints one single circular bite with stroke + inner shadow.
-         Circle fill matches page bg so underlying panels visually disappear where it overlaps.
-         The stroke + inner shadow emulate the panel border and inner shading so the cut reads continuous.
-    -->
+    <!-- SVG overlay: single circle that visually removes panel area under it (no visible construction line) -->
     <svg class="bite-svg" id="biteSVG" aria-hidden="true">
       <defs>
-        <!-- inner shadow filter for the bite rim -->
         <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur" />
           <feOffset dx="0" dy="6" result="offsetBlur" />
@@ -156,23 +152,36 @@
         </filter>
       </defs>
 
-      <!-- circle (dynamic) -->
-      <circle id="biteCircle" cx="0" cy="0" r="0"
-              fill="var(--bg, #071425)"
-              stroke="rgba(255,255,255,0.08)" stroke-width="2"
-              filter="url(#innerShadow)"/>
+      <circle id="biteCircle" cx="0" cy="0" r="0" fill="var(--bg,#071425)" stroke="rgba(255,255,255,0.08)" stroke-width="2" filter="url(#innerShadow)"/>
     </svg>
 
-    <!-- cube sits exactly centered over anchor -->
     <div class="cube-wrap" id="cubeWrap">
       <div class="scene" id="scene">
         <div class="cube" id="cube" role="application" aria-label="interactive cube">
-          <div class="face front" data-slot="front"><h3>Project 1</h3><p>Interactive tile puzzle</p></div>
-          <div class="face right" data-slot="right"><h3>Project 2</h3><p>Utility tool</p></div>
-          <div class="face back" data-slot="back"><h3>Project 3</h3><p>Algorithmic art</p></div>
-          <div class="face left" data-slot="left"><h3>Project 4</h3><p>UX experiments</p></div>
-          <div class="face top" data-slot="top"><h3>Project 5</h3><p>Top face</p></div>
-          <div class="face bottom" data-slot="bottom"><h3>Project 6</h3><p>Bottom face</p></div>
+          <div class="face front" data-slot="front">
+            <div class="accent" style="background:#e74c3c"></div>
+            <h3>Project 1</h3><p>Interactive tile puzzle</p>
+          </div>
+          <div class="face right" data-slot="right">
+            <div class="accent" style="background:#27ae60"></div>
+            <h3>Project 2</h3><p>Utility tool</p>
+          </div>
+          <div class="face back" data-slot="back">
+            <div class="accent" style="background:#9b59b6"></div>
+            <h3>Project 3</h3><p>Algorithmic art</p>
+          </div>
+          <div class="face left" data-slot="left">
+            <div class="accent" style="background:#1abc9c"></div>
+            <h3>Project 4</h3><p>UX experiments</p>
+          </div>
+          <div class="face top" data-slot="top">
+            <div class="accent" style="background:#f39c12"></div>
+            <h3>Project 5</h3><p>Top face</p>
+          </div>
+          <div class="face bottom" data-slot="bottom">
+            <div class="accent" style="background:#34495e"></div>
+            <h3>Project 6</h3><p>Bottom face</p>
+          </div>
         </div>
       </div>
     </div>
@@ -181,7 +190,7 @@
   </div>
 
 <script>
-/* Projects data */
+/* Projects data (keeps order consistent with cube faces mapping) */
 const projects = [
   { title:'Minesweeper', subtitle:'Interactive tile-based puzzle', desc:'Classic minesweeper rebuilt with modern UI', url:'#', color:'#e74c3c' },
   { title:'Project 2', subtitle:'Utility tool', desc:'Small utility demo', url:'#', color:'#27ae60' },
@@ -203,13 +212,13 @@ const descPanel = document.getElementById('descPanel');
 const imagePanel = document.getElementById('imagePanel');
 const projectsBar = document.getElementById('projectsBar');
 
-/* Build projects (wrap capable) */
+/* build bottom projects (wrap-capable) */
 function renderProjects(){
   projectsBar.innerHTML = '';
   projects.forEach((p,i)=>{
     const btn = document.createElement('div');
     btn.className = 'proj-btn';
-    btn.innerHTML = `<strong>${i+1}</strong><span style="color:var(--muted);font-size:12px;margin-top:6px">${p.title}</span>`;
+    btn.innerHTML = `<strong>${i+1}</strong><span>${p.title}</span>`;
     btn.addEventListener('click', ()=> centerCubeOnProject(i));
     projectsBar.appendChild(btn);
   });
@@ -222,21 +231,17 @@ function computeAnchor(){
   return { x: r.left + r.width/2, y: r.top + r.height/2, r: Math.min(r.width, r.height)/2 };
 }
 
-/* position the bite SVG circle to visually cut panels; also update bite for panels (for interactive state if needed) */
+/* position the bite SVG circle to visually cut panels; update panels' rim decoration positions */
 function positionBite(){
   const a = computeAnchor();
-  // place bite SVG circle (SVG uses page coords relative to viewport)
   biteCircle.setAttribute('cx', a.x);
   biteCircle.setAttribute('cy', a.y);
   biteCircle.setAttribute('r', a.r);
-  // size SVG to full viewport (already set) but ensure it's sized correctly for coord system
   biteSVG.style.width = `${window.innerWidth}px`;
   biteSVG.style.height = `${window.innerHeight}px`;
-  // update panels' internal pseudo decorations to align rim highlight if desired
-  // set CSS vars for pseudo-elements (used earlier approach)
+
   [titlePanel, descPanel, imagePanel].forEach(el=>{
     const rect = el.getBoundingClientRect();
-    // compute closest point on rect to anchor center
     const cx = Math.max(rect.left, Math.min(a.x, rect.right));
     const cy = Math.max(rect.top, Math.min(a.y, rect.bottom));
     const localX = Math.round(cx - rect.left);
@@ -244,7 +249,6 @@ function positionBite(){
     el.style.setProperty('--bite-x', `${localX}px`);
     el.style.setProperty('--bite-y', `${localY}px`);
     el.style.setProperty('--bite-radius', `${a.r}px`);
-    // show/hide panel's decorative pseudo if intersecting
     const dist = Math.hypot(cx - a.x, cy - a.y);
     const margin = 6;
     if(dist < a.r + margin){
@@ -257,23 +261,21 @@ function positionBite(){
   });
 }
 
-/* Place cubeWrap center to anchor center (ensure exact overlap on resize) */
+/* position cubeWrap at anchor center */
 function positionCubeWrap(){
   const a = computeAnchor();
-  cubeWrap.style.left = `${(a.x)}px`;
-  cubeWrap.style.top = `${(a.y)}px`;
-  // cubeWrap uses transform translate(-50%,-50%) in CSS; set directly:
+  cubeWrap.style.left = `${a.x}px`;
+  cubeWrap.style.top = `${a.y}px`;
   cubeWrap.style.transform = 'translate(-50%,-50%)';
 }
 
-/* Responsive startup */
+/* initial layout update */
 function layoutUpdate(){
-  // reposition anchor if CSS changed; anchor is at CSS position; computeAnchor reads it
   positionBite();
   positionCubeWrap();
 }
 
-/* cube rotation (drag) with inertia */
+/* cube rotation (pointer drag) with inertia */
 let rotY = 0;
 let isDown = false, startX = 0, startRot = 0, startT = 0, angVel = 0;
 const SENS = 0.35, CLICK_MOVE_THRESHOLD = 6, CLICK_TIME_THRESHOLD = 300;
@@ -301,9 +303,8 @@ scene.addEventListener('pointerup', e=>{
 });
 
 function applyRotation(){
-  cube.style.transform = `translateZ(-90px) rotateX(-10deg) rotateY(${rotY}deg)`;
+  cube.style.transform = `translateZ(-140px) rotateX(-10deg) rotateY(${rotY}deg)`;
   updateMostVisibleFace();
-  // bite remains static relative to layout (cube rotates in place)
 }
 
 /* face visibility heuristic (angle-based) */
@@ -316,7 +317,7 @@ function updateMostVisibleFace(){
   });
   let best = -1, bestIdx = 0;
   scores.forEach((s,i)=>{ if(s>best){ best=s; bestIdx=i }});
-  const mapping = [0,1,2,3]; // simple mapping front->proj0...
+  const mapping = [0,1,2,3]; // front->projects[0], right->projects[1], etc.
   const projIndex = mapping[bestIdx] % projects.length;
   const p = projects[projIndex];
   if(p){
@@ -328,7 +329,7 @@ function updateMostVisibleFace(){
   }
 }
 function normalizeAngleRad(a){
-  const two = Math.PI*2; let v = (a + Math.PI) % two; if(v < 0) v += two; return v - Math.PI;
+  const two = Math.PI * 2; let v = (a + Math.PI) % two; if(v < 0) v += two; return v - Math.PI;
 }
 
 /* center cube so project index is at front slot */
@@ -349,13 +350,13 @@ function animateRotationTo(targetDeg, duration=420){
   requestAnimationFrame(step);
 }
 
-/* open project mapped to face(slot) */
+/* open project mapped to face */
 function openFaceProject(faceEl){
   const map = { front:0, right:1, back:2, left:3, top:4, bottom:5 };
   const slot = faceEl.dataset.slot;
   const i = map[slot] % projects.length;
   const p = projects[i];
-  if(p && p.url) window.open(p.url,'_blank');
+  if(p && p.url) window.open(p.url, '_blank');
 }
 
 /* inertia loop */
@@ -375,12 +376,12 @@ requestAnimationFrame(loop);
 window.addEventListener('resize', ()=>{ layoutUpdate(); });
 window.addEventListener('load', ()=>{ layoutUpdate(); applyRotation(); setTimeout(layoutUpdate,90); });
 
-/* face click open */
+/* face click open binding */
 Array.from(document.querySelectorAll('.face')).forEach(f=>{
   f.addEventListener('click', ()=> openFaceProject(f));
 });
 
-/* initial */
+/* initial render */
 applyRotation();
 layoutUpdate();
 </script>
