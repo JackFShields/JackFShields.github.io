@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Layout Test - Proper Spacing</title>
+  <title>Layout Test - Full Screen</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,7 +12,7 @@
       --panel: rgba(255,255,255,0.03);
       --border: rgba(255,255,255,0.08);
       --text: #e6eef6;
-      --muted: rgba(255,255,255,0.6);
+      --gap: 3vw;
     }
     
     body {
@@ -29,14 +29,13 @@
       position: relative;
     }
     
-    /* Title - top left */
+    /* Title - top left, aligns with image top */
     .title {
       position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(calc(-100% - 1.5vw), calc(-100% - 1.5vh));
-      width: 35vw;
-      height: 22vh;
+      left: 2vw;
+      top: 2vh;
+      width: calc(45vw - var(--gap) - 2vw);
+      height: 35vh;
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 16px;
@@ -44,18 +43,17 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
+      font-size: 32px;
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
     
-    /* Description - bottom left */
+    /* Description - bottom left, aligns with image bottom */
     .description {
       position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(calc(-100% - 1.5vw), 1.5vh);
-      width: 35vw;
-      height: 28vh;
+      left: 2vw;
+      bottom: 15vh;
+      width: calc(45vw - var(--gap) - 2vw);
+      height: calc(83vh - 35vh - var(--gap) - 2vh);
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 16px;
@@ -66,14 +64,13 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
     
-    /* Image - right side */
+    /* Image - right side, full height minus bottom space */
     .img {
       position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(1.5vw, -50%);
-      width: 48vw;
-      height: 52vh;
+      right: 2vw;
+      top: 2vh;
+      width: 51vw;
+      height: 81vh;
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 16px;
@@ -85,23 +82,24 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.3);
     }
     
-    /* Project buttons - full width bottom */
+    /* Project buttons - narrower, taller */
     .projects {
       position: absolute;
       bottom: 0;
       left: 0;
       right: 0;
-      height: 12vh;
+      height: 13vh;
       display: flex;
       align-items: center;
+      justify-content: center;
+      gap: 12px;
       padding: 0 2vw;
       background: linear-gradient(to top, rgba(0,0,0,0.3), transparent);
     }
     
     .project-btn {
-      flex: 1;
-      margin: 0 8px;
-      height: 70px;
+      width: 100px;
+      height: 80px;
       background: var(--panel);
       border: 1px solid var(--border);
       border-radius: 10px;
@@ -109,19 +107,17 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      font-size: 20px;
+      font-size: 22px;
       transition: all 0.2s;
     }
     
     .project-btn:hover {
       transform: translateY(-4px);
       box-shadow: 0 12px 24px rgba(0,0,0,0.4);
-      border-color: rgba(255,255,255,0.15);
     }
     
     .project-btn:first-child {
       background: rgba(255,255,255,0.06);
-      border-color: rgba(255,255,255,0.12);
     }
   </style>
 </head>
