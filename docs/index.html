@@ -21,7 +21,7 @@
   .stage{width:var(--cube-size);height:var(--cube-size);perspective:1400px;position:relative;will-change:transform;}
   .cube{width:100%;height:100%;transform-style:preserve-3d;position:relative;cursor:grab;user-select:none;
         /* Use a single transform expression driven by the --rot variable everywhere */
-        transform: rotateX(-12deg) rotateY(var(--rot, 0deg)) translateZ(0);
+  transform: rotateX(-12deg) rotateY(0deg);
         transition: transform 0.22s linear;
         will-change:transform;
   }
@@ -188,7 +188,7 @@ function setFaceContent(faceName, projectIndex) {
 function updateAllFaces() {
   FACE_ORDER.forEach(face => setFaceContent(face, faceAssignments[face]));
   updateButtonsActiveState();
-  cube.style.setProperty('--rot', `${totalAngle}deg`); // always drive --rot
+  cube.style.transform = `rotateX(-12deg) rotateY(${totalAngle}deg)`; // always drive --rot
 }
 
 function updateButtonsActiveState() {
@@ -275,7 +275,7 @@ function handlePointerMove(e) {
   const prev = totalAngle;
   totalAngle = totalAngle + ddeg;
   // immediately reflect visual change via --rot
-  cube.style.setProperty('--rot', `${totalAngle}deg`);
+  cube.style.transform = `rotateX(-12deg) rotateY(${totalAngle}deg)`;
   detectAndApplyThresholds(prev, totalAngle);
 }
 
@@ -355,7 +355,7 @@ function init() {
   updateAllFaces();
   attachListeners();
   // ensure initial CSS var is set the same way everywhere
-  cube.style.setProperty('--rot', `${totalAngle}deg`);
+  cube.style.transform = `rotateX(-12deg) rotateY(${totalAngle}deg)`;
 }
 
 init();
