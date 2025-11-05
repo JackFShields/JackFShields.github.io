@@ -1,81 +1,70 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>JackFShields — Infinite Portfolio Cube (Fixed, with boxes)</title>
-<style>
-  :root{
-    --bg:#071425;
-    --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
-    --border: rgba(255,255,255,0.08);
-    --text:#e6eef6;
-    --muted: rgba(190,215,240,0.7);
-    --cube-size: 320px;
-  }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>JackFShields — Infinite Portfolio Cube</title>
+  <style>
+    :root{
+      --bg:#071425;
+      --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+      --border: rgba(255,255,255,0.08);
+      --text:#e6eef6;
+      --muted: rgba(190,215,240,0.7);
+      --gap:2vw;
+      --cube-size: 320px;
+    }
 
-  html,body{height:100%;margin:0;background:radial-gradient(circle at 20% 20%, #00121a 0%, var(--bg) 40%, #000814 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue";-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
-  .wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:48px;box-sizing:border-box;}
+    html,body { height:100%; margin:0; font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue"; background: radial-gradient(circle at 20% 20%, #00121a 0%, var(--bg) 40%, #000814 100%); color:var(--text); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+    .wrap { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:24px; padding:48px; box-sizing:border-box; }
 
-/* Stage + cube (3D preserved) */
-  .stage{width:var(--cube-size);height:var(--cube-size);perspective:1400px;position:relative;will-change:transform;}
-  .cube{width:100%;height:100%;transform-style:preserve-3d;position:relative;cursor:grab;user-select:none;
-        /* Use a single transform expression driven by the --rot variable everywhere */
-  transform: rotateX(-12deg) rotateY(0deg);
-        transition: transform 0.22s linear;
-        will-change:transform;
-  }
-  .cube:active{cursor:grabbing;}
+    /* Cube stage */
+    .stage { width:var(--cube-size); height:var(--cube-size); perspective:1400px; position:relative; }
+    .cube { width:100%; height:100%; transform-style:preserve-3d; transition: transform 0.32s linear; position:relative; cursor:grab; user-select:none; }
+    .cube:active { cursor:grabbing; }
 
-/* top visual surface to show 3D (not interactive) */
-  .top-surface{
-    position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;border-radius:12px;
-    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
-    box-shadow: 0 20px 40px rgba(0,0,0,0.6) inset;
-    transform: translateZ(calc(var(--cube-size) / 2 + 6px)) rotateX(90deg) scaleY(0.18);
-    opacity:0.6; mix-blend-mode: overlay;
-  }
+    .face {
+      position:absolute;
+      width:100%; height:100%;
+      left:0; top:0;
+      display:flex; flex-direction:column; justify-content:flex-end;
+      padding:18px; box-sizing:border-box;
+      backface-visibility:hidden;
+      border-radius:12px;
+      background: var(--panel-grad), linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+      border:1px solid var(--border);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6), inset 0 0 30px rgba(255,255,255,0.01);
+      transition: background-image 0.2s ease, transform 0.2s ease;
+      overflow:hidden;
+    }
 
-/* Faces + meta boxes (exact selectors restored) */
-  .face{
-    position:absolute;width:100%;height:100%;left:0;top:0;display:flex;flex-direction:column;justify-content:flex-end;padding:18px;box-sizing:border-box;
-    backface-visibility:hidden;border-radius:12px;background: var(--panel-grad), linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
-    border:1px solid var(--border); box-shadow: 0 8px 30px rgba(0,0,0,0.6), inset 0 0 30px rgba(255,255,255,0.01);
-    transition: background-image 0.2s ease, transform 0.12s ease, opacity 0.12s ease;
-    overflow:hidden;
-  }
+    .face .meta { background: linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.35)); padding:10px; border-radius:8px; }
+    .title { font-weight:700; margin:0 0 6px 0; font-size:1.05rem; color:var(--text); }
+    .subtitle { margin:0; font-size:0.9rem; color:var(--muted); }
 
-  .meta{ background: linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.35)); padding:10px; border-radius:8px; }
-  h3.title{ font-weight:700; margin:0 0 6px 0; font-size:1.05rem; color:var(--text); }
-  p.subtitle{ margin:0; font-size:0.9rem; color:var(--muted); }
+    .accent { position:absolute; right:12px; top:12px; width:12px; height:12px; border-radius:4px; }
 
-  .accent{ position:absolute; right:12px; top:12px; width:12px; height:12px; border-radius:4px; }
+    .face.swapping { opacity:0.98; filter:blur(0.3px); }
+    .face.swapping .meta { opacity:0.0; transition:opacity .12s ease; }
 
-  .face.swapping{ opacity:0.98; filter:blur(0.3px); }
-  .face.swapping .meta{ opacity:0.0; transition:opacity .12s ease; }
+    /* face positions (4 faces only) */
+    .face.front { transform: rotateY(0deg) translateZ(calc(var(--cube-size) / 2)); }
+    .face.right { transform: rotateY(90deg) translateZ(calc(var(--cube-size) / 2)); }
+    .face.back { transform: rotateY(180deg) translateZ(calc(var(--cube-size) / 2)); }
+    .face.left { transform: rotateY(-90deg) translateZ(calc(var(--cube-size) / 2)); }
 
-/* 4 readable faces positions */
-  .face.front { transform: rotateY(0deg) translateZ(calc(var(--cube-size) / 2)); }
-  .face.right { transform: rotateY(90deg) translateZ(calc(var(--cube-size) / 2)); }
-  .face.back  { transform: rotateY(180deg) translateZ(calc(var(--cube-size) / 2)); }
-  .face.left  { transform: rotateY(-90deg) translateZ(calc(var(--cube-size) / 2)); }
-
-/* bottom project list (keeps boxes) */
-  .projects-list{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:900px;margin-top:10px;}
-  .project-btn{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);padding:8px 12px;border-radius:8px;cursor:pointer;font-size:0.9rem;}
-  .project-btn.active{border-color:rgba(255,255,255,0.18);color:var(--text);background:rgba(255,255,255,0.02);}
-  .hint{font-size:0.85rem;color:var(--muted);margin-top:12px;text-align:center;}
-
-  @media (max-width:800px){ .stage{transform:scale(0.85);} .projects-list{transform:scale(0.9);} }
-</style>
+    /* bottom projects list */
+    .projects-list { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:900px; margin-top:10px; }
+    .project-btn { background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--muted); padding:8px 12px; border-radius:8px; cursor:pointer; font-size:0.9rem; }
+    .project-btn.active { border-color:rgba(255,255,255,0.18); color:var(--text); background:rgba(255,255,255,0.02); }
+    .hint { font-size:0.85rem; color:var(--muted); margin-top:12px; text-align:center; }
+    @media (max-width:800px){ .stage { transform:scale(0.85); } .projects-list { transform:scale(0.9); } }
+  </style>
 </head>
 <body>
   <div class="wrap" role="main">
     <div class="stage" aria-hidden="false">
       <div class="cube" role="region" aria-label="Project cube" tabindex="0">
-        <div class="top-surface" aria-hidden="true"></div>
-
-        <!-- preserved meta tiles (h3.title, p.subtitle) -->
         <div class="face front">
           <div class="accent"></div>
           <div class="meta">
@@ -83,7 +72,6 @@
             <p class="subtitle">Please wait</p>
           </div>
         </div>
-
         <div class="face right">
           <div class="accent"></div>
           <div class="meta">
@@ -91,7 +79,6 @@
             <p class="subtitle">Please wait</p>
           </div>
         </div>
-
         <div class="face back">
           <div class="accent"></div>
           <div class="meta">
@@ -99,7 +86,6 @@
             <p class="subtitle">Please wait</p>
           </div>
         </div>
-
         <div class="face left">
           <div class="accent"></div>
           <div class="meta">
@@ -114,251 +100,224 @@
     <div class="hint">Drag left / right to rotate. Click a project to jump to it.</div>
   </div>
 
-<script>
-/* ---------- Config ---------- */
-const FACE_ORDER = ['front','right','back','left'];
-const SWAP_THRESHOLDS = { front:180, right:270, back:0, left:90 };
-const COOLDOWN_DEGREES = 360;
-const ROTATE_EASE_MS = 420;
-const SENSITIVITY = 0.25;
+  <script>
+  // --- Config / State ---
+  const FACE_ORDER = ['front','right','back','left']; // clockwise
+  const SWAP_THRESHOLDS = { front:180, right:270, back:0, left:90 }; // degrees where that face is behind
+  const COOLDOWN_DEGREES = 360; // how many degrees before a face can swap again
+  const ROTATE_EASE_MS = 420; // rotation animation duration
+  const SENSITIVITY = 0.25; // pointer dx -> degrees
 
-/* ---------- Projects (inline, replace as needed) ---------- */
-const projects = [
-  { title: "Minesweeper", subtitle: "Interactive tile-based puzzle", desc: "Classic minesweeper rebuilt", image: null, color: "#e74c3c" },
-  { title: "Poly Weave", subtitle: "Generative geometry experiments", desc: "Woven polygons and creative coding", image: null, color: "#9b59b6" },
-  { title: "Grid Tools", subtitle: "UI toolkit for responsive grids", desc: "Utilities for layouts", image: null, color: "#1abc9c" },
-  { title: "UX Microinteractions", subtitle: "Interaction experiments", desc: "Playful loaders and toggles", image: null, color: "#f39c12" },
-  { title: "Data Viz Playground", subtitle: "Algorithmic visualizations", desc: "Visual encodings and layouts", image: null, color: "#27ae60" },
-  { title: "Portfolio Experiments", subtitle: "Design systems and transitions", desc: "Sandbox experiments", image: null, color: "#34495e" }
-];
+  let projects = []; // loaded from projects.json
+  let faceAssignments = { front:0, right:1, back:2, left:3 }; // indices into projects (can exceed length for placeholders)
+  let totalAngle = 0; // cumulative rotation in degrees
+  let lastPointerX = null;
+  let lastAnimationFrame = null;
+  let isAnimating = false;
+  let cooldownTracker = { front: -Infinity, right: -Infinity, back: -Infinity, left: -Infinity };
 
-/* ---------- State ---------- */
-let faceAssignments = { front:0, right:1, back:2, left:3 };
-let totalAngle = 0;
-let lastPointerX = null;
-let activePointerId = null;
-let isAnimating = false;
-let lastAnimationFrame = null;
-let cooldownTracker = { front: -Infinity, right: -Infinity, back: -Infinity, left: -Infinity };
+  // DOM refs
+  const cube = document.querySelector('.cube');
+  const faceEls = {
+    front: document.querySelector('.face.front'),
+    right: document.querySelector('.face.right'),
+    back: document.querySelector('.face.back'),
+    left: document.querySelector('.face.left')
+  };
+  const projectButtonsContainer = document.querySelector('.projects-list');
 
-/* ---------- DOM refs (selectors match your original layout) ---------- */
-const cube = document.querySelector('.cube');
-const faceEls = {
-  front: document.querySelector('.face.front'),
-  right: document.querySelector('.face.right'),
-  back: document.querySelector('.face.back'),
-  left: document.querySelector('.face.left')
-};
-const projectButtonsContainer = document.querySelector('.projects-list');
+  const mod = (n,m) => ((n % m) + m) % m;
 
-/* ---------- Helpers ---------- */
-const clamp = (v,a,b) => Math.max(a, Math.min(b,v));
-const nowDeg = d => ((d % 360) + 360) % 360;
-
-/* Preload images if present */
-projects.forEach(p => { if(p.image){ const i=new Image(); i.src = p.image; }});
-
-/* ---------- Face content (preserves exact selectors) ---------- */
-function setFaceContent(faceName, projectIndex) {
-  const el = faceEls[faceName];
-  if(!el) return;
-  el.classList.add('swapping');
-
-  setTimeout(() => {
-    const titleEl = el.querySelector('h3.title');
-    const subEl = el.querySelector('p.subtitle');
-    const accEl = el.querySelector('.accent');
-
-    if(projectIndex >= projects.length) {
-      titleEl.textContent = `Project ${projectIndex + 1}`;
-      subEl.textContent = "Hold your horses! I haven't finished this yet!";
-      accEl.style.background = '#666';
-      el.style.backgroundImage = '';
-    } else {
-      const p = projects[projectIndex];
-      titleEl.textContent = p.title || `Project ${projectIndex + 1}`;
-      subEl.textContent = p.subtitle || (p.desc || '');
-      accEl.style.background = p.color || '#888';
-      if(p.image) el.style.backgroundImage = `url(${p.image})`; else el.style.backgroundImage = '';
+  // --- Load projects.json (synchronous-ish, preload images) ---
+  async function loadProjects() {
+    try {
+      const res = await fetch('/projects.json');
+      if (!res.ok) throw new Error('no json');
+      projects = await res.json();
+    } catch(e) {
+      projects = [
+        { title: "Minesweeper", subtitle: "Interactive tile-based puzzle", desc: "Classic minesweeper rebuilt", image: null, color: "#e74c3c" },
+        { title: "Poly Weave", subtitle: "Generative geometry experiments", desc: "Woven polygons and creative coding", image: null, color: "#9b59b6" },
+        { title: "Grid Tools", subtitle: "UI toolkit for responsive grids", desc: "Utilities for layouts", image: null, color: "#1abc9c" },
+        { title: "UX Microinteractions", subtitle: "Interaction experiments", desc: "Playful loaders and toggles", image: null, color: "#f39c12" },
+        { title: "Data Viz Playground", subtitle: "Algorithmic visualizations", desc: "Visual encodings and layouts", image: null, color: "#27ae60" }
+      ];
     }
-    el.classList.remove('swapping');
-  }, 100);
-}
 
-function updateAllFaces() {
-  FACE_ORDER.forEach(face => setFaceContent(face, faceAssignments[face]));
-  updateButtonsActiveState();
-  cube.style.transform = `rotateX(-12deg) rotateY(${totalAngle}deg)`; // always drive --rot
-}
+    // Preload any images
+    projects.forEach(p => { if(p.image){ const i = new Image(); i.src = p.image; } });
 
-function updateButtonsActiveState() {
-  const visibleIndex = faceAssignments.front;
-  if(!projectButtonsContainer) return;
-  Array.from(projectButtonsContainer.children).forEach((btn, i) => {
-    btn.classList.toggle('active', i === visibleIndex);
-  });
-}
+    updateAllFaces();
+    renderProjectButtons();
+  }
 
-/* ---------- Threshold detection ---------- */
-function detectAndApplyThresholds(prevTotal, currTotal) {
-  if (Math.abs(currTotal - prevTotal) < 1e-6) return;
-  const direction = currTotal > prevTotal ? 1 : -1;
+  // --- Face content update, placeholder handling ---
+  function setFaceContent(faceName, projectIndex) {
+    const el = faceEls[faceName];
+    if (!el) return;
+    el.classList.add('swapping');
+    setTimeout(() => {
+      const titleEl = el.querySelector('.title');
+      const subEl = el.querySelector('.subtitle');
+      const accEl = el.querySelector('.accent');
 
-  FACE_ORDER.forEach(face => {
-    const threshold = SWAP_THRESHOLDS[face];
-    const prev = prevTotal;
-    const curr = currTotal;
-    const kMin = Math.floor((Math.min(prev,curr) - threshold) / 360) - 1;
-    const kMax = Math.ceil((Math.max(prev,curr) - threshold) / 360) + 1;
-    for(let k = kMin; k <= kMax; k++) {
-      const absoluteThreshold = threshold + 360 * k;
-      const crossed = (prev < absoluteThreshold && absoluteThreshold <= curr) ||
-                      (curr <= absoluteThreshold && absoluteThreshold < prev);
-      if(crossed) {
-        if(absoluteThreshold - (cooldownTracker[face] || -Infinity) >= COOLDOWN_DEGREES) {
-          const deltaIndex = 4 * direction;
-          faceAssignments[face] = faceAssignments[face] + deltaIndex;
-          cooldownTracker[face] = absoluteThreshold;
-          setFaceContent(face, faceAssignments[face]);
+      if (projectIndex >= projects.length) {
+        titleEl.textContent = `Project ${projectIndex + 1}`;
+        subEl.textContent = "Hold your horses! I haven't finished this yet!";
+        accEl.style.background = '#666';
+        el.style.backgroundImage = '';
+      } else {
+        const p = projects[projectIndex];
+        titleEl.textContent = p.title || (`Project ${projectIndex + 1}`);
+        subEl.textContent = p.subtitle || (p.desc || '');
+        accEl.style.background = p.color || '#888';
+        if (p.image) el.style.backgroundImage = `url(${p.image})`; else el.style.backgroundImage = '';
+      }
+      el.classList.remove('swapping');
+    }, 120);
+  }
+
+  function updateAllFaces() {
+    FACE_ORDER.forEach(face => setFaceContent(face, faceAssignments[face]));
+    updateSidePanels();
+    // ensure cube transform matches totalAngle visually
+    cube.style.transform = `rotateY(${totalAngle}deg)`;
+  }
+
+  function updateSidePanels() {
+    const visibleIndex = faceAssignments.front;
+    if (!projectButtonsContainer) return;
+    Array.from(projectButtonsContainer.children).forEach((btn, i) => {
+      btn.classList.toggle('active', i === visibleIndex);
+    });
+  }
+
+  // --- Threshold crossing detection and application ---
+  function detectAndApplyThresholds(prevTotal, currTotal) {
+    if (Math.abs(currTotal - prevTotal) < 1e-6) return;
+    const direction = currTotal > prevTotal ? 1 : -1;
+
+    FACE_ORDER.forEach(face => {
+      const threshold = SWAP_THRESHOLDS[face];
+      const prev = prevTotal;
+      const curr = currTotal;
+      // check k range that could contain thresholds between prev and curr
+      const kMin = Math.floor((Math.min(prev, curr) - threshold) / 360) - 1;
+      const kMax = Math.ceil((Math.max(prev, curr) - threshold) / 360) + 1;
+      for (let k = kMin; k <= kMax; k++) {
+        const absoluteThreshold = threshold + 360 * k;
+        const crossed = (prev < absoluteThreshold && absoluteThreshold <= curr) || (curr <= absoluteThreshold && absoluteThreshold < prev);
+        if (crossed) {
+          if (absoluteThreshold - (cooldownTracker[face] || -Infinity) >= COOLDOWN_DEGREES) {
+            const deltaIndex = 4 * direction;
+            faceAssignments[face] = faceAssignments[face] + deltaIndex;
+            cooldownTracker[face] = absoluteThreshold;
+            setFaceContent(face, faceAssignments[face]);
+          }
         }
       }
-    }
-  });
-}
-
-/* ---------- Animation (always updates --rot) ---------- */
-function animateRotation(deltaAngle, cb) {
-  if (lastAnimationFrame) { cancelAnimationFrame(lastAnimationFrame); lastAnimationFrame = null; }
-  isAnimating = true;
-  const from = totalAngle;
-  const to = totalAngle + deltaAngle;
-  const start = performance.now();
-  const dur = ROTATE_EASE_MS;
-
-  function tick(ts) {
-    const p = clamp((ts - start) / dur, 0, 1);
-    const eased = 1 - Math.pow(1 - p, 3);
-    const cur = from + (to - from) * eased;
-    // drive same CSS variable everywhere to avoid collapse to 2D
-    cube.style.setProperty('--rot', `${cur}deg`);
-    detectAndApplyThresholds(totalAngle, cur);
-    if(p < 1) {
-      lastAnimationFrame = requestAnimationFrame(tick);
-    } else {
-      totalAngle = to;
-      isAnimating = false;
-      lastAnimationFrame = null;
-      detectAndApplyThresholds(from, totalAngle);
-      if(cb) cb();
-    }
+    });
   }
-  lastAnimationFrame = requestAnimationFrame(tick);
-}
 
-/* ---------- Pointer handling (desktop-only) ---------- */
-function handlePointerDown(e) {
-  // only left-button mouse or pointer
-  if(e.pointerType === 'mouse' && e.button !== 0) return;
-  if(isAnimating) return;
-  lastPointerX = e.clientX;
-  activePointerId = e.pointerId;
-  try { e.target.setPointerCapture?.(activePointerId); } catch(_) {}
-}
-
-function handlePointerMove(e) {
-  if(activePointerId === null) return;
-  if(e.pointerId !== activePointerId) return;
-  if(lastPointerX === null) return;
-  const dx = e.clientX - lastPointerX;
-  lastPointerX = e.clientX;
-  const ddeg = dx * SENSITIVITY;
-  const prev = totalAngle;
-  totalAngle = totalAngle + ddeg;
-  // immediately reflect visual change via --rot
-  cube.style.transform = `rotateX(-12deg) rotateY(${totalAngle}deg)`;
-  detectAndApplyThresholds(prev, totalAngle);
-}
-
-function handlePointerUp(e) {
-  if(activePointerId === null) return;
-  if(e.pointerId !== activePointerId) return;
-  try { e.target.releasePointerCapture?.(activePointerId); } catch(_) {}
-  activePointerId = null;
-  lastPointerX = null;
-  // snap to nearest 90° and animate remainder
-  const snapped = Math.round(totalAngle / 90) * 90;
-  const deltaAngle = snapped - totalAngle;
-  animateRotation(deltaAngle);
-}
-
-function handlePointerCancel(e) {
-  if(activePointerId === null) return;
-  activePointerId = null;
-  lastPointerX = null;
-}
-
-/* ---------- Click-to-jump (fixed mapping) ---------- */
-function rotateCubeToProject(targetProjectIndex) {
-  if (typeof targetProjectIndex !== 'number') return;
-  // compute minimal signed step difference relative to current front index
-  const currentFront = faceAssignments.front;
-  // raw difference
-  const rawDelta = targetProjectIndex - currentFront;
-  // normalize shortest path across project count
-  const N = Math.max(1, projects.length);
-  let wrappedDelta = ((rawDelta % N) + N) % N;
-  if (wrappedDelta > N/2) wrappedDelta -= N;
-  const steps = wrappedDelta;
-
-  // prefill faces so they show target..target+3
-  FACE_ORDER.forEach((face, i) => { faceAssignments[face] = targetProjectIndex + i; });
-  updateAllFaces();
-
-  // animate steps*90 degrees; positive steps => rotate right
-  animateRotation(steps * 90);
-}
-
-/* ---------- Buttons rendering (preserve box layout) ---------- */
-function renderProjectButtons() {
-  if(!projectButtonsContainer) return;
-  projectButtonsContainer.innerHTML = '';
-  projects.forEach((p, idx) => {
-    const btn = document.createElement('button');
-    btn.className = 'project-btn';
-    btn.textContent = p.title || `Project ${idx+1}`;
-    btn.addEventListener('click', () => rotateCubeToProject(idx));
-    projectButtonsContainer.appendChild(btn);
-  });
-  updateButtonsActiveState();
-}
-
-/* ---------- Init ---------- */
-function attachListeners() {
-  cube.addEventListener('pointerdown', handlePointerDown);
-  window.addEventListener('pointermove', handlePointerMove);
-  window.addEventListener('pointerup', handlePointerUp);
-  window.addEventListener('pointercancel', handlePointerCancel);
-
-  window.addEventListener('keydown', (e) => {
-    if(e.key === 'ArrowLeft') {
-      const prev = faceAssignments.front;
-      rotateCubeToProject(prev - 1);
-    } else if(e.key === 'ArrowRight') {
-      const prev = faceAssignments.front;
-      rotateCubeToProject(prev + 1);
+  // --- Rotation animation (programmatic) ---
+  function applyCubeRotation(targetAngle, cb) {
+    if (lastAnimationFrame) {
+      cancelAnimationFrame(lastAnimationFrame);
+      lastAnimationFrame = null;
     }
-  });
-}
+    isAnimating = true;
+    const from = totalAngle;
+    const to = targetAngle;
+    const start = performance.now();
+    const dur = ROTATE_EASE_MS;
+    function tick(t) {
+      const p = Math.min(1, (t - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      const cur = from + (to - from) * eased;
+      cube.style.transform = `rotateY(${cur}deg)`;
+      if (p < 1) {
+        lastAnimationFrame = requestAnimationFrame(tick);
+      } else {
+        totalAngle = to;
+        isAnimating = false;
+        lastAnimationFrame = null;
+        if (cb) cb();
+      }
+    }
+    lastAnimationFrame = requestAnimationFrame(tick);
+  }
 
-function init() {
-  renderProjectButtons();
-  updateAllFaces();
+  // --- Pointer handling (desktop only) ---
+  function pointerDown(e) {
+    if (isAnimating) return;
+    lastPointerX = e.clientX;
+    cube.setPointerCapture?.(e.pointerId);
+  }
+  function pointerMove(e) {
+    if (lastPointerX === null) return;
+    const dx = e.clientX - lastPointerX;
+    const ddeg = dx * SENSITIVITY;
+    const prev = totalAngle;
+    totalAngle += ddeg;
+    detectAndApplyThresholds(prev, totalAngle);
+    cube.style.transform = `rotateY(${totalAngle}deg)`;
+    lastPointerX = e.clientX;
+  }
+  function pointerUp(e) {
+    lastPointerX = null;
+    const snapped = Math.round(totalAngle / 90) * 90;
+    applyCubeRotation(snapped);
+  }
+
+  // --- Click-to-jump navigation ---
+  function rotateCubeToShowProject(targetProjectIndex) {
+    if (isAnimating) {
+      if (lastAnimationFrame) { cancelAnimationFrame(lastAnimationFrame); lastAnimationFrame = null; isAnimating = false; }
+    }
+    FACE_ORDER.forEach((face, i) => { faceAssignments[face] = targetProjectIndex + i; });
+    updateAllFaces();
+    const currentBucket = Math.round(totalAngle / 90);
+    const targetAngle = currentBucket * 90;
+    applyCubeRotation(targetAngle);
+  }
+
+  // --- Buttons rendering ---
+  function renderProjectButtons() {
+    if (!projectButtonsContainer) return;
+    projectButtonsContainer.innerHTML = '';
+    projects.forEach((p, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'project-btn';
+      btn.textContent = p.title || `Project ${idx + 1}`;
+      btn.addEventListener('click', () => rotateCubeToShowProject(idx));
+      projectButtonsContainer.appendChild(btn);
+    });
+    updateSidePanels();
+  }
+
+  // --- Init ---
+  function attachListeners() {
+    cube.addEventListener('pointerdown', pointerDown);
+    window.addEventListener('pointermove', pointerMove);
+    window.addEventListener('pointerup', pointerUp);
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') {
+        const prev = totalAngle;
+        totalAngle -= 90;
+        detectAndApplyThresholds(prev, totalAngle);
+        applyCubeRotation(Math.round(totalAngle / 90) * 90);
+      }
+      if (e.key === 'ArrowRight') {
+        const prev = totalAngle;
+        totalAngle += 90;
+        detectAndApplyThresholds(prev, totalAngle);
+        applyCubeRotation(Math.round(totalAngle / 90) * 90);
+      }
+    });
+  }
+
   attachListeners();
-  // ensure initial CSS var is set the same way everywhere
-  cube.style.transform = `rotateX(-12deg) rotateY(${totalAngle}deg)`;
-}
-
-init();
-</script>
+  loadProjects();
+  </script>
 </body>
 </html>
