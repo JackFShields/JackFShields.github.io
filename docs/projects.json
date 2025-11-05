@@ -2,23 +2,23 @@
   {
     "title": "Minesweeper",
     "subtitle": "Interactive tile-based puzzle",
-    "desc": "Classic minesweeper rebuilt with modern UI, smooth animations, and keyboard accessibility. Features custom themes and performance tuned for large boards.",
+    "desc": "Classic minesweeper rebuilt with modern UI, smooth animations, and keyboard accessibility.",
     "url": "https://jackfshields.github.io/PolyWeaveMines/",
-    "image": "https://raw.githubusercontent.com/JackFShields/PolyWeaveMines/main/screenshot.png",
+    "image": null,
     "color": "#e74c3c"
   },
   {
     "title": "Poly Weave",
     "subtitle": "Generative geometry experiments",
-    "desc": "A small suite of generative compositions exploring woven polygons, interactive controls, and reproducible seeds for creative coding demos.",
+    "desc": "Woven polygons, interactive controls, and reproducible seeds for creative coding demos.",
     "url": "https://jackfshields.github.io/PolyWeave/",
-    "image": "https://raw.githubusercontent.com/JackFShields/PolyWeave/main/preview.png",
+    "image": null,
     "color": "#9b59b6"
   },
   {
     "title": "Grid Tools",
     "subtitle": "UI toolkit for responsive grids",
-    "desc": "Lightweight utilities and demos for responsive grid layouts, fluid gutters, and accessible controls used in prototype interfaces.",
+    "desc": "Lightweight utilities and demos for responsive grid layouts and fluid gutters.",
     "url": "https://github.com/JackFShields/grid-tools",
     "image": null,
     "color": "#1abc9c"
@@ -26,7 +26,7 @@
   {
     "title": "UX Microinteractions",
     "subtitle": "Interaction patterns and experiments",
-    "desc": "Small focused experiments showcasing microinteractions: animated toggles, playful loaders, and tactile button responses.",
+    "desc": "Small focused experiments showcasing microinteractions: animated toggles, playful loaders.",
     "url": "https://github.com/JackFShields/ux-micro",
     "image": null,
     "color": "#f39c12"
@@ -34,7 +34,7 @@
   {
     "title": "Data Viz Playground",
     "subtitle": "Algorithmic visualizations",
-    "desc": "Interactive visualizations driven by deterministic algorithms — useful for exploring layout tradeoffs and visual encoding.",
+    "desc": "Interactive visualizations driven by deterministic algorithms for exploring layouts and encodings.",
     "url": "https://github.com/JackFShields/dataviz-play",
     "image": null,
     "color": "#27ae60"
@@ -42,10 +42,9 @@
   {
     "title": "Portfolio Experiments",
     "subtitle": "Design systems and transitions",
-    "desc": "Sandbox for experiments that eventually inform this portfolio: transitions, border masks, and cube-panel composition techniques.",
+    "desc": "Sandbox for experiments that inform this portfolio: transitions, border masks, and cube-panel composition.",
     "url": "https://github.com/JackFShields/portfolio-experiments",
     "image": null,
     "color": "#34495e"
   }
 ]
-
