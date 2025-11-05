@@ -1,0 +1,26 @@
+[
+  {
+    "title": "Arcade Portfolio",
+    "name": "arcade-portfolio",
+    "description": "A playful portfolio that uses arcade metaphors and interactive demos to showcase work.",
+    "favicon": "https://api.dicebear.com/6.x/identicon/svg?seed=arcade"
+  },
+  {
+    "title": "Capsule UI Kit",
+    "name": "capsule-ui",
+    "description": "A tiny component library of capsule-shaped UI elements and micro-interactions.",
+    "favicon": "https://api.dicebear.com/6.x/thumbs/svg?seed=capsule"
+  },
+  {
+    "title": "Infinite Hallways",
+    "name": "infinite-hallways",
+    "description": "Geometry experiments exploring recursive hallways and parallax illusions.",
+    "favicon": "https://api.dicebear.com/6.x/gridy/svg?seed=hallway"
+  },
+  {
+    "title": "Claw Mechanics",
+    "name": "claw-mechanics",
+    "description": "A deep dive into physical metaphors and deterministic randomness for playful interactions.",
+    "favicon": "https://api.dicebear.com/6.x/avataaars/svg?seed=claw"
+  }
+]
