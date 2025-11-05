@@ -1,407 +1,355 @@
-<!-- DEPTH: DEEP -->
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>JackFShields — Portfolio Cube</title>
-
-<!-- Lightweight inline SVG favicon (data URI) -->
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='20' y='20' width='60' height='60' fill='%23e74c3c' transform='rotate(45 50 50)'/%3E%3C/svg%3E">
-
+<title>Portfolio Cube — Robust Build</title>
 <style>
-:root{
-  --bg:#071425;
-  --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
-  --border: rgba(255,255,255,0.08);
-  --text:#e6eef6;
-  --muted: rgba(190,215,240,0.7);
-  --gap:2vw;
+  :root{
+    --bg: #071425;
+    --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+    --border: rgba(255,255,255,0.08);
+    --text: #e6eef6;
+    --muted: rgba(190,215,240,0.7);
+    --gap: 2vw;
 
-  /* tuned sizes */
-  --cube-size: 336px;
-  --bite-radius: 270px;
-  --face-accent-width: 6px;
-}
+    /* Base sizes (responsive adjustments later) */
+    --cube-size: 336px;    /* ~20% bigger than earlier */
+    --bite-radius: 270px;  /* generous breathing room */
+  }
 
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;-webkit-font-smoothing:antialiased}
-.viewport{width:100vw;height:100vh;position:relative;overflow:hidden}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;-webkit-font-smoothing:antialiased}
+  .viewport{width:100vw;height:100vh;position:relative;overflow:hidden}
 
-/* Panels */
-.panel{position:absolute;background:var(--panel-grad);border:1px solid var(--border);
-  border-radius:14px;padding:18px;box-shadow:0 10px 36px rgba(0,0,0,0.36);overflow:visible;z-index:1}
+  /* Generic panel style (title, description, image) */
+  .panel {
+    position:absolute;
+    background: var(--panel-grad);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 10px 36px rgba(0,0,0,0.36);
+    overflow: visible;
+    z-index: 1;
+  }
 
-/* layout columns */
-.title{left:2vw;top:2vh;width:calc(42vw - var(--gap));height:36vh}
-.title h1{font-size:30px;margin-bottom:6px}
-.title p{color:var(--muted);margin-top:6px}
+  /* Left column: title + description */
+  .title {
+    left: 2vw;
+    top: 2vh;
+    width: calc(42vw - var(--gap));
+    height: 36vh;
+  }
+  .title h1 { font-size: 30px; margin-bottom: 8px; }
+  .title p { color: var(--muted); margin-top: 6px; }
 
-.description{left:2vw;top:calc(2vh + 36vh + var(--gap));width:calc(42vw - var(--gap));height:calc(82vh - 36vh - var(--gap) - 2vh)}
-.description p{color:var(--muted);line-height:1.45}
+  .description {
+    left: 2vw;
+    top: calc(2vh + 36vh + var(--gap));
+    width: calc(42vw - var(--gap));
+    height: calc(82vh - 36vh - var(--gap) - 2vh);
+  }
+  .description p { color: var(--muted); line-height: 1.45; }
 
-.image{right:2vw;top:2vh;width:54vw;height:80vh;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted)}
+  /* Right image panel */
+  .image {
+    right: 2vw;
+    top: 2vh;
+    width: 54vw;
+    height: 80vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    color:var(--muted);
+  }
 
-/* anchor: center of bite & cube; horizontally aligned to midpoint between left column panels and right panel */
-.anchor{position:absolute;left:calc(42vw - var(--gap)/2);top:50%;width:calc(var(--bite-radius)*2);height:calc(var(--bite-radius)*2);
-  transform:translate(-50%,-50%);pointer-events:none;opacity:0;z-index:2}
+  /* Invisible anchor/footprint (center of bite and cube). Positioned in CSS to match gap midpoint */
+  .anchor {
+    position:absolute;
+    left: calc(42vw - var(--gap)/2);
+    top: 50%;
+    width: calc(var(--bite-radius) * 2);
+    height: calc(var(--bite-radius) * 2);
+    transform: translate(-50%, -50%);
+    pointer-events:none;
+    opacity:0;
+    z-index:2;
+  }
 
-/* bite SVG — top of panels but below cube */
-.bite-svg{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:3}
+  /* SVG overlay: single circle that visually removes panels under it and provides rim stroke + inner shadow.
+     The circle is filled with the page bg so panels visually disappear where it overlaps.
+     Stroke + filter emulate continuous border and inner bevel so panels' border and shadow read continuous.
+  */
+  .bite-svg {
+    position:absolute;
+    left:0; top:0;
+    width:100%; height:100%;
+    pointer-events:none;
+    z-index:3;
+  }
 
-/* cube wrap positioned at anchor center */
-.cube-wrap{position:absolute;left:calc(42vw - var(--gap)/2);top:50%;transform:translate(-50%,-50%);width:var(--cube-size);height:var(--cube-size);z-index:5;pointer-events:none}
-.scene{width:100%;height:100%;perspective:1200px;position:relative;pointer-events:auto;user-select:none;touch-action:none}
-.cube{width:100%;height:100%;position:relative;transform-style:preserve-3d;transform:translateZ(-140px) rotateX(-10deg) rotateY(0deg);transition:transform .08s linear;z-index:5}
+  /* Cube container sits exactly at anchor center, vertically centered at 50% viewport height */
+  .cube-wrap {
+    position:absolute;
+    left: calc(42vw - var(--gap)/2);
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: var(--cube-size);
+    height: var(--cube-size);
+    z-index: 5;  /* above bite, above panels' rim elements */
+    pointer-events:none;
+  }
 
-/* face styling (solid, non-transparent) */
-.face{position:absolute;left:0;top:0;width:100%;height:100%;border-radius:12px;background:var(--panel-grad);border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;flex-direction:column;box-shadow:0 10px 36px rgba(0,0,0,0.6);backface-visibility:hidden;cursor:pointer;box-sizing:border-box}
-.face .accent{position:absolute;left:0;top:0;bottom:0;width:var(--face-accent-width);border-top-left-radius:12px;border-bottom-left-radius:12px}
-.face h3{font-size:22px;margin:0 0 6px 0}
-.face p{color:var(--muted);margin:0;font-size:13px;text-align:center;padding:0 10px}
+  .scene { width:100%; height:100%; perspective:1200px; position:relative; pointer-events:auto; user-select:none; touch-action:none; }
+  .cube {
+    width:100%; height:100%;
+    position:relative; transform-style:preserve-3d;
+    transform: translateZ(-140px) rotateX(-10deg) rotateY(0deg);
+    transition: transform .08s linear;
+    z-index:5;
+  }
 
-/* face transforms */
-.front{transform:rotateY(0deg) translateZ(calc(var(--cube-size)/2))}
-.right{transform:rotateY(90deg) translateZ(calc(var(--cube-size)/2))}
-.back{transform:rotateY(180deg) translateZ(calc(var(--cube-size)/2))}
-.left{transform:rotateY(270deg) translateZ(calc(var(--cube-size)/2))}
-.top{transform:rotateX(90deg) translateZ(calc(var(--cube-size)/2))}
-.bottom{transform:rotateX(-90deg) translateZ(calc(var(--cube-size)/2))}
+  /* Face common */
+  .face {
+    position:absolute; left:0; top:0; width:100%; height:100%;
+    border-radius:12px;
+    background: var(--panel-grad);
+    border: 1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    box-shadow: 0 10px 36px rgba(0,0,0,0.6);
+    backface-visibility:hidden; cursor:pointer;
+    box-sizing:border-box;
+  }
 
-/* bottom projects bar */
-.projects{position:absolute;left:0;right:0;bottom:0;display:flex;gap:14px;padding:2vh 2vw;flex-wrap:wrap;justify-content:center;align-items:center;background:linear-gradient(to top, rgba(0,0,0,0.45), transparent);z-index:7}
-.proj-btn{width:140px;height:84px;background:var(--panel-grad);border:1px solid var(--border);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:transform .18s,box-shadow .18s}
-.proj-btn:hover{transform:translateY(-6px);box-shadow:0 12px 30px rgba(0,0,0,0.45)}
-.proj-btn strong{font-size:18px}
-.proj-btn span{font-size:12px;color:var(--muted);margin-top:6px}
+  /* Accent bar left on each face; filled by inline style set in HTML/JS to match project color */
+  .face .accent {
+    position:absolute; left:0; top:0; bottom:0; width:6px;
+    border-top-left-radius:12px; border-bottom-left-radius:12px;
+  }
 
-/* responsive */
-@media (max-width:980px){
-  :root{--cube-size:260px;--bite-radius:160px}
-  .title,.description{left:2vw;width:calc(100% - 4vw)}
-  .title{top:2vh;height:20vh}
-  .description{top:calc(2vh + 20vh + var(--gap));height:28vh}
-  .image{left:2vw;right:2vw;top:calc(2vh + 20vh + 28vh + calc(var(--gap)*2));width:calc(100% - 4vw);height:32vh}
-  .cube-wrap{left:50%;top:calc(2vh + 20vh + (28vh/2));transform:translate(-50%,-50%)}
-  .anchor{left:50%;top:calc(2vh + 20vh + (28vh/2));transform:translate(-50%,-50%)}
-}
+  .face h3 { font-size:22px; margin:0 0 6px 0; }
+  .face p { color:var(--muted); margin:0; font-size:13px; text-align:center; padding:0 10px; }
+
+  /* Face transforms */
+  .front  { transform: rotateY(0deg)   translateZ(calc(var(--cube-size)/2)); }
+  .right  { transform: rotateY(90deg)  translateZ(calc(var(--cube-size)/2)); }
+  .back   { transform: rotateY(180deg) translateZ(calc(var(--cube-size)/2)); }
+  .left   { transform: rotateY(270deg) translateZ(calc(var(--cube-size)/2)); }
+  .top    { transform: rotateX(90deg)  translateZ(calc(var(--cube-size)/2)); }
+  .bottom { transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
+
+  /* Projects bar: wrap capable, taller rectangular buttons */
+  .projects {
+    position:absolute; left:0; right:0; bottom:0;
+    display:flex; gap:14px; padding:2vh 2vw; flex-wrap:wrap; justify-content:center; align-items:center;
+    background: linear-gradient(to top, rgba(0,0,0,0.45), transparent);
+    z-index:7;
+  }
+  .proj-btn {
+    width:140px; height:84px; background:var(--panel-grad); border:1px solid var(--border); border-radius:10px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition:transform .18s, box-shadow .18s;
+  }
+  .proj-btn:hover { transform: translateY(-6px); box-shadow: 0 12px 30px rgba(0,0,0,0.45); }
+  .proj-btn strong { font-size:18px; }
+  .proj-btn span { font-size:12px; color:var(--muted); margin-top:6px; }
+
+  /* subtle responsive tuning */
+  @media (max-width: 980px) {
+    :root { --cube-size: 260px; --bite-radius: 160px; }
+    .title, .description { left:2vw; width: calc(100% - 4vw); }
+    .title { top:2vh; height: 20vh; }
+    .description { top: calc(2vh + 20vh + var(--gap)); height: 28vh; }
+    .image {
+      left:2vw; right:2vw; top: calc(2vh + 20vh + 28vh + calc(var(--gap)*2));
+      width: calc(100% - 4vw); height:32vh;
+    }
+    .cube-wrap { left: 50%; top: calc(2vh + 20vh + (28vh/2)); transform: translate(-50%, -50%); }
+    .anchor { left: 50%; top: calc(2vh + 20vh + (28vh/2)); transform: translate(-50%, -50%); }
+  }
 </style>
 </head>
 <body>
-<div class="viewport" id="viewport">
-  <div class="panel title" id="titlePanel">
-    <h1 id="projTitle">Minesweeper</h1>
-    <p id="projSubtitle">Interactive tile-based puzzle</p>
-    <div style="margin-top:10px;color:var(--muted);font-size:13px">
-      <a id="profile-link" href="https://jackfshields.github.io" style="color:inherit;text-decoration:underline">JackFShields.github.io</a>
+  <div class="viewport" id="viewport">
+    <!-- Panels -->
+    <div class="panel title" id="titlePanel">
+      <h1 id="projTitle">Minesweeper</h1>
+      <p id="projSubtitle">Interactive tile-based puzzle</p>
+      <div style="margin-top:10px;color:var(--muted);font-size:13px"><a href="https://jackfshields.github.io" style="color:inherit;text-decoration:underline">JackFShields.github.io</a></div>
     </div>
-  </div>
 
-  <div class="panel description" id="descPanel">
-    <p id="projDesc">Classic minesweeper rebuilt with modern UI. Drag the cube to rotate projects, or click the numbered buttons below to jump to a project.</p>
-  </div>
+    <div class="panel description" id="descPanel">
+      <p id="projDesc">Classic minesweeper rebuilt with modern UI. Drag the cube to rotate projects, or click the numbered buttons below to jump to a project. The central cube sits exactly at mid-height; panels keep a smooth bevel and shadow around the circular bite.</p>
+    </div>
 
-  <div class="panel image" id="imagePanel">Project preview (no image)</div>
+    <div class="panel image" id="imagePanel">Minesweeper preview (no image)</div>
 
-  <!-- anchor for bite & cube center -->
-  <div class="anchor" id="anchor" aria-hidden="true"></div>
+    <!-- Invisible anchor used to derive bite and cube center -->
+    <div class="anchor" id="anchor" aria-hidden="true"></div>
 
-  <!-- SVG bite overlay: fill uses background so underlying panels appear cut. stroke + innerShadow give the rim.
-       We only want visible rim where panels intersect — the circle will sit above panels; we will dynamically
-       create arc masks if needed in future iterations, but this approach keeps the stroke visually aligned with panel borders. -->
-  <svg class="bite-svg" id="biteSVG" aria-hidden="true">
-    <defs>
-      <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur" />
-        <feOffset dx="0" dy="6" result="offsetBlur" />
-        <feComposite in="offsetBlur" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="innerShadow" />
-        <feColorMatrix in="innerShadow" type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0   0 0 0 0.35" result="shadow" />
-        <feMerge><feMergeNode in="shadow"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-    </defs>
-    <circle id="biteCircle" cx="0" cy="0" r="0" fill="#071425" stroke="rgba(255,255,255,0.08)" stroke-width="2" filter="url(#innerShadow)"></circle>
-  </svg>
+    <!-- SVG bite overlay (single circle) -->
+    <svg class="bite-svg" id="biteSVG" aria-hidden="true">
+      <defs>
+        <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur"/>
+          <feOffset dx="0" dy="6" result="offsetBlur"/>
+          <feComposite in="offsetBlur" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="innerShadow"/>
+          <feColorMatrix in="innerShadow" type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0   0 0 0 0.35" result="shadow"/>
+          <feMerge>
+            <feMergeNode in="shadow"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <!-- circle: fill is page background so it visually removes underlying panels where it overlaps -->
+      <circle id="biteCircle" cx="0" cy="0" r="0" fill="#071425" stroke="rgba(255,255,255,0.08)" stroke-width="2" filter="url(#innerShadow)"></circle>
+    </svg>
 
-  <!-- cube -->
-  <div class="cube-wrap" id="cubeWrap">
-    <div class="scene" id="scene">
-      <div class="cube" id="cube" role="application" aria-label="interactive cube">
-        <div class="face front" data-slot="front"><div class="accent"></div><h3>Project 1</h3><p>Interactive tile puzzle</p></div>
-        <div class="face right" data-slot="right"><div class="accent"></div><h3>Project 2</h3><p>Utility tool</p></div>
-        <div class="face back" data-slot="back"><div class="accent"></div><h3>Project 3</h3><p>Algorithmic art</p></div>
-        <div class="face left" data-slot="left"><div class="accent"></div><h3>Project 4</h3><p>UX experiments</p></div>
-        <div class="face top" data-slot="top"><div class="accent"></div><h3>Project 5</h3><p>Extras</p></div>
-        <div class="face bottom" data-slot="bottom"><div class="accent"></div><h3>Project 6</h3><p>Extras</p></div>
+    <!-- Cube centered on anchor (50% height midpoint) -->
+    <div class="cube-wrap" id="cubeWrap">
+      <div class="scene" id="scene">
+        <div class="cube" id="cube" role="application" aria-label="interactive cube">
+          <div class="face front" data-slot="front">
+            <div class="accent" style="background:#e74c3c"></div>
+            <h3>Project 1</h3>
+            <p>Interactive tile puzzle</p>
+          </div>
+          <div class="face right" data-slot="right">
+            <div class="accent" style="background:#27ae60"></div>
+            <h3>Project 2</h3>
+            <p>Utility tool</p>
+          </div>
+          <div class="face back" data-slot="back">
+            <div class="accent" style="background:#9b59b6"></div>
+            <h3>Project 3</h3>
+            <p>Algorithmic art</p>
+          </div>
+          <div class="face left" data-slot="left">
+            <div class="accent" style="background:#1abc9c"></div>
+            <h3>Project 4</h3>
+            <p>UX experiments</p>
+          </div>
+          <div class="face top" data-slot="top">
+            <div class="accent" style="background:#f39c12"></div>
+            <h3>Project 5</h3>
+            <p>Extra face</p>
+          </div>
+          <div class="face bottom" data-slot="bottom">
+            <div class="accent" style="background:#34495e"></div>
+            <h3>Project 6</h3>
+            <p>Extra face</p>
+          </div>
+        </div>
       </div>
     </div>
+
+    <!-- Projects bar (wrap capable) -->
+    <div class="projects" id="projectsBar"></div>
   </div>
 
-  <div class="projects" id="projectsBar"></div>
-</div>
-
 <script>
-/* DEPTH: DEEP
-   Defensive checklist (implemented):
-   - Button mapping uses sliding window offset plus face mapping to avoid modulo cycling chaos.
-   - Anchor uses page coordinates and is recalculated on resize.
-   - SVG bite circle uses viewport coordinates so stroke aligns visually. Stroke only appears above panels.
-   - GitHub data fetch has two modes:
-       1) projects.json produced by GitHub Action (preferred)
-       2) fallback: client-side search of public GitHub repos (best-effort)
-   - README parsing ignores link/image markup when producing plain text desc; README first image is used if available.
-   - setPointerCapture wrapped in try/catch for cross-browser safety.
-   - Click/drag thresholds tuned to avoid mis-clicks.
-*/
-
-/* ---------- Data & state ---------- */
-let projects = [];           // full array of projects (in repo order)
-let windowOffset = 0;        // index in projects[] that maps to the front face
-let rotY = 0;                // current cube Y rotation
-let isDown = false, startX = 0, startRot = 0, startT = 0, angVel = 0;
-const SENS = 0.35, CLICK_MOVE_THRESHOLD = 6, CLICK_TIME_THRESHOLD = 300;
-const faceCount = 4;         // horizontal faces count (front,right,back,left)
+/* ====== data: projects must map in order to cube faces (front, right, back, left, top, bottom) ====== */
+const projects = [
+  {title: 'Minesweeper', subtitle: 'Interactive tile-based puzzle', desc: 'Classic minesweeper rebuilt with modern UI', url:'#', color:'#e74c3c'},
+  {title: 'Project 2', subtitle: 'Utility tool', desc: 'Small utility demo', url:'#', color:'#27ae60'},
+  {title: 'Project 3', subtitle: 'Algorithmic art', desc: 'Generative visuals', url:'#', color:'#9b59b6'},
+  {title: 'Project 4', subtitle: 'UX experiments', desc: 'Micro interactions', url:'#', color:'#1abc9c'},
+  {title: 'Project 5', subtitle: 'Extra', desc: 'Misc experiments', url:'#', color:'#f39c12'},
+  {title: 'Project 6', subtitle: 'Extra 2', desc: 'More experiments', url:'#', color:'#34495e'}
+];
 
 /* DOM refs */
+const viewport = document.getElementById('viewport');
 const anchor = document.getElementById('anchor');
 const biteSVG = document.getElementById('biteSVG');
 const biteCircle = document.getElementById('biteCircle');
 const cubeWrap = document.getElementById('cubeWrap');
+const scene = document.getElementById('scene');
 const cube = document.getElementById('cube');
-const imagePanel = document.getElementById('imagePanel');
 const titlePanel = document.getElementById('titlePanel');
 const descPanel = document.getElementById('descPanel');
+const imagePanel = document.getElementById('imagePanel');
 const projectsBar = document.getElementById('projectsBar');
 
-/* ---------- Helpers ---------- */
-function computeAnchor(){
-  const r = anchor.getBoundingClientRect();
-  return {x: r.left + r.width/2, y: r.top + r.height/2, r: Math.min(r.width, r.height)/2};
-}
-function setBiteCircle(){
-  const a = computeAnchor();
-  biteCircle.setAttribute('cx', a.x);
-  biteCircle.setAttribute('cy', a.y);
-  biteCircle.setAttribute('r', a.r);
-  biteSVG.setAttribute('width', window.innerWidth);
-  biteSVG.setAttribute('height', window.innerHeight);
-  cubeWrap.style.left = `${a.x}px`;
-  cubeWrap.style.top = `${a.y}px`;
-  cubeWrap.style.transform = 'translate(-50%,-50%)';
-}
-
-/* clamp rotation to a reasonable range to avoid float drift */
-function normalizeRot(val){
-  // keep rot in reasonably small range for numeric stability
-  if(Math.abs(val) > 1e6) return val % 360;
-  return val;
-}
-
-/* ---------- Projects loading ----------
-   Flow:
-   1) Try to fetch /projects.json (generated by Action)
-   2) If missing, best-effort fetch GitHub public repos list (CORS may block; best-effort)
-   3) Fallback to embedded defaults
-*/
-async function loadProjects(){
-  try {
-    const res = await fetch('/projects.json', {cache: 'no-store'});
-    if(res.ok){
-      const json = await res.json();
-      projects = json.map(mapProjectRecord);
-      console.log('Loaded projects.json from repo');
-      postLoadInit();
-      return;
-    }
-    console.warn('/projects.json not found (status ' + res.status + ')');
-  } catch(e){
-    console.warn('Failed to fetch /projects.json:', e);
-  }
-
-  // Fallback: best-effort GitHub API client-less (may be blocked by CORS)
-  try {
-    const username = 'JackFShields';
-    const ghRes = await fetch(`https://api.github.com/users/${username}/repos?per_page=100`);
-    if(ghRes.ok){
-      const data = await ghRes.json();
-      // best-effort: for each repo fetch README raw via raw.githubusercontent (no auth)
-      const list = await Promise.all(data.map(async r => {
-        const name = r.name;
-        const homepage = r.homepage || `https://${username}.github.io/${name}/`;
-        // attempt to fetch README raw (may be 404)
-        let readmeText = '';
-        let readmeImage = null;
-        try {
-          const raw = await fetch(`https://raw.githubusercontent.com/${username}/${name}/main/README.md`);
-          if(raw.ok){
-            const md = await raw.text();
-            readmeText = extractPlainTextFromMarkdown(md);
-            readmeImage = extractFirstImageFromMarkdown(md) || null;
-          }
-        } catch(e){}
-        return {name, description: r.description, homepage, readme_text: readmeText, readme_image: readmeImage, color: pickColor(name)};
-      }));
-      projects = list.map(mapProjectRecord);
-      console.log('Loaded projects via GitHub API fallback (client-side)');
-      postLoadInit();
-      return;
-    }
-  } catch(e){
-    console.warn('GitHub API fallback failed:', e);
-  }
-
-  // final fallback: embedded sample projects
-  projects = [
-    {title:'Minesweeper', subtitle:'Interactive tile-based puzzle', desc:'Classic minesweeper rebuilt with modern UI', url:'https://jackfshields.github.io/PolyWeaveMines/', image:null, color:'#e74c3c'},
-    {title:'Project 2', subtitle:'Utility tool', desc:'Utility demo', url:'#', image:null, color:'#27ae60'},
-    {title:'Project 3', subtitle:'Algorithmic art', desc:'Generative visuals', url:'#', image:null, color:'#9b59b6'},
-    {title:'Project 4', subtitle:'UX experiments', desc:'Micro interactions', url:'#', image:null, color:'#1abc9c'},
-    {title:'Project 5', subtitle:'Extra', desc:'Extra project', url:'#', image:null, color:'#f39c12'},
-    {title:'Project 6', subtitle:'Extra 2', desc:'Extra project 2', url:'#', image:null, color:'#34495e'}
-  ];
-  postLoadInit();
-}
-
-/* normalize a repo record produced either by Action or fallback into our UI record */
-function mapProjectRecord(r){
-  return {
-    title: r.title || r.name || 'Untitled',
-    subtitle: r.subtitle || r.topics?.join(', ') || (r.description || '').split('\n')[0] || 'GitHub Project',
-    desc: (r.readme_text || r.desc || r.description || '').replace(/\s+/g,' ').trim().substring(0,1000),
-    url: r.url || r.homepage || r.link || `https://jackfshields.github.io/${r.name || r.title}/`,
-    image: r.image || r.readme_image || r.screenshot || null,
-    color: r.color || pickColor(r.title || r.name)
-  };
-}
-
-/* small deterministic color generator from string (keeps accents consistent) */
-function pickColor(s){
-  let h=0; for(let i=0;i<s.length;i++) h = (h<<5)-h + s.charCodeAt(i);
-  const hues = [0xE74C3C,0x27AE60,0x9B59B6,0x1ABC9C,0xF39C12,0x34495E];
-  return '#' + ((hues[Math.abs(h) % hues.length]).toString(16).padStart(6,'0'));
-}
-
-/* very conservative markdown parsing:
-   - extract first ![]() image url if present
-   - strip links and images when creating plain text
-*/
-function extractFirstImageFromMarkdown(md){
-  if(!md) return null;
-  const imgRegex = /!
-
-\[.*?\]
-
-\((.*?)\)/i;
-  const m = md.match(imgRegex);
-  if(m) return resolveRelativeRawUrl(m[1]);
-  return null;
-}
-function extractPlainTextFromMarkdown(md){
-  if(!md) return '';
-  // remove code blocks, inline code
-  md = md.replace(/```[\s\S]*?```/g,' ').replace(/`[^`]*`/g,' ');
-  // remove image and link markup but keep text
-  md = md.replace(/!
-
-\[.*?\]
-
-\(.*?\)/g,' ').replace(/
-
-\[([^\]
-
-]+)\]
-
-\((.*?)\)/g,'$1');
-  // remove headings markup characters
-  md = md.replace(/[#>*~\-]{1,}/g,' ');
-  return md.replace(/\s+/g,' ').trim();
-}
-function resolveRelativeRawUrl(url){
-  if(!url) return null;
-  if(url.startsWith('http')) return url;
-  // try to handle relative paths by assuming main branch raw pattern (best-effort)
-  // caller should verify image works; this is only used as a hint
-  return `https://raw.githubusercontent.com/JackFShields/${url.replace(/^\.\//,'')}`;
-}
-
-/* ---------- UI rendering helpers ---------- */
-function buildBottomBar(){
+/* build projects bar (wrap-capable) */
+function renderProjects(){
   projectsBar.innerHTML = '';
   projects.forEach((p,i)=>{
     const btn = document.createElement('div');
     btn.className = 'proj-btn';
-    btn.innerHTML = `<strong>${i+1}</strong><span>${escapeHtml(p.title)}</span>`;
-    btn.addEventListener('click', ()=> jumpToProjectIndex(i));
+    btn.innerHTML = `<strong>${i+1}</strong><span>${p.title}</span>`;
+    btn.addEventListener('click', ()=> centerCubeOnProject(i));
     projectsBar.appendChild(btn);
   });
 }
+renderProjects();
 
-/* escape for safe text insertion */
-function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+/* compute anchor center & radius from anchor bounding rect */
+function computeAnchor(){
+  const r = anchor.getBoundingClientRect();
+  return { x: r.left + r.width/2, y: r.top + r.height/2, r: Math.min(r.width, r.height)/2 };
+}
 
-/* update the 4 faces currently visible based on windowOffset:
-   - front maps to projects[windowOffset]
-   - right -> projects[windowOffset+1]
-   - back -> +2
-   - left -> +3
-   This sliding window approach prevents modulo cycling chaos.
+/* Position SVG bite circle, update panel rim pseudo positions, and ensure no stroke shows outside panels:
+   - SVG circle is drawn on top of panels, filled with page bg so it "cuts" panels.
+   - Stroke + innerShadow filter provide the rim/ bevel look.
+   - Panels themselves keep their borders; we also place pseudo rim positions for subtle continuity
 */
-function updateFacesFromWindow(){
-  const faces = ['front','right','back','left'];
-  faces.forEach((slot,i)=>{
-    const faceEl = document.querySelector(`.face.${slot}`);
-    const p = projects[(windowOffset + i) % projects.length] || {title:'',subtitle:'',desc:'',color:'#666'};
-    faceEl.querySelector('h3').textContent = p.title;
-    faceEl.querySelector('p').textContent = p.subtitle || p.desc || '';
-    const accent = faceEl.querySelector('.accent');
-    accent.style.background = p.color || pickColor(p.title||'');
+function positionBiteAndCube(){
+  const a = computeAnchor();
+  biteCircle.setAttribute('cx', a.x);
+  biteCircle.setAttribute('cy', a.y);
+  biteCircle.setAttribute('r', a.r);
+  // ensure SVG pixel dims match viewport so circle coords align with DOM coords
+  biteSVG.setAttribute('width', window.innerWidth);
+  biteSVG.setAttribute('height', window.innerHeight);
+
+  // update panels: compute closest local point and set CSS variables for optional rim decorations (if used later)
+  [titlePanel, descPanel, imagePanel].forEach(el=>{
+    const rect = el.getBoundingClientRect();
+    const cx = Math.max(rect.left, Math.min(a.x, rect.right));
+    const cy = Math.max(rect.top, Math.min(a.y, rect.bottom));
+    const localX = Math.round(cx - rect.left);
+    const localY = Math.round(cy - rect.top);
+    el.style.setProperty('--bite-x', `${localX}px`);
+    el.style.setProperty('--bite-y', `${localY}px`);
+    el.style.setProperty('--bite-radius', `${a.r}px`);
+    // show/hide by distance test (keeps pseudo decorations performant)
+    const dist = Math.hypot(cx - a.x, cy - a.y);
+    const margin = 6;
+    if(dist < a.r + margin){
+      el.setAttribute('data-bite', '1');
+    } else {
+      el.setAttribute('data-bite', '0');
+    }
   });
-  // initial left panels update (most-visible face will update them again)
-  updateMostVisibleFace();
+
+  // place cubeWrap center at anchor center in page coordinates
+  cubeWrap.style.left = `${a.x}px`;
+  cubeWrap.style.top = `${a.y}px`;
+  cubeWrap.style.transform = 'translate(-50%, -50%)';
 }
 
-/* find the face index (0..3) currently most visible and set left panels accordingly */
-function updateMostVisibleFace(){
-  const rad = (rotY % 360) * Math.PI / 180;
-  const slotAngles = [0, -Math.PI/2, Math.PI, Math.PI/2]; // front,right,back,left
-  const scores = slotAngles.map(sa=>{
-    const diff = normalizeAngleRad(-rad - sa);
-    return Math.max(0, Math.cos(diff));
-  });
-  let best = -1, bestIdx = 0;
-  scores.forEach((s,i)=>{ if(s>best){ best=s; bestIdx=i }});
-  const projIndex = (windowOffset + bestIdx) % projects.length;
-  const p = projects[projIndex];
-  // update left column and image
-  document.getElementById('projTitle').textContent = p.title || '';
-  document.getElementById('projSubtitle').textContent = p.subtitle || '';
-  document.getElementById('projDesc').textContent = p.desc || '';
-  document.getElementById('imagePanel').textContent = p.image ? '' : `${p.title} preview (no image)`;
-  if(p.image){
-    // show image as background inside panel (cover) safely
-    imagePanel.style.backgroundImage = `url(${p.image})`;
-    imagePanel.style.backgroundSize = 'cover';
-    imagePanel.style.backgroundPosition = 'center';
-    imagePanel.style.color = 'transparent';
-  } else {
-    imagePanel.style.backgroundImage = '';
-    imagePanel.style.color = 'var(--muted)';
-  }
-  imagePanel.style.borderLeft = `4px solid ${p.color || '#888'}`;
-}
+/* === Cube rotation and interaction ===
+   - drag uses cumulative-delta model (startX → currentX) to avoid inversion
+   - click detection threshold is kept to differentiate tap vs drag
+   - inertia simulated by angular velocity
+*/
+let rotY = 0;
+let isDown = false;
+let startX = 0, startRot = 0, startT = 0;
+let angVel = 0;
+const SENS = 0.35;
+const CLICK_MOVE_THRESHOLD = 6;
+const CLICK_TIME_THRESHOLD = 300;
 
-/* normalize angle to (-PI, PI] */
-function normalizeAngleRad(a){
-  const two = Math.PI*2;
-  let v = (a + Math.PI) % two;
-  if(v < 0) v += two;
-  return v - Math.PI;
-}
-
-/* ---------- cube rotation, drag & inertia ---------- */
-const scene = document.getElementById('scene');
 scene.addEventListener('pointerdown', e=>{
-  isDown = true; startX = e.clientX; startRot = rotY; startT = performance.now(); angVel = 0;
+  isDown = true;
+  startX = e.clientX;
+  startRot = rotY;
+  startT = performance.now();
+  angVel = 0;
   try{ scene.setPointerCapture(e.pointerId); }catch(e){}
 });
 scene.addEventListener('pointermove', e=>{
@@ -409,7 +357,7 @@ scene.addEventListener('pointermove', e=>{
   const dx = e.clientX - startX;
   const target = startRot + dx * SENS;
   angVel = target - rotY;
-  rotY = normalizeRot(target);
+  rotY = target;
   applyRotation();
 });
 scene.addEventListener('pointerup', e=>{
@@ -418,7 +366,7 @@ scene.addEventListener('pointerup', e=>{
   const moved = Math.hypot(e.clientX - startX, e.clientY - startX);
   const isClick = moved <= CLICK_MOVE_THRESHOLD && dt <= CLICK_TIME_THRESHOLD;
   isDown = false;
-  angVel = Math.max(-26, Math.min(26, angVel));
+  angVel = Math.max(-20, Math.min(20, angVel));
   if(isClick){
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const face = el && el.closest && el.closest('.face');
@@ -426,114 +374,129 @@ scene.addEventListener('pointerup', e=>{
   }
 });
 
-/* apply rotation transform and update visible content */
+/* Apply rotation (and update most-visible face => update left panels) */
 function applyRotation(){
   cube.style.transform = `translateZ(-140px) rotateX(-10deg) rotateY(${rotY}deg)`;
   updateMostVisibleFace();
 }
 
-/* inertia loop with friction */
+/* Determine most visible face using angle heuristic (front=0°, right=90°, back=180°, left=270°)
+   This mapping is adjacent-order: front->projects[0], right->projects[1], back->projects[2], left->projects[3]
+*/
+function updateMostVisibleFace(){
+  const rad = (rotY % 360) * Math.PI / 180;
+  const slotAngles = [0, -Math.PI/2, Math.PI, Math.PI/2]; // front, right, back, left
+  const scores = slotAngles.map(sa=>{
+    const diff = normalizeAngleRad(-rad - sa);
+    return Math.max(0, Math.cos(diff)); // higher = more facing camera
+  });
+  let best = -1, bestIdx = 0;
+  scores.forEach((s,i)=>{ if(s>best){ best=s; bestIdx=i }});
+  const mapping = [0,1,2,3]; // front->0, right->1, back->2, left->3
+  const projIndex = mapping[bestIdx] % projects.length;
+  const p = projects[projIndex];
+  if(p){
+    // update left-side panels and image accent
+    document.getElementById('projTitle').textContent = p.title;
+    document.getElementById('projSubtitle').textContent = p.subtitle;
+    document.getElementById('projDesc').textContent = p.desc;
+    imagePanel.textContent = `${p.title} preview (no image)`;
+    imagePanel.style.borderLeft = `4px solid ${p.color}`;
+  }
+}
+function normalizeAngleRad(a){
+  const two = Math.PI * 2;
+  let v = (a + Math.PI) % two;
+  if(v < 0) v += two;
+  return v - Math.PI;
+}
+
+/* Clicking a face opens the matched project (mapping same as updateMostVisibleFace) */
+function openFaceProject(faceEl){
+  const map = { front:0, right:1, back:2, left:3, top:4, bottom:5 };
+  const slot = faceEl.dataset.slot;
+  const idx = (map[slot] ?? 0) % projects.length;
+  const p = projects[idx];
+  if(p && p.url) window.open(p.url, '_blank');
+}
+
+/* Animate rotation to center a desired project index (projIdx maps to slot via projIdx % 4) */
+function centerCubeOnProject(projIdx){
+  const slot = projIdx % 4; // 0 front, 1 right, 2 back, 3 left
+  const targetRel = -slot * 90;
+  animateRotationTo(rotY + targetRel, 420);
+}
+function animateRotationTo(targetDeg, duration=420){
+  const start = performance.now(), from = rotY;
+  function step(ts){
+    const t = Math.min(1, (ts - start)/duration);
+    const eased = 1 - Math.pow(1-t, 3); // ease-out-cubic
+    rotY = from + (targetDeg - from) * eased;
+    applyRotation();
+    if(t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* inertia loop (simple exponential friction) */
 let last = performance.now();
 function loop(now){
-  const dt = (now - last)/1000; last = now;
+  const dt = (now - last)/1000;
+  last = now;
   if(!isDown && Math.abs(angVel) > 0.0005){
     rotY += angVel;
-    angVel *= Math.pow(0.92, dt*60);
+    angVel *= Math.pow(0.90, dt * 60);
     applyRotation();
   }
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
 
-/* ---------- navigation: jumpToProjectIndex & sliding window logic ----------
-   When user clicks a bottom button i:
-    - compute targetFace = i % faceCount
-    - compute currentFrontFaceIndex = (rotationally deduced) => we track windowOffset separately
-    - We animate rotation by the minimal delta to place desired face at front position,
-      and update windowOffset so the sliding window maps correctly to absolute project indices.
-*/
-function jumpToProjectIndex(globalIndex){
-  // globalIndex: absolute index in projects array
-  // compute current front face absolute index
-  // windowOffset is front face absolute index; rotate so (windowOffset maps to front)
-  const desiredFront = globalIndex;
-  // find which face slot the desiredFront currently occupies within sliding window
-  // If desiredFront in [windowOffset..windowOffset+3], then rotate by the difference to bring it to front
-  // Otherwise, choose nearest rotation path while shifting windowOffset accordingly.
-  const mod = projects.length;
-  // compute minimal shift in windowOffset so desiredFront falls into [newOffset .. newOffset+3]
-  // we'll aim to set new windowOffset so desiredFront === newOffset (put desired at front)
-  // compute how many face-groups (blocks of 4) away current windowOffset is
-  // simplest deterministic approach: set windowOffset = desiredFront (so it becomes front), animate rotation angle to 0 relative (snap to front)
-  // But to keep smooth visual continuity, compute face slot of desiredFront relative to current windowOffset:
-  // current slot = (desiredFront - windowOffset + mod) % mod
-  const rel = ((desiredFront - windowOffset) % mod + mod) % mod;
-  // if rel < 4 => it's inside current window; rotate by -rel*90 to bring it front
-  if(rel < faceCount){
-    const deltaFaces = rel; // number of 90deg steps to rotate rightwards to bring it to front
-    animateRotationBy(-deltaFaces * 90, 420, ()=> {
-      // after animation, set windowOffset = desiredFront
-      windowOffset = desiredFront;
-      updateFacesFromWindow();
-    });
-  } else {
-    // outside current window: set windowOffset directly to desiredFront and rotate to nearest equivalent rotation
-    // compute current visible front slot angle (rotY -> which face is front)
-    // we'll animate to angle that corresponds to "front" (0deg) but shift windowOffset so content maps
-    animateRotationTo(0, 420, ()=> {
-      windowOffset = desiredFront;
-      updateFacesFromWindow();
-    });
-  }
+/* Build the bottom projects bar and ensure it maps to faces in correct order */
+function buildBottomBar(){
+  projectsBar.innerHTML = '';
+  projects.forEach((p,i)=>{
+    const el = document.createElement('div');
+    el.className = 'proj-btn';
+    el.innerHTML = `<strong>${i+1}</strong><span>${p.title}</span>`;
+    el.addEventListener('click', ()=> centerCubeOnProject(i));
+    projectsBar.appendChild(el);
+  });
 }
+buildBottomBar();
 
-/* animate rotation relative */
-function animateRotationBy(deltaDeg, duration=420, cb){
-  animateRotationTo(rotY + deltaDeg, duration, cb);
+/* layout recalculations on load/resize: position bite circle and cube center precisely */
+function layoutUpdate(){
+  positionBiteAndCube();
+  applyRotation();
 }
-function animateRotationTo(targetDeg, duration=420, cb){
-  const start = performance.now(), from = rotY;
-  function step(ts){
-    const t = Math.min(1, (ts - start)/duration);
-    const eased = 1 - Math.pow(1-t, 3);
-    rotY = from + (targetDeg - from) * eased;
-    applyRotation();
-    if(t < 1) requestAnimationFrame(step);
-    else if(cb) cb();
-  }
-  requestAnimationFrame(step);
-}
-
-/* clicking a face opens the project's url (maps face slot to absolute project index) */
-function openFaceProject(faceEl){
-  const faceSlotToOffset = {front:0,right:1,back:2,left:3,top:0,bottom:0};
-  const slot = faceEl.dataset.slot;
-  const slotIndex = faceSlotToOffset[slot] ?? 0;
-  const projIndex = (windowOffset + slotIndex) % projects.length;
-  const p = projects[projIndex];
-  if(p && p.url) window.open(p.url, '_blank');
-}
-
-/* ---------- lifecycle & layout ---------- */
-function postLoadInit(){
-  // default offset (front shows projects[0])
-  if(!projects || projects.length === 0) {
-    projects = [{title:'No projects', subtitle:'', desc:'', url:'#', image:null, color:'#888'}];
-  }
-  windowOffset = 0;
-  buildBottomBar();
-  updateFacesFromWindow();
-  setBiteCircle();
-}
-
-/* event wiring and robust resize handling */
+/* robust resize handling and debounce */
 let resizeTimer;
-window.addEventListener('resize', ()=>{ clearTimeout(resizeTimer); resizeTimer = setTimeout(()=>{ setBiteCircle(); }, 80); });
-window.addEventListener('load', ()=>{ loadProjects().catch(()=>{}); setTimeout(()=>{ setBiteCircle(); }, 120); });
+window.addEventListener('resize', ()=>{ clearTimeout(resizeTimer); resizeTimer = setTimeout(layoutUpdate, 80); });
 
-/* bind face click fallback open */
-document.querySelectorAll('.face').forEach(f=> f.addEventListener('click', ()=> openFaceProject(f)));
+window.addEventListener('load', ()=>{ layoutUpdate(); setTimeout(layoutUpdate, 120); });
 
+/* bind face clicks (also supports opening via pointers) */
+Array.from(document.querySelectorAll('.face')).forEach(f=>{
+  f.addEventListener('click', ()=> openFaceProject(f));
+});
+
+/* initial mapping: set accents of faces to match projects data (keeps faces/colors in sync) */
+(function syncFaceAccents(){
+  const faces = document.querySelectorAll('.face');
+  faces.forEach((face, idx) => {
+    const p = projects[idx % projects.length];
+    const accent = face.querySelector('.accent');
+    if(accent && p) accent.style.background = p.color;
+  });
+})();
+
+/* Prevent common pitfalls checklist (runtime guards):
+   - Ensure bite SVG uses viewport coordinates (we set width/height on layoutUpdate).
+   - Ensure cubeWrap is positioned using page coordinates (we set left/top to anchor center).
+   - Use setPointerCapture with try/catch for cross-browser robustness.
+   - Use cumulative drag from start position (not frame deltas) to avoid inversion.
+*/
 </script>
 </body>
 </html>
