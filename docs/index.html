@@ -1,565 +1,760 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>JackFShields — Arcade Claw (Box, Joystick, Coin)</title>
-<style>
-  :root{
-    --bg:#071426;
-    --glass:#0f2b3b;
-    --panel:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
-    --muted: #9fbfdc;
-    --accent-1: #4cc1ff;
-    --accent-2: #9b59b6;
-    --accent-3: #1abc9c;
-    --accent-4: #f39c12;
-    --accent-5: #27ae60;
-    --accent-6: #e74c3c;
-    --cabinet-w: 920px;
-    --cabinet-h: 580px;
-    --pit-h: 220px;
-  }
-
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;background:linear-gradient(180deg,#020718 0%, #021125 40%, #000612 100%);color:#e8f6ff;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;display:flex;align-items:center;justify-content:center;padding:24px}
-  .wrap{width:min(var(--cabinet-w),96vw);}
-
-  /* Cabinet */
-  .cabinet{
-    width:100%;
-    height:var(--cabinet-h);
-    background:linear-gradient(180deg,#071926 0%, #04111a 100%);
-    border-radius:12px;
-    box-shadow: 0 36px 80px rgba(0,0,0,0.7);
-    border:1px solid rgba(255,255,255,0.03);
-    position:relative;overflow:visible;padding:18px;display:flex;gap:14px;
-  }
-
-  /* Left panel (controls and coin slot) */
-  .side{
-    width:260px;display:flex;flex-direction:column;gap:12px;padding:6px;
-  }
-  .panel{
-    background:var(--panel);border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,0.03);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
-  }
-  .panel h3{font-size:1rem;margin-bottom:6px}
-  .panel p{color:var(--muted);font-size:0.92rem;line-height:1.2}
-
-  /* Ultimate play area (glass box) */
-  .glass-case{
-    flex:1;position:relative;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.09));border:1px solid rgba(255,255,255,0.03);overflow:hidden;
-    display:flex;flex-direction:column;
-  }
-
-  /* top display & coin slot */
-  .top-bar{height:86px;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;gap:10px}
-  .marquee{font-weight:700;letter-spacing:0.2px}
-  .coin-slot{
-    width:120px;height:46px;border-radius:8px;background:linear-gradient(180deg,#02141a,#081a22);border:1px solid rgba(255,255,255,0.03);
-    display:flex;align-items:center;justify-content:space-between;padding:8px 10px;gap:8px;
-  }
-  .coin-slot .slot{width:20px;height:30px;background:linear-gradient(90deg,#000,#111);border-radius:4px;border:1px solid rgba(255,255,255,0.03);box-shadow:inset 0 2px 0 rgba(255,255,255,0.02)}
-  .coin-slot .label{color:var(--muted);font-size:0.86rem}
-
-  /* inner play area with glass front and pit */
-  .play-area{flex:1;position:relative;padding:12px 18px;display:flex;flex-direction:column}
-  .glass-front{flex:1;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.06));border:1px solid rgba(255,255,255,0.02);position:relative;overflow:hidden}
-
-  /* back wall and floor perspective */
-  .back-wall{position:absolute;inset:0;background:
-    linear-gradient(180deg,#04202a 0%, #021016 100%);opacity:0.98}
-  .floor {
-    position:absolute;left:10%;right:10%;bottom:0;height:var(--pit-h);border-radius:10px 10px 0 0;background:
-    linear-gradient(180deg,#061724,#01111a);
-    box-shadow: inset 0 20px 40px rgba(0,0,0,0.6);
-    overflow:hidden;padding:8px;
-  }
-
-  /* capsules stacked (random offsets) */
-  .capsule{
-    position:absolute;left:50%;transform:translate(-50%,0);
-    min-width:84px;height:56px;border-radius:28px;padding:8px 12px;background:var(--panel);display:flex;align-items:center;gap:10px;
-    border:1px solid rgba(255,255,255,0.04);box-shadow:0 14px 28px rgba(0,0,0,0.5);
-    cursor:pointer;transition:transform 220ms cubic-bezier(.2,.9,.2,1), opacity 200ms;
-    user-select:none;
-  }
-  .capsule .fav{width:36px;height:36px;border-radius:8px;background:#ffffff11;display:flex;align-items:center;justify-content:center;overflow:hidden}
-  .capsule img{width:100%;height:100%;object-fit:contain;display:block}
-  .capsule .title{font-weight:700;font-size:0.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#eaf6ff}
-
-  /* highlight */
-  .capsule.selected{outline:2px solid rgba(255,255,255,0.06);transform:translate(-50%,-8px) scale(1.02)}
-
-  /* claw rail and device */
-  .rail{position:absolute;left:40px;right:40px;top:44px;height:6px;background:linear-gradient(90deg,#071a20,#04212a);border-radius:6px;z-index:70}
-  .claw{
-    position:absolute;top:10px;width:96px;height:120px;left:120px;transform:translateX(-50%);pointer-events:none;z-index:120;
-    transition:left 260ms cubic-bezier(.2,.9,.2,1);
-  }
-  .claw .arm{position:absolute;left:50%;transform:translateX(-50%);width:6px;height:64px;background:linear-gradient(180deg,#cfeeff,#7aaed4);border-radius:6px;top:6px}
-  .claw .hook{
-    position:absolute;left:50%;top:64px;transform:translateX(-50%);width:72px;height:34px;border-radius:10px;background:linear-gradient(180deg,#e7fbff,#cfeeff);display:flex;align-items:center;justify-content:center;font-weight:700;color:#06303a;box-shadow:0 10px 26px rgba(0,0,0,0.55)
-  }
-
-  /* joystick and controls panel overlay */
-  .controls{
-    position:absolute;right:14px;bottom:14px;width:220px;padding:12px;background:linear-gradient(180deg,#02121a,#04151a);border-radius:10px;border:1px solid rgba(255,255,255,0.02);z-index:200;
-    display:flex;flex-direction:column;gap:10px;align-items:center;
-  }
-  .joystick{
-    width:74px;height:74px;border-radius:999px;background:linear-gradient(180deg,#081a24,#031016);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.03);position:relative;
-    touch-action:none;
-  }
-  .stick{width:36px;height:36px;border-radius:999px;background:linear-gradient(180deg,#4cc1ff,#0c5f78);box-shadow:0 6px 12px rgba(0,0,0,0.6);transform:translate(0,0);transition:transform 120ms linear;cursor:grab;}
-  .stick:active{cursor:grabbing}
-  .drop-btn{margin-top:6px;padding:8px 12px;border-radius:8px;background:#e74c3c;color:#fff;border:none;font-weight:700;cursor:pointer;box-shadow:0 10px 22px rgba(231,76,60,0.14)}
-  .drop-btn:active{transform:translateY(2px)}
-
-  /* coin (draggable) */
-  .coin{
-    width:56px;height:56px;border-radius:50%;background:linear-gradient(180deg,#ffd86b,#f7c948);border:2px solid rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:center;font-weight:800;color:#382600;cursor:grab;user-select:none;position:absolute;left:16px;bottom:18px;z-index:220;
-  }
-  .coin.dragging{opacity:0.9;transform:scale(1.06);cursor:grabbing}
-
-  /* modal */
-  .modal{
-    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.98);min-width:300px;padding:18px;border-radius:12px;background:linear-gradient(180deg,#071827,#021017);border:1px solid rgba(255,255,255,0.03);z-index:9999;box-shadow:0 40px 90px rgba(0,0,0,0.7);opacity:0;pointer-events:none;transition:opacity 180ms ease, transform 180ms cubic-bezier(.2,.9,.2,1)
-  }
-  .modal.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
-  .modal h3{margin-bottom:8px}
-  .modal p{color:var(--muted);margin-bottom:12px}
-
-  /* small responsive */
-  @media (max-width:940px){
-    .side{display:none}
-    .cabinet{height:680px;flex-direction:column;padding:12px}
-    .controls{right:10px;bottom:8px}
-    .coin{left:10px;bottom:10px}
-  }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mini Claw Machine — Projects</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#0f1724; --accent:#ffd166; --muted:#9aa4b2;
+    }
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071024 0%,#0b1020 60%);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#e6eef6}
+    .wrap{max-width:980px;margin:28px auto;padding:18px}
+    header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+    h1{font-size:18px;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+    #gameCard{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.04));border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:12px;display:grid;grid-template-columns:420px 1fr;gap:12px;align-items:start}
+    canvas{width:100%;height:auto;background:transparent;border-radius:8px;display:block}
+    .controls{display:flex;flex-direction:column;gap:10px;padding:6px}
+    .row{display:flex;gap:8px;align-items:center}
+    button, .btn{
+      background:linear-gradient(180deg,#ffefbe,#ffd166);
+      color:#111;border:0;padding:8px 12px;border-radius:8px;font-weight:600;cursor:pointer;box-shadow:0 6px 14px rgba(0,0,0,0.35)
+    }
+    button[disabled]{opacity:.5;cursor:default}
+    .meta{background:rgba(255,255,255,0.02);border-radius:8px;padding:8px;color:var(--muted);font-size:13px;min-height:120px}
+    .projects-list{display:flex;flex-direction:column;gap:8px;max-height:320px;overflow:auto;padding-right:6px}
+    .proj{display:flex;gap:10px;align-items:center;padding:8px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent)}
+    .proj img{width:36px;height:36px;border-radius:6px;object-fit:cover;background:#223}
+    .proj .txt{font-size:13px}
+    .proj .title{font-weight:700;color:#fff}
+    .proj .desc{color:var(--muted);font-size:12px}
+    footer{margin-top:14px;color:var(--muted);font-size:12px}
+    @media (max-width:900px){
+      #gameCard{grid-template-columns:1fr;align-items:stretch}
+    }
+  </style>
 </head>
 <body>
-  <div class="wrap" aria-live="polite">
-    <div class="cabinet" id="cabinet">
-      <div class="side" aria-hidden="false">
-        <div class="panel">
-          <h3>Claw Machine</h3>
-          <p>Drag the quarter into the slot to power the machine. Drag the joystick to move the claw back and forth. Press DROP to lower and try to grab a capsule.</p>
-        </div>
-        <div class="panel">
-          <h3>Prizes</h3>
-          <p>Capsules represent projects. Each capsule uses a color accent that matches the palette. Click a capsule to set it as the target.</p>
-        </div>
-        <div style="display:flex;gap:10px;align-items:center;margin-top:auto">
-          <div class="coin" id="coin" title="Drag coin into slot" role="button" tabindex="0">¢</div>
+  <div class="wrap" role="application" aria-label="Claw machine demo">
+    <header>
+      <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden focusable="false">
+        <rect x="1" y="2" width="22" height="20" rx="4" fill="#ffd166"></rect>
+        <circle cx="12" cy="12" r="5" fill="#0b1020"></circle>
+      </svg>
+      <div>
+        <h1>Mini Claw Machine — Projects</h1>
+        <p class="lead">Use the joystick or arrow keys to move the claw. Press Space or Tap the Grab button to attempt a pick.</p>
+      </div>
+    </header>
+
+    <main id="gameCard">
+      <div>
+        <canvas id="gameCanvas" width="420" height="560" aria-label="Claw machine canvas"></canvas>
+        <div style="display:flex;gap:10px;margin-top:8px;align-items:center">
+          <div class="row" style="gap:6px;">
+            <button id="leftBtn" aria-label="Move left">◀</button>
+            <button id="downBtn" aria-label="Move down">▼</button>
+            <button id="rightBtn" aria-label="Move right">▶</button>
+          </div>
+          <div style="flex:1"></div>
+          <button id="grabBtn" class="btn" aria-label="Grab">Grab</button>
         </div>
       </div>
 
-      <div class="glass-case" id="glass">
-        <div class="top-bar">
-          <div class="marquee">Arcade Cabinet — Project Prizes</div>
-          <div class="coin-slot" id="coinSlot" aria-label="coin slot">
-            <div class="label">Insert coin</div>
-            <div class="slot"></div>
+      <aside class="controls" aria-live="polite">
+        <div class="row">
+          <div class="meta" style="flex:1">
+            <strong id="selectedTitle">Loading...</strong>
+            <div id="selectedDesc" style="margin-top:6px;color:var(--muted);font-size:13px">Project details will appear here.</div>
           </div>
         </div>
 
-        <div class="play-area">
-          <div class="glass-front" id="glassFront" role="region" aria-label="claw playfield">
-            <div class="back-wall"></div>
-
-            <div class="rail" id="rail"></div>
-            <div class="claw" id="claw" style="left:120px">
-              <div class="arm" id="arm"></div>
-              <div class="hook" id="hook">▂▂▂</div>
-            </div>
-
-            <div class="floor" id="floor"></div>
-
-            <!-- controls overlay -->
-            <div class="controls" aria-hidden="false">
-              <div class="joystick" id="joystick" aria-label="joystick" role="application">
-                <div class="stick" id="stick" tabindex="0" role="slider" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0"></div>
-              </div>
-              <button class="drop-btn" id="dropBtn" aria-pressed="false">DROP</button>
-            </div>
+        <div class="row">
+          <div style="flex:1">
+            <div style="font-size:13px;color:var(--muted);margin-bottom:6px">Available Prizes</div>
+            <div class="projects-list" id="projectsList" role="list"></div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
-      <div style="color:var(--muted)">Playful demo — no repo assets added</div>
-      <div style="display:flex;gap:8px">
-        <button id="reset" class="panel" style="cursor:pointer">Reset</button>
-      </div>
-    </div>
+        <div class="row">
+          <div style="font-size:12px;color:var(--muted);flex:1">
+            If projects fail to load, a fallback set will appear. Open console for load errors.
+          </div>
+          <button id="reloadBtn" title="Reload projects">Reload</button>
+        </div>
+      </aside>
+
+    </main>
+
+    <footer>
+      Tip: hold arrow keys or use buttons. The demo is defensive: missing images, malformed JSON, or file:// fetch issues are handled gracefully.
+    </footer>
   </div>
 
-  <div class="modal" id="modal" role="dialog" aria-modal="true">
-    <h3 id="modalTitle">You got…</h3>
-    <p id="modalBody"></p>
-    <div style="display:flex;justify-content:flex-end">
-      <button id="modalOk" class="panel" style="cursor:pointer">Nice!</button>
-    </div>
-  </div>
+  <script>
+  (function(){
+    "use strict";
 
-<script>
-/* Claw machine implementation
-   - Capsules are randomly stacked within the floor area (not a grid).
-   - Coin must be dragged into coin slot to enable the machine.
-   - Joystick drag moves claw horizontally across rail.
-   - DROP lowers claw, grabs the capsule nearest under the hook if within reach, lifts and drops to the chute.
-   - Modal shows project info.
-*/
+    /* ---------------------------
+       Defensive defaults & config
+       --------------------------- */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d', { alpha: true });
+    const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    canvas.width = canvas.width * DPR;
+    canvas.height = canvas.height * DPR;
+    canvas.style.width = '420px';
+    canvas.style.height = '560px';
+    ctx.scale(DPR, DPR);
 
-/* Sample projects (replace or load from projects.json if desired) */
-const projects = [
-  { title:"Minesweeper", subtitle:"Interactive tile puzzle", url:"https://jackfshields.github.io/minesweeper", color:"var(--accent-6)" },
-  { title:"Poly Weave", subtitle:"Generative geometry", url:"https://jackfshields.github.io/polyweave", color:"var(--accent-2)" },
-  { title:"Grid Tools", subtitle:"UI grid utilities", url:"https://jackfshields.github.io/gridtools", color:"var(--accent-3)" },
-  { title:"UX Microinteractions", subtitle:"Playful UI snippets", url:"https://jackfshields.github.io/uxmicro", color:"var(--accent-4)" },
-  { title:"Data Viz Playground", subtitle:"Visual experiments", url:"https://jackfshields.github.io/dataviz", color:"var(--accent-5)" },
-  { title:"Portfolio Experiments", subtitle:"Design systems", url:"https://jackfshields.github.io/experiments", color:"var(--accent-1)" }
-];
+    // UI elements
+    const leftBtn = document.getElementById('leftBtn');
+    const rightBtn = document.getElementById('rightBtn');
+    const downBtn = document.getElementById('downBtn');
+    const grabBtn = document.getElementById('grabBtn');
+    const reloadBtn = document.getElementById('reloadBtn');
+    const projectsList = document.getElementById('projectsList');
+    const selectedTitle = document.getElementById('selectedTitle');
+    const selectedDesc = document.getElementById('selectedDesc');
 
-/* DOM refs */
-const floor = document.getElementById('floor');
-const pit = floor; // same area
-const coin = document.getElementById('coin');
-const coinSlot = document.getElementById('coinSlot');
-const joystick = document.getElementById('joystick');
-const stick = document.getElementById('stick');
-const claw = document.getElementById('claw');
-const arm = document.getElementById('arm');
-const hook = document.getElementById('hook');
-const dropBtn = document.getElementById('dropBtn');
-const modal = document.getElementById('modal');
-const modalTitle = document.getElementById('modalTitle');
-const modalBody = document.getElementById('modalBody');
-const modalOk = document.getElementById('modalOk');
-const resetBtn = document.getElementById('reset');
+    // Game area (logical coords)
+    const W = 420, H = 560;
+    const playX = 40, playY = 80, playW = 340, playH = 420;
 
-let enabled = false;          // machine enabled after coin inserted
-let capsules = [];           // array of capsule objects {el, projectIdx, x, y}
-let selected = null;         // user-selected capsule
-let busy = false;
-let clawX = 120;             // current center position within glass (px)
-const CABINET = document.getElementById('cabinet');
+    // State
+    let projects = null;
+    let imagesByUrl = new Map(); // cache successful images
+    let defaultFaviconDataUrl = null;
+    let animationId = null;
+    let lastTime = 0;
 
-/* Helpers */
-const rand = (a,b)=> Math.random()*(b-a)+a;
-const clamp = (v,a,b)=> Math.max(a,Math.min(b,v));
-const rect = el => el.getBoundingClientRect();
+    // Claw parameters
+    const claw = {
+      x: playX + playW / 2,
+      y: playY - 10,
+      width: 48,
+      height: 24,
+      armLength: 80,
+      targetX: null,
+      targetY: null,
+      vx: 0,
+      speed: 160, // px/s horizontal
+      state: 'idle', // idle, moving, lowering, grabbing, lifting, dropping
+      grabTimer: 0,
+      hold: null, // index of capsule held
+      lockInput: false
+    };
 
-/* Place capsules randomly stacked, trying to avoid heavy overlaps */
-function populateCapsules(){
-  floor.innerHTML = '';
-  capsules = [];
-  const floorRect = floor.getBoundingClientRect();
-  const zoneLeft = floorRect.left + 24;
-  const zoneRight = floorRect.right - 24;
-  const zoneTop = floorRect.top + 8;
-  const zoneBottom = floorRect.bottom - 12;
-  // We'll create more items than projects to feel crowded; map content cyclically
-  const count = projects.length + 6;
-  for(let i=0;i<count;i++){
-    const p = projects[i % projects.length];
-    const el = document.createElement('div');
-    el.className = 'capsule';
-    el.dataset.idx = i % projects.length;
-    // pick a random x inside floor; we offset by percentage relative to floor width
-    const relX = rand(0.15,0.85);
-    const left = relX * 100; // percent for CSS calc: use translate(-50%)
-    const offsetX = rand(-28,28); // small random shift
-    // random y stacking: lower numbers are deeper (higher on screen)
-    const depth = rand(0,1);
-    const bottom = rand(6, 38) + (i*2); // slight incremental stacking
-    // apply color accent
-    el.innerHTML = `<div class="fav" aria-hidden="true" style="border-radius:8px;background:${p.color}"></div><div class="title">${p.title}</div>`;
-    floor.appendChild(el);
-    // measure & place using left in px
-    const elRect = el.getBoundingClientRect();
-    // compute left relative to floor container
-    const floorLeft = floor.getBoundingClientRect().left;
-    const x = rand(40, floor.clientWidth - 120); // px within floor area
-    const y = rand(12, floor.clientHeight - 64); // px from top of floor
-    el.style.left = `calc(${x}px)`;
-    el.style.top = `${y}px`;
-    // slight rotation to look messy
-    el.style.transform = `translate(-50%,0) rotate(${rand(-10,10)}deg)`;
-    // assign
-    capsules.push({el, projectIdx: i % projects.length, x, y});
-    // interaction
-    el.addEventListener('click', () => {
-      if (busy) return;
-      selectCapsuleByEl(el);
-    });
-  }
-}
+    // Capsules pool
+    let capsules = []; // {x,y,r,projectIndex,vy,grabbed}
+    const MAX_CAPSULES = 9;
 
-/* selection highlight */
-function selectCapsuleByEl(el){
-  capsules.forEach(c=>c.el.classList.remove('selected'));
-  el.classList.add('selected');
-  selected = capsules.find(c=>c.el===el) || null;
-  // move claw over it slightly
-  if(selected){
-    const floorRect = floor.getBoundingClientRect();
-    const centerX = selected.x + (selected.el.getBoundingClientRect().width/2);
-    moveClawTo(centerX);
-  }
-}
+    // Input
+    const input = { left:false, right:false, down:false, grab:false };
 
-/* coin drag into slot logic */
-let coinDragging = false;
-let coinPointerId = null;
-let coinOffset = {x:0,y:0};
-coin.addEventListener('pointerdown', (e)=>{
-  coin.setPointerCapture?.(e.pointerId);
-  coinDragging = true;
-  coinPointerId = e.pointerId;
-  coin.classList.add('dragging');
-  coinOffset.x = e.clientX - coin.getBoundingClientRect().left;
-  coinOffset.y = e.clientY - coin.getBoundingClientRect().top;
-});
-window.addEventListener('pointermove', (e)=>{
-  if(!coinDragging || e.pointerId !== coinPointerId) return;
-  const parentRect = CABINET.getBoundingClientRect();
-  coin.style.left = `${clamp(e.clientX - parentRect.left - coinOffset.x, 8, parentRect.width - 64)}px`;
-  coin.style.bottom = `${clamp(parentRect.bottom - e.clientY - 8, 8, parentRect.height - 64)}px`;
-});
-window.addEventListener('pointerup', (e)=>{
-  if(!coinDragging || e.pointerId !== coinPointerId) return;
-  coin.releasePointerCapture?.(coinPointerId);
-  coinDragging = false;
-  coin.classList.remove('dragging');
-  // check if coin intersects slot
-  const slotRect = coinSlot.getBoundingClientRect();
-  const coinRect = coin.getBoundingClientRect();
-  const overlap = !(coinRect.right < slotRect.left || coinRect.left > slotRect.right || coinRect.bottom < slotRect.top || coinRect.top > slotRect.bottom);
-  if(overlap){
-    // animate coin into slot and enable machine
-    coin.style.transition = 'transform 360ms ease, left 360ms ease, bottom 360ms ease, opacity 300ms';
-    const machineRect = CABINET.getBoundingClientRect();
-    const targetLeft = slotRect.left - machineRect.left + 12;
-    const targetBottom = machineRect.bottom - slotRect.top - 8;
-    coin.style.left = `${targetLeft}px`;
-    coin.style.bottom = `${targetBottom}px`;
-    coin.style.transform = 'scale(.6) rotate(-12deg)';
-    setTimeout(()=>{ coin.style.opacity = '0'; coin.style.pointerEvents='none'; enableMachine(); }, 420);
-  } else {
-    // reset coin pos
-    coin.style.transition = 'left 260ms ease, bottom 260ms ease';
-    coin.style.left = `16px`;
-    coin.style.bottom = `18px`;
-    setTimeout(()=>{ coin.style.transition=''; }, 300);
-  }
-});
+    // Timeouts & resource trackers
+    const timers = new Set();
 
-/* enable machine */
-function enableMachine(){
-  enabled = true;
-  document.querySelector('.marquee').textContent = 'Machine Ready — Good luck!';
-}
-
-/* joystick logic: pointer drag within joystick area */
-let stickPointer = null;
-let stickStart = null;
-let stickRadius = 22; // px
-function clampStickPos(x,y){
-  const r = stickRadius;
-  const d = Math.hypot(x,y);
-  if(d <= r) return {x,y};
-  return {x: x*(r/d), y: y*(r/d)};
-}
-stick.addEventListener('pointerdown', (e)=>{
-  if(!enabled || busy) return;
-  stick.setPointerCapture?.(e.pointerId);
-  stickPointer = e.pointerId;
-  stickStart = {x:e.clientX, y:e.clientY};
-});
-window.addEventListener('pointermove', (e)=>{
-  if(stickPointer === null || e.pointerId !== stickPointer) return;
-  const rectJ = joystick.getBoundingClientRect();
-  const center = {x: rectJ.left + rectJ.width/2, y: rectJ.top + rectJ.height/2};
-  const dx = e.clientX - center.x;
-  const dy = e.clientY - center.y;
-  const cl = clampStickPos(dx, dy);
-  stick.style.transform = `translate(${cl.x}px, ${cl.y}px)`;
-  // map horizontal stick movement to claw movement range along rail
-  const railRect = document.getElementById('rail').getBoundingClientRect();
-  const minX = railRect.left + 24;
-  const maxX = railRect.right - 24;
-  // normalized value [-1..1]
-  const nx = clamp(cl.x / stickRadius, -1, 1);
-  const target = ( (nx + 1)/2 ) * (maxX - minX) + minX;
-  moveClawTo(target - CABINET.getBoundingClientRect().left);
-});
-window.addEventListener('pointerup', (e)=>{
-  if(stickPointer === null || e.pointerId !== stickPointer) return;
-  try{ stick.releasePointerCapture?.(stickPointer);}catch{}
-  stickPointer = null;
-  stick.style.transform = `translate(0px,0px)`;
-});
-
-/* move claw to absolute x px inside cabinet (left relative to cabinet) */
-function moveClawTo(absX){
-  clawX = clamp(absX, 48, CABINET.clientWidth - 140);
-  claw.style.left = `${clamp(clawX, 64, CABINET.clientWidth - 64)}px`;
-}
-
-/* core DROP sequence */
-async function dropSequence(){
-  if(!enabled || busy) return;
-  busy = true;
-  dropBtn.disabled = true;
-  // lower arm
-  arm.style.transition = 'height 320ms cubic-bezier(.2,.9,.2,1)';
-  arm.style.height = '180px';
-  hook.style.transition = 'top 320ms cubic-bezier(.2,.9,.2,1)';
-  hook.style.top = '164px';
-  await new Promise(r=>setTimeout(r,340));
-
-  // determine which capsule is under hook center
-  const hookRect = hook.getBoundingClientRect();
-  // find capsule whose center is closest horizontally and within vertical tolerance
-  let candidate = null;
-  let bestDist = Infinity;
-  for(const c of capsules){
-    const crect = c.el.getBoundingClientRect();
-    const cx = crect.left + crect.width/2;
-    const cy = crect.top + crect.height/2;
-    const dx = Math.abs(cx - (hookRect.left + hookRect.width/2));
-    const dy = Math.abs(cy - (hookRect.top + hookRect.height/2));
-    // heuristics: allow some vertical tolerance
-    if(dx < bestDist && dy < 80){
-      bestDist = dx;
-      candidate = c;
+    /* ---------------------------
+       Utility helpers
+       --------------------------- */
+    function safeParseJSON(text){
+      try{
+        return JSON.parse(text);
+      }catch(e){
+        console.warn('projects.json parse failed:', e);
+        return null;
+      }
     }
-  }
 
-  if(candidate){
-    // attach visual
-    attachToHook(candidate);
-    await new Promise(r=>setTimeout(r,250));
-  } else {
-    // brief wiggle to show missed
-    hook.animate([{ transform:'translateY(0)'},{ transform:'translateY(6px)'},{ transform:'translateY(0)'}], { duration: 380 });
-    await new Promise(r=>setTimeout(r,420));
-  }
+    function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+    function rand(min,max){return Math.random()*(max-min)+min;}
 
-  // lift
-  arm.style.height = '80px';
-  hook.style.top = '74px';
-  await new Promise(r=>setTimeout(r,360));
+    function scheduleTimeout(fn, ms){
+      const id = setTimeout(()=>{ timers.delete(id); fn(); }, ms);
+      timers.add(id);
+      return id;
+    }
+    function clearAllTimers(){
+      for(const id of Array.from(timers)){ clearTimeout(id); timers.delete(id); }
+    }
 
-  // move to chute (animate claw position)
-  const chuteRect = document.getElementById('chute').getBoundingClientRect();
-  const machineRect = CABINET.getBoundingClientRect();
-  const targetLeft = chuteRect.left + chuteRect.width/2 - machineRect.left;
-  claw.style.transition = 'left 420ms cubic-bezier(.2,.9,.2,1)';
-  claw.style.left = `${targetLeft}px`;
-  await new Promise(r=>setTimeout(r,450));
+    /* ---------------------------
+       Fallback projects (defensive)
+       --------------------------- */
+    const FALLBACK_PROJECTS = [
+      { title: "Arcade Portfolio", name: "arcade", description: "A playful portfolio with cabinet metaphors.", favicon: "" },
+      { title: "Capsule UI", name: "capsule-ui", description: "Micro-interactions collected into capsules.", favicon: "" },
+      { title: "Infinite Hallways", name: "hallways", description: "Trippy geometry experiments and demos.", favicon: "" }
+    ];
 
-  // drop capsule into bucket
-  if(candidate){
-    await dropIntoBucket(candidate);
-    // remove capsule from field
-    candidate.el.remove();
-    capsules = capsules.filter(cc => cc !== candidate);
-    selected = null;
-    showModalForProject(candidate.projectIdx);
-  }
+    /* ---------------------------
+       Projects loading
+       --------------------------- */
+    async function loadProjects(){
+      // Reset current state
+      projects = null;
+      projectsList.innerHTML = '';
+      selectedTitle.textContent = 'Loading...';
+      selectedDesc.textContent = '';
 
-  // reset claw to previous position
-  claw.style.left = `${clamp(clawX,64, CABINET.clientWidth - 64)}px`;
-  busy = false;
-  dropBtn.disabled = false;
-}
+      // Try fetch
+      try {
+        const res = await fetch('projects.json', {cache: "no-store"});
+        if(!res.ok) throw new Error('HTTP ' + res.status);
+        const txt = await res.text();
+        const parsed = safeParseJSON(txt);
+        if(!parsed || !Array.isArray(parsed)){
+          throw new Error('Invalid JSON structure: expected array');
+        }
+        projects = parsed.map((p, i) => sanitizeProject(p, i));
+      } catch (err) {
+        // Common failure mode: file:// CORS or local open; fallback to embedded list
+        console.warn('Failed to load projects.json — falling back. Error:', err);
+        projects = FALLBACK_PROJECTS.map((p,i)=>sanitizeProject(p,i));
+      }
 
-/* attach capsule to hook visually */
-function attachToHook(capsule){
-  const el = capsule.el;
-  const machineRect = CABINET.getBoundingClientRect();
-  const elRect = el.getBoundingClientRect();
-  el.style.transition = 'left 220ms ease, top 220ms ease, transform 220ms ease';
-  // reparent into cabinet to avoid overflow
-  el.style.position = 'absolute';
-  const relLeft = elRect.left - machineRect.left;
-  const relTop = elRect.top - machineRect.top;
-  el.style.left = `${relLeft}px`;
-  el.style.top = `${relTop}px`;
-  CABINET.appendChild(el);
-  // compute target position near hook
-  const hookRect = hook.getBoundingClientRect();
-  const targetLeft = hookRect.left - machineRect.left + (hookRect.width/2) - (el.offsetWidth/2);
-  const targetTop = hookRect.top - machineRect.top + 18;
-  requestAnimationFrame(()=> {
-    el.style.left = `${targetLeft}px`;
-    el.style.top = `${targetTop}px`;
-    el.style.transform = 'translate(-50%,0) rotate(0deg) scale(1.02)';
-  });
-}
+      // Ensure at least one project
+      if(projects.length === 0){
+        projects = FALLBACK_PROJECTS.map((p,i)=>sanitizeProject(p,i));
+      }
 
-/* drop into bucket */
-function dropIntoBucket(capsule){
-  return new Promise(res=>{
-    const el = capsule.el;
-    const bucket = document.getElementById('chute').querySelector('.bucket');
-    const bucketRect = bucket.getBoundingClientRect();
-    const machineRect = CABINET.getBoundingClientRect();
-    const targetLeft = bucketRect.left + bucketRect.width/2 - machineRect.left - (el.getBoundingClientRect().width/2);
-    const targetTop = bucketRect.top + bucketRect.height/2 - machineRect.top - (el.getBoundingClientRect().height/2);
-    el.style.transition = 'left 360ms cubic-bezier(.2,.9,.2,1), top 360ms cubic-bezier(.2,.9,.2,1), transform 360ms ease';
-    el.style.left = `${targetLeft}px`;
-    el.style.top = `${targetTop}px`;
-    el.style.transform = 'translate(-50%,0) scale(.86)';
-    setTimeout(()=>{
-      // append a small marker inside bucket to show it landed
-      const clone = el.querySelector('.fav').cloneNode(true);
-      clone.style.width='48px'; clone.style.height='48px'; clone.style.borderRadius='8px';
-      bucket.appendChild(clone);
-      res();
-    },420);
-  });
-}
+      // Preload favicon images defensively
+      await Promise.all(projects.map(p => loadProjectFavicon(p)));
 
-/* modal */
-function showModalForProject(idx){
-  const p = projects[idx];
-  modalTitle.textContent = `You got ${p.title}!`;
-  modalBody.textContent = p.subtitle || '';
-  modal.classList.add('show');
-}
-modalOk.addEventListener('click', ()=> modal.classList.remove('show'));
+      // Populate UI
+      renderProjectList();
+      resetCapsulesFromProjects();
+    }
 
-/* reset */
-resetBtn.addEventListener('click', ()=> {
-  // reset coin and re-populate
-  coin.style.opacity = '1'; coin.style.pointerEvents='auto'; coin.style.transform='scale(1)'; coin.style.left='16px'; coin.style.bottom='18px';
-  enabled = false;
-  document.querySelector('.marquee').textContent = 'Insert coin';
-  populateCapsules();
-  // clear bucket icons
-  const bucket = document.getElementById('chute').querySelector('.bucket');
-  bucket.innerHTML = '';
-});
+    function sanitizeProject(p, index){
+      const out = {
+        title: (p && typeof p.title === 'string' && p.title.trim()) ? p.title.trim() : `Project ${index+1}`,
+        name: (p && typeof p.name === 'string' && p.name.trim()) ? p.name.trim() : `project-${index+1}`,
+        description: (p && typeof p.description === 'string') ? p.description.trim() : '',
+        favicon: (p && typeof p.favicon === 'string') ? p.favicon.trim() : ''
+      };
+      // defensive size-limit for strings
+      out.title = out.title.slice(0, 120);
+      out.description = out.description.slice(0, 400);
+      return out;
+    }
 
-/* wire drop button */
-dropBtn.addEventListener('click', ()=> dropSequence());
-window.addEventListener('keydown', (e)=> {
-  if(e.key === ' '){ e.preventDefault(); dropSequence(); }
-  if(e.key === 'ArrowLeft') moveClawTo(clawX - 20);
-  if(e.key === 'ArrowRight') moveClawTo(clawX + 20);
-});
+    function renderProjectList(){
+      projectsList.innerHTML = '';
+      projects.forEach((p, i) => {
+        const row = document.createElement('div');
+        row.className = 'proj';
+        row.setAttribute('role','listitem');
+        row.tabIndex = 0;
 
-/* initialize */
-populateCapsules();
-/* position claw initial */
-moveClawTo(160);
-</script>
+        const img = document.createElement('img');
+        const imgSrc = p._imageSrc || p.favicon || '';
+        img.src = imgSrc || defaultFaviconDataUrl || '';
+        img.alt = p.title + ' icon';
+        img.onerror = ()=>{ img.src = defaultFaviconDataUrl; };
+
+        const txt = document.createElement('div');
+        txt.className = 'txt';
+        const title = document.createElement('div');
+        title.className = 'title'; title.textContent = p.title;
+        const desc = document.createElement('div');
+        desc.className = 'desc'; desc.textContent = p.description || 'No description provided';
+
+        txt.appendChild(title); txt.appendChild(desc);
+        row.appendChild(img); row.appendChild(txt);
+
+        row.addEventListener('click', ()=>selectProject(i));
+        row.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' ') selectProject(i); });
+
+        projectsList.appendChild(row);
+      });
+      selectProject(0);
+    }
+
+    function selectProject(i){
+      const p = projects[i % projects.length];
+      selectedTitle.textContent = p.title;
+      selectedDesc.textContent = p.description || 'No description';
+    }
+
+    async function loadProjectFavicon(p){
+      // Attempt to load favicon; if empty or invalid, let it fall back later.
+      if(!p.favicon) return;
+      try{
+        const img = await loadImage(p.favicon, 36, 36);
+        p._imageSrc = img.src;
+        imagesByUrl.set(p.favicon, img);
+      } catch(e){
+        console.warn('favicon load failed for', p.favicon, e);
+      }
+    }
+
+    function loadImage(url, w, h, timeout=4000){
+      return new Promise((resolve, reject)=>{
+        const img = new Image();
+        let finished = false;
+        const to = setTimeout(()=>{ if(!finished){ finished = true; img.onload = img.onerror = null; reject(new Error('Image load timeout')); }}, timeout);
+        img.crossOrigin = "anonymous";
+        img.onload = () => { if(finished) return; finished = true; clearTimeout(to); resolve(img); };
+        img.onerror = (e) => { if(finished) return; finished = true; clearTimeout(to); reject(new Error('Image error')); };
+        img.src = url;
+      });
+    }
+
+    /* ---------------------------
+       Create placeholder favicon
+       --------------------------- */
+    function makePlaceholderFavicon(){
+      const c = document.createElement('canvas');
+      c.width = c.height = 64;
+      const g = c.getContext('2d');
+      g.fillStyle = '#223';
+      g.fillRect(0,0,64,64);
+      g.fillStyle = '#ffd166';
+      g.font = 'bold 36px sans-serif';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText('P',32,34);
+      defaultFaviconDataUrl = c.toDataURL();
+    }
+
+    /* ---------------------------
+       Capsules / physics (simple)
+       --------------------------- */
+    function resetCapsulesFromProjects(){
+      capsules = [];
+      const count = Math.min(MAX_CAPSULES, Math.max(3, projects.length));
+      for(let i=0;i<count;i++){
+        const pj = projects[i % projects.length];
+        const cx = playX + 24 + ((i%3) * ((playW-48)/3));
+        const cy = playY + playH - 48 - Math.floor(i/3)*28;
+        capsules.push({
+          x: cx + rand(-6,6), y: cy + rand(-6,6),
+          r: 22, vy:0,
+          projectIndex: i % projects.length,
+          grabbed: false
+        });
+      }
+    }
+
+    /* ---------------------------
+       Rendering
+       --------------------------- */
+    function drawBackground(){
+      // cabinet frame
+      ctx.clearRect(0,0,W,H);
+      // outer glass
+      ctx.fillStyle = '#071025';
+      roundRect(ctx, playX-8, playY-18, playW+16, playH+36, 12);
+      ctx.fill();
+
+      // inner ground
+      ctx.fillStyle = '#0b1220';
+      roundRect(ctx, playX, playY, playW, playH, 8);
+      ctx.fill();
+
+      // floor strip
+      ctx.fillStyle = '#071024';
+      ctx.fillRect(playX, playY+playH-28, playW, 28);
+
+      // top rail
+      ctx.fillStyle = '#0b1928';
+      ctx.fillRect(playX, playY-18, playW, 18);
+    }
+
+    function drawCapsule(c){
+      // capsule shadow
+      ctx.beginPath();
+      ctx.ellipse(c.x, c.y + c.r*0.7, c.r*1.05, c.r*0.4, 0, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(0,0,0,0.28)'; ctx.fill();
+
+      // capsule body
+      ctx.beginPath();
+      ctx.fillStyle = '#ffd166';
+      roundRect(ctx, c.x - c.r, c.y - c.r, c.r*2, c.r*2, c.r*0.6);
+      ctx.fill();
+
+      // inner circle for favicon
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(c.x, c.y - 2, c.r*0.7, 0, Math.PI*2);
+      ctx.clip();
+
+      const project = projects[c.projectIndex];
+      const imgSrc = project && project._imageSrc ? project._imageSrc : defaultFaviconDataUrl;
+      if(imgSrc){
+        const img = imagesByUrl.get(project.favicon);
+        // draw image with fallback to cached src
+        const imageObj = img || new Image();
+        if(!img){
+          imageObj.src = imgSrc;
+          imageObj.onerror = ()=>{};
+        }
+        try { ctx.drawImage(imageObj, c.x - c.r*0.7, c.y - 2 - c.r*0.7, c.r*1.4, c.r*1.4); } catch(e){}
+      }
+      ctx.restore();
+
+      // highlight
+      ctx.beginPath();
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.ellipse(c.x - c.r*0.35, c.y - c.r*0.45, c.r*0.35, c.r*0.2, 0, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    function drawClaw(){
+      // arm line
+      ctx.strokeStyle = '#e6eef6';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(playX + playW/2, playY - 6);
+      ctx.lineTo(claw.x, claw.y);
+      ctx.stroke();
+
+      // claw body
+      roundRect(ctx, claw.x - claw.width/2, claw.y, claw.width, claw.height, 6);
+      ctx.fillStyle = '#bcc8d8';
+      ctx.fill();
+
+      // tines
+      ctx.fillStyle = '#0b1224';
+      ctx.fillRect(claw.x - 12, claw.y + claw.height - 2, 6, 12);
+      ctx.fillRect(claw.x + 6, claw.y + claw.height - 2, 6, 12);
+    }
+
+    function render(){
+      drawBackground();
+
+      // draw capsules (z-order depends on y)
+      const sorted = capsules.slice().sort((a,b)=>a.y - b.y);
+      for(const c of sorted) drawCapsule(c);
+
+      // draw grab area highlight
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255,209,102,0.12)';
+      ctx.lineWidth = 2;
+      ctx.ellipse(claw.x, claw.y + claw.armLength, 46, 28, 0, 0, Math.PI*2);
+      ctx.stroke();
+
+      drawClaw();
+
+      // HUD: remaining capsules
+      ctx.fillStyle = '#9aa4b2';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(`Prizes: ${capsules.filter(c=>!c.grabbed).length}`, playX + 8, playY + playH + 22);
+    }
+
+    function roundRect(ctx,x,y,w,h,r){
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);
+      ctx.arcTo(x+w,y,x+w,y+h,r);
+      ctx.arcTo(x+w,y+h,x,y+h,r);
+      ctx.arcTo(x,y+h,x,y,r);
+      ctx.arcTo(x,y,x+w,y,r);
+      ctx.closePath();
+    }
+
+    /* ---------------------------
+       Game loop / physics
+       --------------------------- */
+    function step(ts){
+      if(!lastTime) lastTime = ts;
+      const dt = Math.min(50, ts - lastTime) / 1000;
+      lastTime = ts;
+
+      // Input to claw horizontal velocity
+      if(!claw.lockInput){
+        let move = 0;
+        if(input.left) move -= 1;
+        if(input.right) move += 1;
+        claw.vx = move * claw.speed;
+      } else {
+        claw.vx = 0;
+      }
+
+      // Update claw position
+      claw.x += claw.vx * dt;
+      claw.x = clamp(claw.x, playX + 20, playX + playW - 20);
+
+      // State machine
+      if(claw.state === 'idle'){
+        // allow lowering when down or grab pressed
+        if((input.down || input.grab) && !claw.lockInput){
+          startLowering();
+        }
+      } else if(claw.state === 'lowering'){
+        // claw moves down until armLength reached or hits a capsule
+        claw.armLength += 180 * dt;
+        const tipY = claw.y + claw.armLength;
+        // clamp to ground
+        if(tipY >= playY + playH - 34){
+          claw.armLength = (playY + playH - 34) - claw.y;
+          beginGrabbing();
+        } else {
+          // collision with any capsule within grab radius
+          const hit = capsules.find(c=>!c.grabbed && dist(c.x, c.y, claw.x, tipY) < 34);
+          if(hit){
+            beginGrabbing(hit);
+          }
+        }
+      } else if(claw.state === 'grabbing'){
+        claw.grabTimer -= dt;
+        if(claw.grabTimer <= 0){ // resolve grab
+          resolveGrab();
+        }
+      } else if(claw.state === 'lifting'){
+        // pull the claw back up smoothly
+        claw.armLength -= 160 * dt;
+        if(claw.armLength <= 80){
+          claw.armLength = 80;
+          claw.state = 'moving';
+          // after raising, drop if nothing held or deliver prize
+          scheduleTimeout(()=>{ if(claw.hold !== null){ deliverPrize(claw.hold); } else { claw.state = 'idle'; claw.lockInput = false; } }, 300);
+        }
+        // carry held capsule with claw
+        if(claw.hold !== null){
+          const c = capsules[claw.hold];
+          c.x = claw.x;
+          c.y = claw.y + claw.armLength + 10;
+        }
+      } else if(claw.state === 'moving'){
+        // simple move-back to center
+        const centerX = playX + playW/2;
+        const dx = centerX - claw.x;
+        claw.x += Math.sign(dx) * claw.speed * dt;
+        if(Math.abs(dx) < 4){
+          claw.x = centerX;
+          claw.state = 'idle';
+          claw.lockInput = false;
+        }
+      } else if(claw.state === 'dropping'){
+        // currently used for drop animations; handled in deliverPrize
+      }
+
+      // capsules physics (gravity)
+      for(let i = 0; i < capsules.length; i++){
+        const c = capsules[i];
+        if(c.grabbed) continue;
+        // simple gravity toward floor
+        if(c.y < playY + playH - 42){
+          c.vy += 400 * dt;
+          c.y += c.vy * dt;
+        } else {
+          // on ground - small settle
+          c.vy = 0;
+          c.y = playY + playH - 42;
+        }
+        // push away overlapping capsules
+        for(let j=i+1;j<capsules.length;j++){
+          const d2 = dist(c.x,c.y,capsules[j].x,capsules[j].y);
+          const minD = c.r + capsules[j].r - 6;
+          if(d2 < minD && d2 > 0.1){
+            const push = (minD - d2) * 0.5;
+            const ang = Math.atan2(capsules[j].y - c.y, capsules[j].x - c.x);
+            capsules[j].x += Math.cos(ang) * push;
+            capsules[j].y += Math.sin(ang) * push;
+            c.x -= Math.cos(ang) * push;
+            c.y -= Math.sin(ang) * push;
+            // keep in bounds
+            c.x = clamp(c.x, playX + 20, playX + playW - 20);
+            capsules[j].x = clamp(capsules[j].x, playX + 20, playX + playW - 20);
+          }
+        }
+      }
+
+      render();
+      animationId = requestAnimationFrame(step);
+    }
+
+    function dist(ax,ay,bx,by){ return Math.hypot(ax-bx, ay-by); }
+
+    /* ---------------------------
+       Claw actions
+       --------------------------- */
+    function startLowering(){
+      if(claw.state !== 'idle') return;
+      claw.lockInput = true;
+      claw.state = 'lowering';
+      claw.armLength = 80; // start length if necessary
+    }
+
+    function beginGrabbing(target){
+      claw.state = 'grabbing';
+      claw.grabTimer = 0.6 + Math.random() * 0.8; // suspense
+      if(target){
+        target.grabbed = true;
+        claw.hold = capsules.indexOf(target);
+      } else {
+        claw.hold = null;
+      }
+    }
+
+    function resolveGrab(){
+      // determine probabilistic success if nothing physically grabbed
+      if(claw.hold === null){
+        const success = Math.random() < 0.33; // low chance of lucky grab
+        if(success){
+          // find capsule nearest to tip at time of resolution
+          const tipY = claw.y + claw.armLength;
+          const nearest = capsules.filter(c=>!c.grabbed).map(c=>({c, d: dist(c.x,c.y, claw.x, tipY)})).sort((a,b)=>a.d-b.d)[0];
+          if(nearest && nearest.d < 50){
+            nearest.c.grabbed = true;
+            claw.hold = capsules.indexOf(nearest.c);
+          }
+        }
+      }
+      // go to lifting
+      claw.state = 'lifting';
+    }
+
+    function deliverPrize(index){
+      if(index == null || index < 0 || index >= capsules.length) {
+        claw.state = 'moving';
+        claw.lockInput = false;
+        return;
+      }
+      // animate drop into chute (right side)
+      claw.state = 'dropping';
+      const c = capsules[index];
+      const targetX = playX + playW - 32;
+      const targetY = playY + playH + 52;
+      const start = {x: c.x, y: c.y};
+      const duration = 700;
+      const t0 = performance.now();
+      function animateDrop(now){
+        const t = clamp((now - t0) / duration, 0, 1);
+        // easing
+        const ease = (--t) * t * t + 1;
+        c.x = start.x + (targetX - start.x) * ease;
+        c.y = start.y + (targetY - start.y) * ease;
+        render();
+        if(ease < 1){
+          requestAnimationFrame(animateDrop);
+        } else {
+          // prize delivered — reveal metadata
+          announcePrize(c.projectIndex);
+          // remove capsule from array after small delay
+          const idx = capsules.indexOf(c);
+          if(idx >= 0) capsules.splice(idx,1);
+          claw.hold = null;
+          claw.state = 'moving';
+          claw.lockInput = false;
+          // if no capsules, refill from projects
+          if(capsules.length === 0) scheduleTimeout(resetCapsulesFromProjects, 600);
+        }
+      }
+      requestAnimationFrame(animateDrop);
+    }
+
+    function announcePrize(projectIndex){
+      const p = projects[projectIndex];
+      if(!p) return;
+      selectedTitle.textContent = p.title;
+      selectedDesc.textContent = p.description || '';
+      // small visual flash
+      flashSelected();
+    }
+
+    function flashSelected(){
+      const orig = selectedTitle.style.backgroundColor;
+      selectedTitle.style.transition = 'background-color 260ms';
+      selectedTitle.style.backgroundColor = '#ffd166';
+      scheduleTimeout(()=>{ selectedTitle.style.backgroundColor = orig; }, 300);
+    }
+
+    /* ---------------------------
+       Input handling (pointer & keys)
+       --------------------------- */
+    function attachInput(){
+      // keyboard
+      window.addEventListener('keydown', onKey);
+      window.addEventListener('keyup', onKeyUp);
+
+      // buttons
+      leftBtn.addEventListener('pointerdown', ()=>{ input.left = true; });
+      leftBtn.addEventListener('pointerup', ()=>{ input.left = false; });
+      leftBtn.addEventListener('pointerleave', ()=>{ input.left = false; });
+
+      rightBtn.addEventListener('pointerdown', ()=>{ input.right = true; });
+      rightBtn.addEventListener('pointerup', ()=>{ input.right = false; });
+      rightBtn.addEventListener('pointerleave', ()=>{ input.right = false; });
+
+      downBtn.addEventListener('click', ()=>{ input.down = true; scheduleTimeout(()=>input.down=false, 160); });
+
+      grabBtn.addEventListener('click', ()=>{ input.grab = true; scheduleTimeout(()=>input.grab=false, 160); });
+
+      // pointer drag on canvas to move claw
+      let activePointer = null;
+      canvas.addEventListener('pointerdown', (e)=>{
+        activePointer = e.pointerId;
+        canvas.setPointerCapture(activePointer);
+        const rect = canvas.getBoundingClientRect();
+        const px = (e.clientX - rect.left); // CSS coords
+        claw.x = clamp(px, playX + 20, playX + playW - 20);
+      });
+      canvas.addEventListener('pointermove', (e)=>{
+        if(e.pointerId !== activePointer) return;
+        const rect = canvas.getBoundingClientRect();
+        const px = (e.clientX - rect.left);
+        claw.x = clamp(px, playX + 20, playX + playW - 20);
+      });
+      canvas.addEventListener('pointerup', (e)=>{
+        if(e.pointerId !== activePointer) return;
+        try{ canvas.releasePointerCapture(activePointer);}catch(e){}
+        activePointer = null;
+      });
+
+      reloadBtn.addEventListener('click', ()=> loadProjects());
+    }
+
+    function onKey(e){
+      if(e.key === 'ArrowLeft' || e.key === 'a') input.left = true;
+      if(e.key === 'ArrowRight' || e.key === 'd') input.right = true;
+      if(e.key === 'ArrowDown' || e.key === 's') input.down = true;
+      if(e.key === ' ' || e.code === 'Space') { input.grab = true; e.preventDefault(); }
+    }
+    function onKeyUp(e){
+      if(e.key === 'ArrowLeft' || e.key === 'a') input.left = false;
+      if(e.key === 'ArrowRight' || e.key === 'd') input.right = false;
+      if(e.key === 'ArrowDown' || e.key === 's') input.down = false;
+      if(e.key === ' ' || e.code === 'Space') { input.grab = false; }
+    }
+
+    /* ---------------------------
+       Lifecycle and cleanup
+       --------------------------- */
+    function start(){
+      makePlaceholderFavicon();
+      attachInput();
+      loadProjects();
+      cancelAnimationFrame(animationId);
+      animationId = requestAnimationFrame(step);
+      // defensive: stop everything if page hidden
+      document.addEventListener('visibilitychange', ()=> {
+        if(document.hidden){ cancelAnimationFrame(animationId); clearAllTimers(); }
+        else { lastTime = 0; animationId = requestAnimationFrame(step); }
+      });
+      window.addEventListener('beforeunload', cleanup);
+      window.addEventListener('unload', cleanup);
+    }
+
+    function cleanup(){
+      cancelAnimationFrame(animationId);
+      clearAllTimers();
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keyup', onKeyUp);
+      document.removeEventListener('visibilitychange', ()=>{});
+      window.removeEventListener('beforeunload', cleanup);
+      window.removeEventListener('unload', cleanup);
+    }
+
+    // start app
+    start();
+
+    // export for debugging (optional)
+    window.__claw = { resetCapsulesFromProjects, loadProjects, projects, capsules };
+  })();
+  </script>
 </body>
 </html>
