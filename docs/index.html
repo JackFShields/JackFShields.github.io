@@ -3,500 +3,341 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Portfolio Cube — Robust Build</title>
+<title>Cube Layout Editor — Interactive</title>
 <style>
   :root{
-    --bg: #071425;
-    --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
-    --border: rgba(255,255,255,0.08);
-    --text: #e6eef6;
-    --muted: rgba(190,215,240,0.7);
-    --gap: 2vw;
-
-    /* Base sizes (responsive adjustments later) */
-    --cube-size: 336px;    /* ~20% bigger than earlier */
-    --bite-radius: 270px;  /* generous breathing room */
+    --bg:#071426;
+    --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+    --border: rgba(255,255,255,0.06);
+    --muted:#9fbfdc;
+    --accent:#4cc1ff;
+    --cube-size:336px;
   }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#031426,#071426);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;color:#eaf6ff;overflow:hidden}
+  /* Canvas */
+  .canvas { position:relative; width:100vw; height:calc(100vh - 160px); padding:28px; display:flex; gap:18px; }
+  /* Editable box base */
+  .editable { position:absolute; background:var(--panel-grad); border:1px solid var(--border); border-radius:12px; padding:14px; box-shadow:0 18px 46px rgba(0,0,0,0.5); touch-action:none; user-select:none; }
+  .editable .title { font-weight:700; margin-bottom:6px }
+  .editable .meta { color:var(--muted); font-size:13px }
 
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;-webkit-font-smoothing:antialiased}
-  .viewport{width:100vw;height:100vh;position:relative;overflow:hidden}
+  /* Resize handles */
+  .handle { width:12px; height:12px; background:var(--accent); border:2px solid #fff; border-radius:50%; position:absolute; opacity:0; transition:opacity .12s; z-index:9 }
+  .editable:hover .handle { opacity:1 }
+  .handle.tl{ left:-8px; top:-8px; cursor:nwse-resize }
+  .handle.tr{ right:-8px; top:-8px; cursor:nesw-resize }
+  .handle.bl{ left:-8px; bottom:-8px; cursor:nesw-resize }
+  .handle.br{ right:-8px; bottom:-8px; cursor:nwse-resize }
+  .handle.mid-t{ left:50%; top:-8px; transform:translateX(-50%); cursor:n-resize }
+  .handle.mid-b{ left:50%; bottom:-8px; transform:translateX(-50%); cursor:s-resize }
+  .handle.mid-l{ left:-8px; top:50%; transform:translateY(-50%); cursor:w-resize }
+  .handle.mid-r{ right:-8px; top:50%; transform:translateY(-50%); cursor:e-resize }
 
-  /* Generic panel style (title, description, image) */
-  .panel {
-    position:absolute;
-    background: var(--panel-grad);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 20px;
-    box-shadow: 0 10px 36px rgba(0,0,0,0.36);
-    overflow: visible;
-    z-index: 1;
-  }
+  /* Panels (starter positions) */
+  #titlePanel{ left:28px; top:28px; width:360px; height:260px; }
+  #descPanel{ left:28px; top:312px; width:360px; height:320px;}
+  #imagePanel{ right:28px; top:28px; width:56vw; height:76vh; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; }
 
-  /* Left column: title + description */
-  .title {
-    left: 2vw;
-    top: 2vh;
-    width: calc(42vw - var(--gap));
-    height: 36vh;
-  }
-  .title h1 { font-size: 30px; margin-bottom: 8px; }
-  .title p { color: var(--muted); margin-top: 6px; }
+  /* Cube container */
+  .cube-wrap { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:var(--cube-size); height:var(--cube-size); pointer-events:auto; }
+  .scene { width:100%; height:100%; perspective:1200px; position:relative; }
+  .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform:translateZ(-140px) rotateX(-10deg) rotateY(0deg); transition:transform .08s linear; }
+  .face { position:absolute; left:0; top:0; width:100%; height:100%; border-radius:12px; background:var(--panel-grad); border:1px solid var(--border); display:flex; flex-direction:column; align-items:center; justify-content:center; backface-visibility:hidden; box-shadow:0 10px 36px rgba(0,0,0,0.6); cursor:grab }
+  .accent { position:absolute; left:0; top:0; bottom:0; width:8px; border-top-left-radius:12px; border-bottom-left-radius:12px }
+  .front{ transform:rotateY(0deg) translateZ(calc(var(--cube-size)/2)); }
+  .right{ transform:rotateY(90deg) translateZ(calc(var(--cube-size)/2)); }
+  .back{ transform:rotateY(180deg) translateZ(calc(var(--cube-size)/2)); }
+  .left{ transform:rotateY(270deg) translateZ(calc(var(--cube-size)/2)); }
+  .top{ transform:rotateX(90deg) translateZ(calc(var(--cube-size)/2)); }
+  .bottom{ transform:rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
-  .description {
-    left: 2vw;
-    top: calc(2vh + 36vh + var(--gap));
-    width: calc(42vw - var(--gap));
-    height: calc(82vh - 36vh - var(--gap) - 2vh);
-  }
-  .description p { color: var(--muted); line-height: 1.45; }
+  /* Projects bar (bottom of canvas area) */
+  .projects { position:absolute; left:50%; transform:translateX(-50%); bottom:8px; display:flex; gap:12px; z-index:8; }
+  .proj-btn { width:140px; height:72px; border-radius:10px; background:var(--panel-grad); border:1px solid var(--border); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; }
+  .proj-btn strong{ font-size:18px }
 
-  /* Right image panel */
-  .image {
-    right: 2vw;
-    top: 2vh;
-    width: 54vw;
-    height: 80vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    color:var(--muted);
-  }
+  /* Change log area */
+  .change-log { height:160px; background:linear-gradient(180deg,#020617,#071426); border-top:1px solid rgba(255,255,255,0.03); padding:12px; display:flex; gap:12px; align-items:stretch; }
+  .log { flex:1; background:#071425; border:1px solid var(--border); border-radius:8px; padding:8px; color:var(--muted); font-family:monospace; font-size:13px; overflow:auto; white-space:pre-wrap }
+  .controls { width:260px; display:flex; flex-direction:column; gap:8px }
+  .controls button, .controls input { background:transparent; border:1px solid var(--border); color:var(--muted); padding:8px; border-radius:8px; cursor:pointer }
+  .controls textarea { width:100%; height:80px; resize:vertical; background:#071425; border:1px solid var(--border); color:var(--muted); padding:8px; border-radius:6px; font-family:monospace }
 
-  /* Invisible anchor/footprint (center of bite and cube). Positioned in CSS to match gap midpoint */
-  .anchor {
-    position:absolute;
-    left: calc(42vw - var(--gap)/2);
-    top: 50%;
-    width: calc(var(--bite-radius) * 2);
-    height: calc(var(--bite-radius) * 2);
-    transform: translate(-50%, -50%);
-    pointer-events:none;
-    opacity:0;
-    z-index:2;
-  }
-
-  /* SVG overlay: single circle that visually removes panels under it and provides rim stroke + inner shadow.
-     The circle is filled with the page bg so panels visually disappear where it overlaps.
-     Stroke + filter emulate continuous border and inner bevel so panels' border and shadow read continuous.
-  */
-  .bite-svg {
-    position:absolute;
-    left:0; top:0;
-    width:100%; height:100%;
-    pointer-events:none;
-    z-index:3;
-  }
-
-  /* Cube container sits exactly at anchor center, vertically centered at 50% viewport height */
-  .cube-wrap {
-    position:absolute;
-    left: calc(42vw - var(--gap)/2);
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: var(--cube-size);
-    height: var(--cube-size);
-    z-index: 5;  /* above bite, above panels' rim elements */
-    pointer-events:none;
-  }
-
-  .scene { width:100%; height:100%; perspective:1200px; position:relative; pointer-events:auto; user-select:none; touch-action:none; }
-  .cube {
-    width:100%; height:100%;
-    position:relative; transform-style:preserve-3d;
-    transform: translateZ(-140px) rotateX(-10deg) rotateY(0deg);
-    transition: transform .08s linear;
-    z-index:5;
-  }
-
-  /* Face common */
-  .face {
-    position:absolute; left:0; top:0; width:100%; height:100%;
-    border-radius:12px;
-    background: var(--panel-grad);
-    border: 1px solid var(--border);
-    display:flex; align-items:center; justify-content:center; flex-direction:column;
-    box-shadow: 0 10px 36px rgba(0,0,0,0.6);
-    backface-visibility:hidden; cursor:pointer;
-    box-sizing:border-box;
-  }
-
-  /* Accent bar left on each face; filled by inline style set in HTML/JS to match project color */
-  .face .accent {
-    position:absolute; left:0; top:0; bottom:0; width:6px;
-    border-top-left-radius:12px; border-bottom-left-radius:12px;
-  }
-
-  .face h3 { font-size:22px; margin:0 0 6px 0; }
-  .face p { color:var(--muted); margin:0; font-size:13px; text-align:center; padding:0 10px; }
-
-  /* Face transforms */
-  .front  { transform: rotateY(0deg)   translateZ(calc(var(--cube-size)/2)); }
-  .right  { transform: rotateY(90deg)  translateZ(calc(var(--cube-size)/2)); }
-  .back   { transform: rotateY(180deg) translateZ(calc(var(--cube-size)/2)); }
-  .left   { transform: rotateY(270deg) translateZ(calc(var(--cube-size)/2)); }
-  .top    { transform: rotateX(90deg)  translateZ(calc(var(--cube-size)/2)); }
-  .bottom { transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
-
-  /* Projects bar: wrap capable, taller rectangular buttons */
-  .projects {
-    position:absolute; left:0; right:0; bottom:0;
-    display:flex; gap:14px; padding:2vh 2vw; flex-wrap:wrap; justify-content:center; align-items:center;
-    background: linear-gradient(to top, rgba(0,0,0,0.45), transparent);
-    z-index:7;
-  }
-  .proj-btn {
-    width:140px; height:84px; background:var(--panel-grad); border:1px solid var(--border); border-radius:10px;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition:transform .18s, box-shadow .18s;
-  }
-  .proj-btn:hover { transform: translateY(-6px); box-shadow: 0 12px 30px rgba(0,0,0,0.45); }
-  .proj-btn strong { font-size:18px; }
-  .proj-btn span { font-size:12px; color:var(--muted); margin-top:6px; }
-
-  /* subtle responsive tuning */
-  @media (max-width: 980px) {
-    :root { --cube-size: 260px; --bite-radius: 160px; }
-    .title, .description { left:2vw; width: calc(100% - 4vw); }
-    .title { top:2vh; height: 20vh; }
-    .description { top: calc(2vh + 20vh + var(--gap)); height: 28vh; }
-    .image {
-      left:2vw; right:2vw; top: calc(2vh + 20vh + 28vh + calc(var(--gap)*2));
-      width: calc(100% - 4vw); height:32vh;
-    }
-    .cube-wrap { left: 50%; top: calc(2vh + 20vh + (28vh/2)); transform: translate(-50%, -50%); }
-    .anchor { left: 50%; top: calc(2vh + 20vh + (28vh/2)); transform: translate(-50%, -50%); }
-  }
+  /* small helper */
+  .hidden{ display:none }
 </style>
 </head>
 <body>
-  <div class="viewport" id="viewport">
-    <!-- Panels -->
-    <div class="panel title" id="titlePanel">
-      <h1 id="projTitle">Minesweeper</h1>
-      <p id="projSubtitle">Interactive tile-based puzzle</p>
-      <div style="margin-top:10px;color:var(--muted);font-size:13px"><a href="https://jackfshields.github.io" style="color:inherit;text-decoration:underline">JackFShields.github.io</a></div>
+  <div class="canvas" id="canvas" aria-label="Design canvas">
+    <!-- editable panels -->
+    <div id="titlePanel" class="editable" data-name="titlePanel">
+      <div class="handle tl"></div><div class="handle tr"></div><div class="handle bl"></div><div class="handle br"></div>
+      <div class="title" contenteditable="true">Minesweeper</div>
+      <div class="meta" contenteditable="true">Interactive tile-based puzzle</div>
     </div>
 
-    <div class="panel description" id="descPanel">
-      <p id="projDesc">Classic minesweeper rebuilt with modern UI. Drag the cube to rotate projects, or click the numbered buttons below to jump to a project. The central cube sits exactly at mid-height; panels keep a smooth bevel and shadow around the circular bite.</p>
+    <div id="descPanel" class="editable" data-name="descPanel">
+      <div class="handle tl"></div><div class="handle tr"></div><div class="handle bl"></div><div class="handle br"></div>
+      <p contenteditable="true">Classic minesweeper rebuilt with modern UI. Drag the cube to rotate projects, or click the numbered buttons below to jump to a project.</p>
     </div>
 
-    <div class="panel image" id="imagePanel">Minesweeper preview (no image)</div>
+    <div id="imagePanel" class="editable" data-name="imagePanel">
+      <div class="handle tl"></div><div class="handle tr"></div><div class="handle bl"></div><div class="handle br"></div>
+      <div style="color:var(--muted)">Preview panel — drop images here</div>
+    </div>
 
-    <!-- Invisible anchor used to derive bite and cube center -->
-    <div class="anchor" id="anchor" aria-hidden="true"></div>
-
-    <!-- SVG bite overlay (single circle) -->
-    <svg class="bite-svg" id="biteSVG" aria-hidden="true">
-      <defs>
-        <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur"/>
-          <feOffset dx="0" dy="6" result="offsetBlur"/>
-          <feComposite in="offsetBlur" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="innerShadow"/>
-          <feColorMatrix in="innerShadow" type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0   0 0 0 0.35" result="shadow"/>
-          <feMerge>
-            <feMergeNode in="shadow"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-      </defs>
-      <!-- circle: fill is page background so it visually removes underlying panels where it overlaps -->
-      <circle id="biteCircle" cx="0" cy="0" r="0" fill="#071425" stroke="rgba(255,255,255,0.08)" stroke-width="2" filter="url(#innerShadow)"></circle>
-    </svg>
-
-    <!-- Cube centered on anchor (50% height midpoint) -->
-    <div class="cube-wrap" id="cubeWrap">
+    <!-- cube wrap is movable/resizable too -->
+    <div id="cubeWrap" class="editable cube-wrap" data-name="cubeWrap" style="left:50%;top:50%;width:var(--cube-size);height:var(--cube-size);">
+      <div class="handle tl"></div><div class="handle tr"></div><div class="handle bl"></div><div class="handle br"></div>
       <div class="scene" id="scene">
         <div class="cube" id="cube" role="application" aria-label="interactive cube">
-          <div class="face front" data-slot="front">
-            <div class="accent" style="background:#e74c3c"></div>
-            <h3>Project 1</h3>
-            <p>Interactive tile puzzle</p>
-          </div>
-          <div class="face right" data-slot="right">
-            <div class="accent" style="background:#27ae60"></div>
-            <h3>Project 2</h3>
-            <p>Utility tool</p>
-          </div>
-          <div class="face back" data-slot="back">
-            <div class="accent" style="background:#9b59b6"></div>
-            <h3>Project 3</h3>
-            <p>Algorithmic art</p>
-          </div>
-          <div class="face left" data-slot="left">
-            <div class="accent" style="background:#1abc9c"></div>
-            <h3>Project 4</h3>
-            <p>UX experiments</p>
-          </div>
-          <div class="face top" data-slot="top">
-            <div class="accent" style="background:#f39c12"></div>
-            <h3>Project 5</h3>
-            <p>Extra face</p>
-          </div>
-          <div class="face bottom" data-slot="bottom">
-            <div class="accent" style="background:#34495e"></div>
-            <h3>Project 6</h3>
-            <p>Extra face</p>
-          </div>
+          <div class="face front" data-slot="front"><div class="accent" style="background:#e74c3c"></div><h3>Project 1</h3><div class="meta">Interactive tile puzzle</div></div>
+          <div class="face right" data-slot="right"><div class="accent" style="background:#27ae60"></div><h3>Project 2</h3><div class="meta">Utility tool</div></div>
+          <div class="face back" data-slot="back"><div class="accent" style="background:#9b59b6"></div><h3>Project 3</h3><div class="meta">Algorithmic art</div></div>
+          <div class="face left" data-slot="left"><div class="accent" style="background:#1abc9c"></div><h3>Project 4</h3><div class="meta">UX experiments</div></div>
+          <div class="face top" data-slot="top"><div class="accent" style="background:#f39c12"></div><h3>Project 5</h3><div class="meta">Extra face</div></div>
+          <div class="face bottom" data-slot="bottom"><div class="accent" style="background:#34495e"></div><h3>Project 6</h3><div class="meta">Extra face</div></div>
         </div>
       </div>
     </div>
 
-    <!-- Projects bar (wrap capable) -->
-    <div class="projects" id="projectsBar"></div>
+    <!-- projects bar -->
+    <div class="projects" id="projectsBar" aria-hidden="false"></div>
+  </div>
+
+  <!-- change log area -->
+  <div class="change-log" id="changeLogArea">
+    <div class="log" id="changeLog" aria-live="polite" role="status">Change log (actions will appear here)...</div>
+    <div class="controls">
+      <button id="exportBtn">Copy changes</button>
+      <button id="resetBtn">Reset layout</button>
+      <label style="font-size:12px;color:var(--muted);margin-top:8px">Manual command (paste to apply)</label>
+      <textarea id="manualCmd" placeholder="Paste a change list here to apply (not implemented in demo)"></textarea>
+    </div>
   </div>
 
 <script>
-/* ====== data: projects must map in order to cube faces (front, right, back, left, top, bottom) ====== */
-const projects = [
-  {title: 'Minesweeper', subtitle: 'Interactive tile-based puzzle', desc: 'Classic minesweeper rebuilt with modern UI', url:'#', color:'#e74c3c'},
-  {title: 'Project 2', subtitle: 'Utility tool', desc: 'Small utility demo', url:'#', color:'#27ae60'},
-  {title: 'Project 3', subtitle: 'Algorithmic art', desc: 'Generative visuals', url:'#', color:'#9b59b6'},
-  {title: 'Project 4', subtitle: 'UX experiments', desc: 'Micro interactions', url:'#', color:'#1abc9c'},
-  {title: 'Project 5', subtitle: 'Extra', desc: 'Misc experiments', url:'#', color:'#f39c12'},
-  {title: 'Project 6', subtitle: 'Extra 2', desc: 'More experiments', url:'#', color:'#34495e'}
-];
+/* Editor with drag/resize for any .editable and a change log that records actions.
+   - You can drag any block, resize via corner handles.
+   - Cube rotation preserved from previous file: drag the cube interior to rotate on Y.
+   - Every change appends a single-line, machine-readable entry to the change log.
+   - Export button copies the log contents.
+*/
 
-/* DOM refs */
-const viewport = document.getElementById('viewport');
-const anchor = document.getElementById('anchor');
-const biteSVG = document.getElementById('biteSVG');
-const biteCircle = document.getElementById('biteCircle');
-const cubeWrap = document.getElementById('cubeWrap');
+/* ---------- Utilities ---------- */
+const logEl = document.getElementById('changeLog');
+function appendLog(entry){
+  const ts = new Date().toISOString();
+  logEl.textContent += `\n[${ts}] ${entry}`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function px(n){ return `${Math.round(n)}px` }
+function parsePx(v){ return parseFloat(v.replace('px','')) || 0 }
+
+/* ---------- Editable drag/resize core ---------- */
+const editables = Array.from(document.querySelectorAll('.editable'));
+let active = null;
+let mode = null; // 'move' or 'resize'
+let start = null;
+
+editables.forEach(el=>{
+  // make handles interactive
+  const handles = Array.from(el.querySelectorAll('.handle'));
+  handles.forEach(h=>{
+    h.addEventListener('pointerdown', (ev)=>{
+      ev.stopPropagation(); ev.preventDefault();
+      active = el;
+      mode = 'resize';
+      start = { x: ev.clientX, y: ev.clientY, rect: el.getBoundingClientRect(), handle: Array.from(el.querySelectorAll('.handle')).indexOf(h) };
+      el.classList.add('dragging');
+      try{ h.setPointerCapture(ev.pointerId) }catch(e){}
+    });
+  });
+
+  // move by dragging the element body (not handles)
+  el.addEventListener('pointerdown', (ev)=>{
+    // ignore if clicked on handle
+    if(ev.target.classList.contains('handle')) return;
+    active = el;
+    mode = 'move';
+    start = { x: ev.clientX, y: ev.clientY, rect: el.getBoundingClientRect() };
+    el.classList.add('dragging');
+    try{ el.setPointerCapture(ev.pointerId) }catch(e){}
+  });
+});
+
+// global pointermove/up
+window.addEventListener('pointermove', (ev)=>{
+  if(!active || !start) return;
+  ev.preventDefault();
+  const dx = ev.clientX - start.x;
+  const dy = ev.clientY - start.y;
+  if(mode === 'move'){
+    const newLeft = start.rect.left + dx;
+    const newTop  = start.rect.top + dy;
+    // constrain within body
+    const bodyRect = document.body.getBoundingClientRect();
+    const w = start.rect.width, h = start.rect.height;
+    const left = Math.max(8, Math.min(newLeft, bodyRect.width - w - 8));
+    const top  = Math.max(8, Math.min(newTop, bodyRect.height - h - 180)); // keep above log area
+    active.style.left = px(left);
+    active.style.top  = px(top);
+  } else if(mode === 'resize'){
+    // which handle?
+    const handleIndex = start.handle;
+    const rect = start.rect;
+    let newLeft = rect.left, newTop = rect.top, newW = rect.width, newH = rect.height;
+    // Four corners only handleIndex 0..3 mapping to tl,tr,bl,br
+    if(handleIndex === 0){ // tl
+      newLeft = rect.left + dx;
+      newTop  = rect.top + dy;
+      newW = rect.width - dx;
+      newH = rect.height - dy;
+    } else if(handleIndex === 1){ // tr
+      newTop = rect.top + dy;
+      newW = rect.width + dx;
+      newH = rect.height - dy;
+    } else if(handleIndex === 2){ // bl
+      newLeft = rect.left + dx;
+      newW = rect.width - dx;
+      newH = rect.height + dy;
+    } else if(handleIndex === 3){ // br
+      newW = rect.width + dx;
+      newH = rect.height + dy;
+    }
+    // enforce minimum
+    const minW = 80, minH = 60;
+    if(newW < minW) newW = minW;
+    if(newH < minH) newH = minH;
+    // constrain within body
+    const bodyRect = document.body.getBoundingClientRect();
+    newLeft = Math.max(8, Math.min(newLeft, bodyRect.width - newW - 8));
+    newTop  = Math.max(8, Math.min(newTop, bodyRect.height - newH - 180));
+    active.style.left = px(newLeft);
+    active.style.top  = px(newTop);
+    active.style.width = px(newW);
+    active.style.height = px(newH);
+  }
+});
+
+window.addEventListener('pointerup', (ev)=>{
+  if(!active || !start) return;
+  // finalize
+  const rect = active.getBoundingClientRect();
+  const name = active.dataset.name || active.id || 'editable';
+  if(mode === 'move'){
+    appendLog(`${name} moved to left:${Math.round(rect.left)}px top:${Math.round(rect.top)}px width:${Math.round(rect.width)}px height:${Math.round(rect.height)}px`);
+  } else if(mode === 'resize'){
+    appendLog(`${name} resized to left:${Math.round(rect.left)}px top:${Math.round(rect.top)}px width:${Math.round(rect.width)}px height:${Math.round(rect.height)}px`);
+  }
+  active.classList.remove('dragging');
+  try{ ev.target.releasePointerCapture?.(ev.pointerId); }catch(e){}
+  active = null; mode = null; start = null;
+});
+
+/* ---------- Cube rotation (drag inside cube to rotate) ---------- */
 const scene = document.getElementById('scene');
 const cube = document.getElementById('cube');
-const titlePanel = document.getElementById('titlePanel');
-const descPanel = document.getElementById('descPanel');
-const imagePanel = document.getElementById('imagePanel');
-const projectsBar = document.getElementById('projectsBar');
-
-/* build projects bar (wrap-capable) */
-function renderProjects(){
-  projectsBar.innerHTML = '';
-  projects.forEach((p,i)=>{
-    const btn = document.createElement('div');
-    btn.className = 'proj-btn';
-    btn.innerHTML = `<strong>${i+1}</strong><span>${p.title}</span>`;
-    btn.addEventListener('click', ()=> centerCubeOnProject(i));
-    projectsBar.appendChild(btn);
-  });
-}
-renderProjects();
-
-/* compute anchor center & radius from anchor bounding rect */
-function computeAnchor(){
-  const r = anchor.getBoundingClientRect();
-  return { x: r.left + r.width/2, y: r.top + r.height/2, r: Math.min(r.width, r.height)/2 };
-}
-
-/* Position SVG bite circle, update panel rim pseudo positions, and ensure no stroke shows outside panels:
-   - SVG circle is drawn on top of panels, filled with page bg so it "cuts" panels.
-   - Stroke + innerShadow filter provide the rim/ bevel look.
-   - Panels themselves keep their borders; we also place pseudo rim positions for subtle continuity
-*/
-function positionBiteAndCube(){
-  const a = computeAnchor();
-  biteCircle.setAttribute('cx', a.x);
-  biteCircle.setAttribute('cy', a.y);
-  biteCircle.setAttribute('r', a.r);
-  // ensure SVG pixel dims match viewport so circle coords align with DOM coords
-  biteSVG.setAttribute('width', window.innerWidth);
-  biteSVG.setAttribute('height', window.innerHeight);
-
-  // update panels: compute closest local point and set CSS variables for optional rim decorations (if used later)
-  [titlePanel, descPanel, imagePanel].forEach(el=>{
-    const rect = el.getBoundingClientRect();
-    const cx = Math.max(rect.left, Math.min(a.x, rect.right));
-    const cy = Math.max(rect.top, Math.min(a.y, rect.bottom));
-    const localX = Math.round(cx - rect.left);
-    const localY = Math.round(cy - rect.top);
-    el.style.setProperty('--bite-x', `${localX}px`);
-    el.style.setProperty('--bite-y', `${localY}px`);
-    el.style.setProperty('--bite-radius', `${a.r}px`);
-    // show/hide by distance test (keeps pseudo decorations performant)
-    const dist = Math.hypot(cx - a.x, cy - a.y);
-    const margin = 6;
-    if(dist < a.r + margin){
-      el.setAttribute('data-bite', '1');
-    } else {
-      el.setAttribute('data-bite', '0');
-    }
-  });
-
-  // place cubeWrap center at anchor center in page coordinates
-  cubeWrap.style.left = `${a.x}px`;
-  cubeWrap.style.top = `${a.y}px`;
-  cubeWrap.style.transform = 'translate(-50%, -50%)';
-}
-
-/* === Cube rotation and interaction ===
-   - drag uses cumulative-delta model (startX → currentX) to avoid inversion
-   - click detection threshold is kept to differentiate tap vs drag
-   - inertia simulated by angular velocity
-*/
-let rotY = 0;
-let isDown = false;
-let startX = 0, startRot = 0, startT = 0;
-let angVel = 0;
-const SENS = 0.35;
-const CLICK_MOVE_THRESHOLD = 6;
-const CLICK_TIME_THRESHOLD = 300;
-
-scene.addEventListener('pointerdown', e=>{
-  isDown = true;
-  startX = e.clientX;
-  startRot = rotY;
-  startT = performance.now();
-  angVel = 0;
-  try{ scene.setPointerCapture(e.pointerId); }catch(e){}
+let isDown = false, startX=0, startRot=0, rotY=0;
+scene.addEventListener('pointerdown', (e)=>{
+  // only start if pointer in cube area (not on handles)
+  if(e.target.closest('.handle')) return;
+  isDown = true; startX = e.clientX; startRot = rotY;
+  try{ scene.setPointerCapture(e.pointerId) }catch(e){}
 });
-scene.addEventListener('pointermove', e=>{
+scene.addEventListener('pointermove', (e)=>{
   if(!isDown) return;
   const dx = e.clientX - startX;
-  const target = startRot + dx * SENS;
-  angVel = target - rotY;
-  rotY = target;
-  applyRotation();
-});
-scene.addEventListener('pointerup', e=>{
-  try{ scene.releasePointerCapture(e.pointerId); }catch(e){}
-  const dt = performance.now() - startT;
-  const moved = Math.hypot(e.clientX - startX, e.clientY - startX);
-  const isClick = moved <= CLICK_MOVE_THRESHOLD && dt <= CLICK_TIME_THRESHOLD;
-  isDown = false;
-  angVel = Math.max(-20, Math.min(20, angVel));
-  if(isClick){
-    const el = document.elementFromPoint(e.clientX, e.clientY);
-    const face = el && el.closest && el.closest('.face');
-    if(face) openFaceProject(face);
-  }
-});
-
-/* Apply rotation (and update most-visible face => update left panels) */
-function applyRotation(){
+  rotY = startRot + dx * 0.35; // sensitivity
   cube.style.transform = `translateZ(-140px) rotateX(-10deg) rotateY(${rotY}deg)`;
-  updateMostVisibleFace();
-}
+});
+scene.addEventListener('pointerup', (e)=>{
+  if(!isDown) return;
+  isDown = false;
+  appendLog(`cube rotated to rotateY:${Math.round(rotY)}deg`);
+  try{ scene.releasePointerCapture(e.pointerId) }catch(e){}
+});
 
-/* Determine most visible face using angle heuristic (front=0°, right=90°, back=180°, left=270°)
-   This mapping is adjacent-order: front->projects[0], right->projects[1], back->projects[2], left->projects[3]
-*/
-function updateMostVisibleFace(){
-  const rad = (rotY % 360) * Math.PI / 180;
-  const slotAngles = [0, -Math.PI/2, Math.PI, Math.PI/2]; // front, right, back, left
-  const scores = slotAngles.map(sa=>{
-    const diff = normalizeAngleRad(-rad - sa);
-    return Math.max(0, Math.cos(diff)); // higher = more facing camera
-  });
-  let best = -1, bestIdx = 0;
-  scores.forEach((s,i)=>{ if(s>best){ best=s; bestIdx=i }});
-  const mapping = [0,1,2,3]; // front->0, right->1, back->2, left->3
-  const projIndex = mapping[bestIdx] % projects.length;
-  const p = projects[projIndex];
-  if(p){
-    // update left-side panels and image accent
-    document.getElementById('projTitle').textContent = p.title;
-    document.getElementById('projSubtitle').textContent = p.subtitle;
-    document.getElementById('projDesc').textContent = p.desc;
-    imagePanel.textContent = `${p.title} preview (no image)`;
-    imagePanel.style.borderLeft = `4px solid ${p.color}`;
-  }
-}
-function normalizeAngleRad(a){
-  const two = Math.PI * 2;
-  let v = (a + Math.PI) % two;
-  if(v < 0) v += two;
-  return v - Math.PI;
-}
+/* ---------- Build bottom projects buttons (click to center cube) ---------- */
+const projects = [
+  {title:"Minesweeper", subtitle:"Interactive tile puzzle", desc:"Classic minesweeper rebuilt", url:"#", color:"#e74c3c"},
+  {title:"Poly Weave", subtitle:"Generative geometry", desc:"Visual experiments", url:"#", color:"#9b59b6"},
+  {title:"Grid Tools", subtitle:"UI grid utilities", desc:"Small toolkit", url:"#", color:"#1abc9c"},
+  {title:"UX Micro", subtitle:"Microinteractions", desc:"Playful UI", url:"#", color:"#f39c12"},
+  {title:"Data Viz", subtitle:"Visual playground", desc:"Charts & algos", url:"#", color:"#27ae60"},
+  {title:"Experiments", subtitle:"Misc", desc:"Portfolio tests", url:"#", color:"#4cc1ff"}
+];
+const projectsBar = document.getElementById('projectsBar');
+function renderProjects(){ projectsBar.innerHTML=''; projects.forEach((p,i)=>{
+  const b = document.createElement('div'); b.className='proj-btn'; b.innerHTML = `<strong>${i+1}</strong><span style="font-size:12px;color:var(--muted);">${p.title}</span>`;
+  b.addEventListener('click', ()=> centerCubeOnIndex(i));
+  projectsBar.appendChild(b);
+})}
+renderProjects();
 
-/* Clicking a face opens the matched project (mapping same as updateMostVisibleFace) */
-function openFaceProject(faceEl){
-  const map = { front:0, right:1, back:2, left:3, top:4, bottom:5 };
-  const slot = faceEl.dataset.slot;
-  const idx = (map[slot] ?? 0) % projects.length;
-  const p = projects[idx];
-  if(p && p.url) window.open(p.url, '_blank');
+function centerCubeOnIndex(i){
+  // map index to face: 0 front (0deg), 1 right (-90), 2 back (-180), 3 left (-270)
+  const faceIndex = i % 4;
+  const target = -faceIndex * 90;
+  animateRotationTo(target);
+  appendLog(`centerCube: projectIndex:${i} targetRotateY:${target}deg`);
 }
-
-/* Animate rotation to center a desired project index (projIdx maps to slot via projIdx % 4) */
-function centerCubeOnProject(projIdx){
-  const slot = projIdx % 4; // 0 front, 1 right, 2 back, 3 left
-  const targetRel = -slot * 90;
-  animateRotationTo(rotY + targetRel, 420);
-}
-function animateRotationTo(targetDeg, duration=420){
-  const start = performance.now(), from = rotY;
-  function step(ts){
-    const t = Math.min(1, (ts - start)/duration);
-    const eased = 1 - Math.pow(1-t, 3); // ease-out-cubic
-    rotY = from + (targetDeg - from) * eased;
-    applyRotation();
+function animateRotationTo(targetDeg){
+  const from = rotY;
+  const total = targetDeg - (from % 360);
+  const dur = 420;
+  const start = performance.now();
+  function step(now){
+    const t = Math.min(1, (now - start)/dur);
+    const eased = 1 - Math.pow(1-t,3);
+    rotY = from + total * eased;
+    cube.style.transform = `translateZ(-140px) rotateX(-10deg) rotateY(${rotY}deg)`;
     if(t < 1) requestAnimationFrame(step);
   }
   requestAnimationFrame(step);
 }
 
-/* inertia loop (simple exponential friction) */
-let last = performance.now();
-function loop(now){
-  const dt = (now - last)/1000;
-  last = now;
-  if(!isDown && Math.abs(angVel) > 0.0005){
-    rotY += angVel;
-    angVel *= Math.pow(0.90, dt * 60);
-    applyRotation();
-  }
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
+/* ---------- Export / Reset UI ---------- */
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const txt = logEl.textContent;
+  navigator.clipboard?.writeText(txt).then(()=> appendLog('exported log to clipboard'), ()=> appendLog('copy failed'));
+});
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  // reset positions to initial layout (simple approach)
+  document.getElementById('titlePanel').style.left = '28px';
+  document.getElementById('titlePanel').style.top = '28px';
+  document.getElementById('titlePanel').style.width = '360px';
+  document.getElementById('titlePanel').style.height = '260px';
 
-/* Build the bottom projects bar and ensure it maps to faces in correct order */
-function buildBottomBar(){
-  projectsBar.innerHTML = '';
-  projects.forEach((p,i)=>{
-    const el = document.createElement('div');
-    el.className = 'proj-btn';
-    el.innerHTML = `<strong>${i+1}</strong><span>${p.title}</span>`;
-    el.addEventListener('click', ()=> centerCubeOnProject(i));
-    projectsBar.appendChild(el);
-  });
-}
-buildBottomBar();
+  document.getElementById('descPanel').style.left = '28px';
+  document.getElementById('descPanel').style.top = '312px';
+  document.getElementById('descPanel').style.width = '360px';
+  document.getElementById('descPanel').style.height = '320px';
 
-/* layout recalculations on load/resize: position bite circle and cube center precisely */
-function layoutUpdate(){
-  positionBiteAndCube();
-  applyRotation();
-}
-/* robust resize handling and debounce */
-let resizeTimer;
-window.addEventListener('resize', ()=>{ clearTimeout(resizeTimer); resizeTimer = setTimeout(layoutUpdate, 80); });
+  document.getElementById('imagePanel').style.right = '28px';
+  document.getElementById('imagePanel').style.top = '28px';
+  document.getElementById('imagePanel').style.width = '56vw';
+  document.getElementById('imagePanel').style.height = '76vh';
 
-window.addEventListener('load', ()=>{ layoutUpdate(); setTimeout(layoutUpdate, 120); });
-
-/* bind face clicks (also supports opening via pointers) */
-Array.from(document.querySelectorAll('.face')).forEach(f=>{
-  f.addEventListener('click', ()=> openFaceProject(f));
+  const cw = document.getElementById('cubeWrap');
+  cw.style.left = '50%'; cw.style.top = '50%'; cw.style.width = getComputedStyle(document.documentElement).getPropertyValue('--cube-size') || '336px';
+  cw.style.height = getComputedStyle(document.documentElement).getPropertyValue('--cube-size') || '336px';
+  cube.style.transform = `translateZ(-140px) rotateX(-10deg) rotateY(0deg)`;
+  rotY = 0;
+  appendLog('layout reset to defaults');
 });
 
-/* initial mapping: set accents of faces to match projects data (keeps faces/colors in sync) */
-(function syncFaceAccents(){
-  const faces = document.querySelectorAll('.face');
-  faces.forEach((face, idx) => {
-    const p = projects[idx % projects.length];
-    const accent = face.querySelector('.accent');
-    if(accent && p) accent.style.background = p.color;
+/* ---------- Simple persistence of contenteditable text to log on blur ---------- */
+Array.from(document.querySelectorAll('[contenteditable]')).forEach(el=>{
+  el.addEventListener('blur', ()=>{
+    appendLog(`${el.closest('.editable')?.dataset?.name || el.id || 'text'} edited: "${el.textContent.trim().replace(/\s+/g,' ')}"`);
   });
-})();
+});
 
-/* Prevent common pitfalls checklist (runtime guards):
-   - Ensure bite SVG uses viewport coordinates (we set width/height on layoutUpdate).
-   - Ensure cubeWrap is positioned using page coordinates (we set left/top to anchor center).
-   - Use setPointerCapture with try/catch for cross-browser robustness.
-   - Use cumulative drag from start position (not frame deltas) to avoid inversion.
-*/
+/* ---------- Initialization logs ---------- */
+appendLog('editor ready — drag any panel or resize with handles. Drag cube area to rotate. Use project buttons to center faces.');
+appendLog('Tip: every move/resize is recorded here; copy changes and paste them into chat to tell me exactly what you moved.');
 </script>
 </body>
 </html>
