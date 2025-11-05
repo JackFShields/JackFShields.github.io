@@ -3,543 +3,563 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>JackFShields — Claw Machine</title>
+<title>JackFShields — Arcade Claw (Box, Joystick, Coin)</title>
 <style>
   :root{
-    --bg:#081220;
-    --glass: rgba(255,255,255,0.03);
+    --bg:#071426;
+    --glass:#0f2b3b;
+    --panel:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
     --muted: #9fbfdc;
-    --accent: #4cc1ff;
-    --card:#0f1720;
-    --capsule-width:84px;
-    --capsule-gap:16px;
+    --accent-1: #4cc1ff;
+    --accent-2: #9b59b6;
+    --accent-3: #1abc9c;
+    --accent-4: #f39c12;
+    --accent-5: #27ae60;
+    --accent-6: #e74c3c;
+    --cabinet-w: 920px;
+    --cabinet-h: 580px;
+    --pit-h: 220px;
   }
 
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;background:linear-gradient(180deg,#061226 0%, #020612 100%);color:#eaf3ff;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial, sans-serif;overflow:hidden}
-  .wrap{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;gap:20px}
+  html,body{height:100%;background:linear-gradient(180deg,#020718 0%, #021125 40%, #000612 100%);color:#e8f6ff;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;display:flex;align-items:center;justify-content:center;padding:24px}
+  .wrap{width:min(var(--cabinet-w),96vw);}
 
-  /* Stage */
-  .machine {
-    width:min(920px, 94vw);
-    height:520px;
-    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12));
-    border:1px solid rgba(255,255,255,0.04);
+  /* Cabinet */
+  .cabinet{
+    width:100%;
+    height:var(--cabinet-h);
+    background:linear-gradient(180deg,#071926 0%, #04111a 100%);
     border-radius:12px;
-    position:relative;
-    overflow:visible;
-    box-shadow: 0 30px 60px rgba(0,0,0,0.6);
-    padding:18px;
-    display:flex;
-    gap:16px;
-  }
-
-  /* Left controls / info (preserve bento vibe) */
-  .info {
-    width:260px;
-    display:flex;
-    flex-direction:column;
-    gap:12px;
-  }
-  .panel {
-    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
-    border-radius:10px;
+    box-shadow: 0 36px 80px rgba(0,0,0,0.7);
     border:1px solid rgba(255,255,255,0.03);
-    padding:12px;
-    min-height:72px;
-  }
-  .panel h3{font-size:0.98rem;margin-bottom:6px;color:#eaf3ff}
-  .panel p{color:var(--muted);font-size:0.88rem;line-height:1.2}
-
-  /* Claw area */
-  .play {
-    flex:1;
-    position:relative;
-    display:flex;
-    align-items:flex-start;
-    justify-content:center;
-    padding:12px;
+    position:relative;overflow:visible;padding:18px;display:flex;gap:14px;
   }
 
-  /* machine glass border */
-  .glass {
-    position:absolute;inset:12px;border-radius:8px;
-    pointer-events:none;
-    box-shadow: inset 0 2px 0 rgba(255,255,255,0.02), 0 30px 50px rgba(0,0,0,0.6);
+  /* Left panel (controls and coin slot) */
+  .side{
+    width:260px;display:flex;flex-direction:column;gap:12px;padding:6px;
+  }
+  .panel{
+    background:var(--panel);border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,0.03);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+  }
+  .panel h3{font-size:1rem;margin-bottom:6px}
+  .panel p{color:var(--muted);font-size:0.92rem;line-height:1.2}
+
+  /* Ultimate play area (glass box) */
+  .glass-case{
+    flex:1;position:relative;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.09));border:1px solid rgba(255,255,255,0.03);overflow:hidden;
+    display:flex;flex-direction:column;
   }
 
-  /* Claw rail top */
-  .rail {
-    position:absolute;
-    top:28px;
-    left:64px;
-    right:64px;
-    height:6px;
-    background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005));
-    border-radius:6px;
-    z-index:50;
-    box-shadow:0 6px 20px rgba(0,0,0,0.4);
+  /* top display & coin slot */
+  .top-bar{height:86px;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;gap:10px}
+  .marquee{font-weight:700;letter-spacing:0.2px}
+  .coin-slot{
+    width:120px;height:46px;border-radius:8px;background:linear-gradient(180deg,#02141a,#081a22);border:1px solid rgba(255,255,255,0.03);
+    display:flex;align-items:center;justify-content:space-between;padding:8px 10px;gap:8px;
+  }
+  .coin-slot .slot{width:20px;height:30px;background:linear-gradient(90deg,#000,#111);border-radius:4px;border:1px solid rgba(255,255,255,0.03);box-shadow:inset 0 2px 0 rgba(255,255,255,0.02)}
+  .coin-slot .label{color:var(--muted);font-size:0.86rem}
+
+  /* inner play area with glass front and pit */
+  .play-area{flex:1;position:relative;padding:12px 18px;display:flex;flex-direction:column}
+  .glass-front{flex:1;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.06));border:1px solid rgba(255,255,255,0.02);position:relative;overflow:hidden}
+
+  /* back wall and floor perspective */
+  .back-wall{position:absolute;inset:0;background:
+    linear-gradient(180deg,#04202a 0%, #021016 100%);opacity:0.98}
+  .floor {
+    position:absolute;left:10%;right:10%;bottom:0;height:var(--pit-h);border-radius:10px 10px 0 0;background:
+    linear-gradient(180deg,#061724,#01111a);
+    box-shadow: inset 0 20px 40px rgba(0,0,0,0.6);
+    overflow:hidden;padding:8px;
   }
 
-  /* Claw group */
-  .claw {
-    position:absolute;
-    top:6px;
-    left:64px;
-    width:120px;
-    height:120px;
-    transform-origin:top center;
-    z-index:120;
-    pointer-events:none;
+  /* capsules stacked (random offsets) */
+  .capsule{
+    position:absolute;left:50%;transform:translate(-50%,0);
+    min-width:84px;height:56px;border-radius:28px;padding:8px 12px;background:var(--panel);display:flex;align-items:center;gap:10px;
+    border:1px solid rgba(255,255,255,0.04);box-shadow:0 14px 28px rgba(0,0,0,0.5);
+    cursor:pointer;transition:transform 220ms cubic-bezier(.2,.9,.2,1), opacity 200ms;
+    user-select:none;
+  }
+  .capsule .fav{width:36px;height:36px;border-radius:8px;background:#ffffff11;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .capsule img{width:100%;height:100%;object-fit:contain;display:block}
+  .capsule .title{font-weight:700;font-size:0.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#eaf6ff}
+
+  /* highlight */
+  .capsule.selected{outline:2px solid rgba(255,255,255,0.06);transform:translate(-50%,-8px) scale(1.02)}
+
+  /* claw rail and device */
+  .rail{position:absolute;left:40px;right:40px;top:44px;height:6px;background:linear-gradient(90deg,#071a20,#04212a);border-radius:6px;z-index:70}
+  .claw{
+    position:absolute;top:10px;width:96px;height:120px;left:120px;transform:translateX(-50%);pointer-events:none;z-index:120;
+    transition:left 260ms cubic-bezier(.2,.9,.2,1);
+  }
+  .claw .arm{position:absolute;left:50%;transform:translateX(-50%);width:6px;height:64px;background:linear-gradient(180deg,#cfeeff,#7aaed4);border-radius:6px;top:6px}
+  .claw .hook{
+    position:absolute;left:50%;top:64px;transform:translateX(-50%);width:72px;height:34px;border-radius:10px;background:linear-gradient(180deg,#e7fbff,#cfeeff);display:flex;align-items:center;justify-content:center;font-weight:700;color:#06303a;box-shadow:0 10px 26px rgba(0,0,0,0.55)
   }
 
-  .claw .arm {
-    position:absolute;left:50%;transform:translateX(-50%);
-    width:6px;height:80px;background:linear-gradient(180deg,#cfdff0,#7eaed8);
-    border-radius:4px;box-shadow:0 6px 12px rgba(0,0,0,0.45);
+  /* joystick and controls panel overlay */
+  .controls{
+    position:absolute;right:14px;bottom:14px;width:220px;padding:12px;background:linear-gradient(180deg,#02121a,#04151a);border-radius:10px;border:1px solid rgba(255,255,255,0.02);z-index:200;
+    display:flex;flex-direction:column;gap:10px;align-items:center;
   }
+  .joystick{
+    width:74px;height:74px;border-radius:999px;background:linear-gradient(180deg,#081a24,#031016);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.03);position:relative;
+    touch-action:none;
+  }
+  .stick{width:36px;height:36px;border-radius:999px;background:linear-gradient(180deg,#4cc1ff,#0c5f78);box-shadow:0 6px 12px rgba(0,0,0,0.6);transform:translate(0,0);transition:transform 120ms linear;cursor:grab;}
+  .stick:active{cursor:grabbing}
+  .drop-btn{margin-top:6px;padding:8px 12px;border-radius:8px;background:#e74c3c;color:#fff;border:none;font-weight:700;cursor:pointer;box-shadow:0 10px 22px rgba(231,76,60,0.14)}
+  .drop-btn:active{transform:translateY(2px)}
 
-  .claw .hook {
-    position:absolute;left:50%;transform:translateX(-50%);top:74px;
-    width:64px;height:24px;border-radius:8px;background:linear-gradient(180deg,#e6f6ff,#cfeeff);
-    display:flex;align-items:center;justify-content:center;font-weight:700;color:#05202b;
-    box-shadow:0 10px 24px rgba(0,0,0,0.45);
+  /* coin (draggable) */
+  .coin{
+    width:56px;height:56px;border-radius:50%;background:linear-gradient(180deg,#ffd86b,#f7c948);border:2px solid rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:center;font-weight:800;color:#382600;cursor:grab;user-select:none;position:absolute;left:16px;bottom:18px;z-index:220;
   }
+  .coin.dragging{opacity:0.9;transform:scale(1.06);cursor:grabbing}
 
-  /* chute (drop target) */
-  .chute {
-    position:absolute;
-    right:28px;
-    bottom:28px;
-    width:180px;
-    height:220px;
-    background:linear-gradient(180deg,#081623,#02101a);
-    border-radius:8px;
-    border:1px solid rgba(255,255,255,0.03);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    flex-direction:column;
-    z-index:40;
-    box-shadow: inset 0 2px 0 rgba(255,255,255,0.02);
+  /* modal */
+  .modal{
+    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.98);min-width:300px;padding:18px;border-radius:12px;background:linear-gradient(180deg,#071827,#021017);border:1px solid rgba(255,255,255,0.03);z-index:9999;box-shadow:0 40px 90px rgba(0,0,0,0.7);opacity:0;pointer-events:none;transition:opacity 180ms ease, transform 180ms cubic-bezier(.2,.9,.2,1)
   }
-  .chute h4{font-size:0.95rem;margin-bottom:4px}
-  .bucket {
-    width:120px;height:120px;border-radius:10px;background:linear-gradient(180deg,#071827,#07121a);
-    border:1px solid rgba(255,255,255,0.025);display:flex;align-items:center;justify-content:center;
-  }
-
-  /* prize area at bottom (where capsules sit) */
-  .pit {
-    position:absolute;
-    left:64px;
-    right:220px;
-    bottom:34px;
-    height:120px;
-    display:flex;
-    align-items:center;
-    gap:var(--capsule-gap);
-    padding:12px;
-    overflow:visible;
-    z-index:30;
-  }
-
-  .capsule {
-    width:var(--capsule-width);
-    height:56px;
-    border-radius:28px;
-    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
-    border:1px solid rgba(255,255,255,0.04);
-    display:flex;align-items:center;justify-content:center;
-    gap:10px;padding:8px;
-    box-shadow:0 8px 18px rgba(0,0,0,0.5);
-    cursor:pointer;
-    transform-origin:center bottom;
-    transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 160ms;
-  }
-  .capsule:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 18px 32px rgba(0,0,0,0.6); }
-
-  .capsule .fav {
-    width:36px;height:36px;border-radius:8px;background:#ffffff11;display:flex;align-items:center;justify-content:center;overflow:hidden;
-  }
-  .capsule img { width:100%; height:100%; object-fit:contain; display:block }
-
-  /* modal popup */
-  .modal {
-    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(0.98);
-    min-width:300px;background:linear-gradient(180deg,#071827,#021017);
-    border-radius:12px;border:1px solid rgba(255,255,255,0.04);padding:18px;z-index:999;
-    box-shadow:0 40px 90px rgba(0,0,0,0.7);opacity:0;pointer-events:none;transition:opacity 220ms ease, transform 220ms cubic-bezier(.2,.9,.2,1);
-  }
-  .modal.show { opacity:1; pointer-events:auto; transform:translate(-50%,-50%) scale(1); }
-  .modal h3{margin-bottom:8px;color:#eaf3ff}
+  .modal.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+  .modal h3{margin-bottom:8px}
   .modal p{color:var(--muted);margin-bottom:12px}
-  .modal .ok { background:var(--accent); color:#00202a;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:700 }
 
-  /* footer controls */
-  .controls { display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:8px }
-  .btn { background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);padding:8px 12px;border-radius:8px;cursor:pointer }
-  .btn.primary { background:var(--accent); color:#05202b; border:none; font-weight:700 }
-  .legend{font-size:0.9rem;color:var(--muted);margin-top:8px}
-
-  @media (max-width:900px){
-    .machine{height:620px;flex-direction:column;align-items:stretch}
-    .info{width:auto;display:flex;flex-direction:row;gap:10px;padding:10px}
-    .play{order:2}
-    .pit{left:20px;right:20px}
-    .chute{right:20px;bottom:12px}
+  /* small responsive */
+  @media (max-width:940px){
+    .side{display:none}
+    .cabinet{height:680px;flex-direction:column;padding:12px}
+    .controls{right:10px;bottom:8px}
+    .coin{left:10px;bottom:10px}
   }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="machine" id="machine">
-      <div class="info" aria-hidden="false">
+  <div class="wrap" aria-live="polite">
+    <div class="cabinet" id="cabinet">
+      <div class="side" aria-hidden="false">
         <div class="panel">
-          <h3 id="leftTitle">Claw Machine</h3>
-          <p id="leftBody">Click a capsule to mark a target, then press "Grab" to send the claw. You can also drag the claw rail to position before grabbing.</p>
+          <h3>Claw Machine</h3>
+          <p>Drag the quarter into the slot to power the machine. Drag the joystick to move the claw back and forth. Press DROP to lower and try to grab a capsule.</p>
         </div>
         <div class="panel">
-          <h3 id="leftSmallTitle">Prizes</h3>
-          <p id="leftSmallBody">Favicons are used as capsule icons. Drop a prize in the chute to see details.</p>
+          <h3>Prizes</h3>
+          <p>Capsules represent projects. Each capsule uses a color accent that matches the palette. Click a capsule to set it as the target.</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:auto">
+          <div class="coin" id="coin" title="Drag coin into slot" role="button" tabindex="0">¢</div>
         </div>
       </div>
 
-      <div class="play" id="playArea" aria-live="polite">
-        <div class="glass" aria-hidden="true"></div>
-
-        <div class="rail" id="rail"></div>
-
-        <div class="claw" id="claw" aria-hidden="true" style="left:120px">
-          <div class="arm" id="clawArm"></div>
-          <div class="hook" id="clawHook">▂▂▂</div>
+      <div class="glass-case" id="glass">
+        <div class="top-bar">
+          <div class="marquee">Arcade Cabinet — Project Prizes</div>
+          <div class="coin-slot" id="coinSlot" aria-label="coin slot">
+            <div class="label">Insert coin</div>
+            <div class="slot"></div>
+          </div>
         </div>
 
-        <div class="chute" id="chute" aria-hidden="false">
-          <h4>Prize Bin</h4>
-          <div class="bucket" id="bucket"></div>
-        </div>
+        <div class="play-area">
+          <div class="glass-front" id="glassFront" role="region" aria-label="claw playfield">
+            <div class="back-wall"></div>
 
-        <div class="pit" id="pit" role="list" aria-label="Prize pit"></div>
+            <div class="rail" id="rail"></div>
+            <div class="claw" id="claw" style="left:120px">
+              <div class="arm" id="arm"></div>
+              <div class="hook" id="hook">▂▂▂</div>
+            </div>
+
+            <div class="floor" id="floor"></div>
+
+            <!-- controls overlay -->
+            <div class="controls" aria-hidden="false">
+              <div class="joystick" id="joystick" aria-label="joystick" role="application">
+                <div class="stick" id="stick" tabindex="0" role="slider" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0"></div>
+              </div>
+              <button class="drop-btn" id="dropBtn" aria-pressed="false">DROP</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div style="width:min(920px,94vw);display:flex;justify-content:space-between;align-items:center">
-      <div class="legend">Playful demo — no network calls beyond favicons</div>
-      <div class="controls">
-        <button class="btn" id="resetBtn">Reset</button>
-        <button class="btn primary" id="grabBtn">Grab</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+      <div style="color:var(--muted)">Playful demo — no repo assets added</div>
+      <div style="display:flex;gap:8px">
+        <button id="reset" class="panel" style="cursor:pointer">Reset</button>
       </div>
     </div>
   </div>
 
   <div class="modal" id="modal" role="dialog" aria-modal="true">
     <h3 id="modalTitle">You got…</h3>
-    <p id="modalBody">Project details will show here.</p>
-    <div style="display:flex;justify-content:flex-end;gap:10px">
-      <button class="ok" id="modalOk">Nice!</button>
+    <p id="modalBody"></p>
+    <div style="display:flex;justify-content:flex-end">
+      <button id="modalOk" class="panel" style="cursor:pointer">Nice!</button>
     </div>
   </div>
 
 <script>
-/*
-  Claw Machine
-  - Capsules are rendered from projects array below.
-  - Each capsule shows a favicon image pulled via Google S2 favicons service by domain.
-  - User can click a capsule to mark it (target); or just press Grab to attempt to pick the nearest one under the claw.
-  - The claw moves horizontally along the rail, then descends, picks the capsule, lifts, moves to chute, and drops.
-  - After a drop, a modal displays the "You got X!" message with details.
+/* Claw machine implementation
+   - Capsules are randomly stacked within the floor area (not a grid).
+   - Coin must be dragged into coin slot to enable the machine.
+   - Joystick drag moves claw horizontally across rail.
+   - DROP lowers claw, grabs the capsule nearest under the hook if within reach, lifts and drops to the chute.
+   - Modal shows project info.
 */
 
-/* ---------- Projects (replace or load from projects.json if desired) ---------- */
+/* Sample projects (replace or load from projects.json if desired) */
 const projects = [
-  { title: "Minesweeper", subtitle: "Interactive tile-based puzzle", url: "https://jackfshields.github.io/minesweeper", color: "#e74c3c" },
-  { title: "Poly Weave", subtitle: "Generative geometry experiments", url: "https://jackfshields.github.io/polyweave", color: "#9b59b6" },
-  { title: "Grid Tools", subtitle: "UI toolkit for responsive grids", url: "https://jackfshields.github.io/gridtools", color: "#1abc9c" },
-  { title: "UX Microinteractions", subtitle: "Interaction experiments", url: "https://jackfshields.github.io/uxmicro", color: "#f39c12" },
-  { title: "Data Viz Playground", subtitle: "Algorithmic visualizations", url: "https://jackfshields.github.io/dataviz", color: "#27ae60" },
-  { title: "Portfolio Experiments", subtitle: "Design systems and transitions", url: "https://jackfshields.github.io/experiments", color: "#34495e" }
+  { title:"Minesweeper", subtitle:"Interactive tile puzzle", url:"https://jackfshields.github.io/minesweeper", color:"var(--accent-6)" },
+  { title:"Poly Weave", subtitle:"Generative geometry", url:"https://jackfshields.github.io/polyweave", color:"var(--accent-2)" },
+  { title:"Grid Tools", subtitle:"UI grid utilities", url:"https://jackfshields.github.io/gridtools", color:"var(--accent-3)" },
+  { title:"UX Microinteractions", subtitle:"Playful UI snippets", url:"https://jackfshields.github.io/uxmicro", color:"var(--accent-4)" },
+  { title:"Data Viz Playground", subtitle:"Visual experiments", url:"https://jackfshields.github.io/dataviz", color:"var(--accent-5)" },
+  { title:"Portfolio Experiments", subtitle:"Design systems", url:"https://jackfshields.github.io/experiments", color:"var(--accent-1)" }
 ];
 
-/* ---------- DOM refs ---------- */
-const pit = document.getElementById('pit');
-const grabBtn = document.getElementById('grabBtn');
-const resetBtn = document.getElementById('resetBtn');
+/* DOM refs */
+const floor = document.getElementById('floor');
+const pit = floor; // same area
+const coin = document.getElementById('coin');
+const coinSlot = document.getElementById('coinSlot');
+const joystick = document.getElementById('joystick');
+const stick = document.getElementById('stick');
 const claw = document.getElementById('claw');
-const clawArm = document.getElementById('clawArm');
-const clawHook = document.getElementById('clawHook');
-const rail = document.getElementById('rail');
-const bucket = document.getElementById('bucket');
+const arm = document.getElementById('arm');
+const hook = document.getElementById('hook');
+const dropBtn = document.getElementById('dropBtn');
 const modal = document.getElementById('modal');
 const modalTitle = document.getElementById('modalTitle');
 const modalBody = document.getElementById('modalBody');
 const modalOk = document.getElementById('modalOk');
+const resetBtn = document.getElementById('reset');
 
-/* ---------- State ---------- */
-let capsules = []; // {el, projectIdx, x}
-let targetCapsule = null; // selected by user click
-let isBusy = false;
-let clawX = 120; // current left position (px) of claw center relative to machine
-const RAIL_LEFT = 64; // same as CSS left for rail
-const RAIL_RIGHT_OFFSET = 64; // from right (matches CSS)
-const RAIL_PADDING = 20;
+let enabled = false;          // machine enabled after coin inserted
+let capsules = [];           // array of capsule objects {el, projectIdx, x, y}
+let selected = null;         // user-selected capsule
+let busy = false;
+let clawX = 120;             // current center position within glass (px)
+const CABINET = document.getElementById('cabinet');
 
-/* ---------- Helpers ---------- */
-const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
-const domRectCenterX = el => (el.getBoundingClientRect().left + el.getBoundingClientRect().right) / 2;
+/* Helpers */
+const rand = (a,b)=> Math.random()*(b-a)+a;
+const clamp = (v,a,b)=> Math.max(a,Math.min(b,v));
+const rect = el => el.getBoundingClientRect();
 
-/* build favicon URL from project url (safe fallback if URL missing) */
-function faviconFor(url){
-  try{
-    const u = new URL(url);
-    const domain = u.hostname;
-    // Google s2 service widely available; size 64
-    return `https://www.google.com/s2/favicons?sz=64&domain=${domain}`;
-  }catch(e){
-    return '';
-  }
-}
-
-/* ---------- Render pit capsules ---------- */
-function renderPit(){
-  pit.innerHTML = '';
+/* Place capsules randomly stacked, trying to avoid heavy overlaps */
+function populateCapsules(){
+  floor.innerHTML = '';
   capsules = [];
-  // create a horizontal layout of capsules centered in pit
-  const step = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--capsule-gap')) || 16;
-  let x = RAIL_LEFT + RAIL_PADDING;
-  for(let i=0;i<projects.length;i++){
-    const p = projects[i];
+  const floorRect = floor.getBoundingClientRect();
+  const zoneLeft = floorRect.left + 24;
+  const zoneRight = floorRect.right - 24;
+  const zoneTop = floorRect.top + 8;
+  const zoneBottom = floorRect.bottom - 12;
+  // We'll create more items than projects to feel crowded; map content cyclically
+  const count = projects.length + 6;
+  for(let i=0;i<count;i++){
+    const p = projects[i % projects.length];
     const el = document.createElement('div');
     el.className = 'capsule';
-    el.setAttribute('role','button');
-    el.setAttribute('tabindex','0');
-    el.dataset.idx = i;
-    el.innerHTML = `<div class="fav"><img alt="" src="${faviconFor(p.url)}" onerror="this.style.opacity=.25;this.style.filter='grayscale(1)';"></div>
-                    <div style="flex:1;min-width:0"><div style="font-size:0.82rem;font-weight:700;color:#eaf3ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title}</div></div>`;
-    // append and measure
-    pit.appendChild(el);
-    const left = x;
-    el.style.position = 'relative';
-    el.style.left = `${left - RAIL_LEFT}px`;
-    x += el.getBoundingClientRect().width + step;
-    capsules.push({el, projectIdx:i, x:left});
+    el.dataset.idx = i % projects.length;
+    // pick a random x inside floor; we offset by percentage relative to floor width
+    const relX = rand(0.15,0.85);
+    const left = relX * 100; // percent for CSS calc: use translate(-50%)
+    const offsetX = rand(-28,28); // small random shift
+    // random y stacking: lower numbers are deeper (higher on screen)
+    const depth = rand(0,1);
+    const bottom = rand(6, 38) + (i*2); // slight incremental stacking
+    // apply color accent
+    el.innerHTML = `<div class="fav" aria-hidden="true" style="border-radius:8px;background:${p.color}"></div><div class="title">${p.title}</div>`;
+    floor.appendChild(el);
+    // measure & place using left in px
+    const elRect = el.getBoundingClientRect();
+    // compute left relative to floor container
+    const floorLeft = floor.getBoundingClientRect().left;
+    const x = rand(40, floor.clientWidth - 120); // px within floor area
+    const y = rand(12, floor.clientHeight - 64); // px from top of floor
+    el.style.left = `calc(${x}px)`;
+    el.style.top = `${y}px`;
+    // slight rotation to look messy
+    el.style.transform = `translate(-50%,0) rotate(${rand(-10,10)}deg)`;
+    // assign
+    capsules.push({el, projectIdx: i % projects.length, x, y});
     // interaction
-    el.addEventListener('click', () => selectCapsule(i));
-    el.addEventListener('keydown', (e) => { if(e.key==='Enter' || e.key===' ') { e.preventDefault(); selectCapsule(i); }});
+    el.addEventListener('click', () => {
+      if (busy) return;
+      selectCapsuleByEl(el);
+    });
   }
-  // spread if too narrow
-  // ensure initial visual (no capsule overlapped)
 }
 
-/* highlight target capsule */
-function selectCapsule(i){
-  capsules.forEach(c => c.el.classList.remove('selected'));
-  const c = capsules.find(cc => cc.projectIdx === i);
-  if(!c) { targetCapsule = null; return; }
-  c.el.classList.add('selected');
-  targetCapsule = c;
-  // move claw horizontally over the target for easy action
-  const containerRect = document.getElementById('machine').getBoundingClientRect();
-  const targetCenter = c.el.getBoundingClientRect().left + c.el.getBoundingClientRect().width/2;
-  const px = targetCenter - containerRect.left;
-  moveClawTo(px);
+/* selection highlight */
+function selectCapsuleByEl(el){
+  capsules.forEach(c=>c.el.classList.remove('selected'));
+  el.classList.add('selected');
+  selected = capsules.find(c=>c.el===el) || null;
+  // move claw over it slightly
+  if(selected){
+    const floorRect = floor.getBoundingClientRect();
+    const centerX = selected.x + (selected.el.getBoundingClientRect().width/2);
+    moveClawTo(centerX);
+  }
 }
 
-/* move claw (animated) to absolute x inside machine */
-function moveClawTo(x, cb){
-  x = clamp(x, RAIL_LEFT + 10, document.getElementById('machine').clientWidth - RAIL_RIGHT_OFFSET - 10);
-  clawX = x;
-  claw.style.transition = 'left 420ms cubic-bezier(.2,.9,.2,1)';
-  claw.style.left = `${x - 60}px`; // claw is 120px wide; center align
-  setTimeout(()=>{ claw.style.transition=''; if(cb) cb(); }, 430);
+/* coin drag into slot logic */
+let coinDragging = false;
+let coinPointerId = null;
+let coinOffset = {x:0,y:0};
+coin.addEventListener('pointerdown', (e)=>{
+  coin.setPointerCapture?.(e.pointerId);
+  coinDragging = true;
+  coinPointerId = e.pointerId;
+  coin.classList.add('dragging');
+  coinOffset.x = e.clientX - coin.getBoundingClientRect().left;
+  coinOffset.y = e.clientY - coin.getBoundingClientRect().top;
+});
+window.addEventListener('pointermove', (e)=>{
+  if(!coinDragging || e.pointerId !== coinPointerId) return;
+  const parentRect = CABINET.getBoundingClientRect();
+  coin.style.left = `${clamp(e.clientX - parentRect.left - coinOffset.x, 8, parentRect.width - 64)}px`;
+  coin.style.bottom = `${clamp(parentRect.bottom - e.clientY - 8, 8, parentRect.height - 64)}px`;
+});
+window.addEventListener('pointerup', (e)=>{
+  if(!coinDragging || e.pointerId !== coinPointerId) return;
+  coin.releasePointerCapture?.(coinPointerId);
+  coinDragging = false;
+  coin.classList.remove('dragging');
+  // check if coin intersects slot
+  const slotRect = coinSlot.getBoundingClientRect();
+  const coinRect = coin.getBoundingClientRect();
+  const overlap = !(coinRect.right < slotRect.left || coinRect.left > slotRect.right || coinRect.bottom < slotRect.top || coinRect.top > slotRect.bottom);
+  if(overlap){
+    // animate coin into slot and enable machine
+    coin.style.transition = 'transform 360ms ease, left 360ms ease, bottom 360ms ease, opacity 300ms';
+    const machineRect = CABINET.getBoundingClientRect();
+    const targetLeft = slotRect.left - machineRect.left + 12;
+    const targetBottom = machineRect.bottom - slotRect.top - 8;
+    coin.style.left = `${targetLeft}px`;
+    coin.style.bottom = `${targetBottom}px`;
+    coin.style.transform = 'scale(.6) rotate(-12deg)';
+    setTimeout(()=>{ coin.style.opacity = '0'; coin.style.pointerEvents='none'; enableMachine(); }, 420);
+  } else {
+    // reset coin pos
+    coin.style.transition = 'left 260ms ease, bottom 260ms ease';
+    coin.style.left = `16px`;
+    coin.style.bottom = `18px`;
+    setTimeout(()=>{ coin.style.transition=''; }, 300);
+  }
+});
+
+/* enable machine */
+function enableMachine(){
+  enabled = true;
+  document.querySelector('.marquee').textContent = 'Machine Ready — Good luck!';
 }
 
-/* ---------- Claw sequence: grab nearest under claw or selected capsule ---------- */
-async function grabSequence(){
-  if(isBusy) return;
-  isBusy = true;
-  grabBtn.disabled = true;
+/* joystick logic: pointer drag within joystick area */
+let stickPointer = null;
+let stickStart = null;
+let stickRadius = 22; // px
+function clampStickPos(x,y){
+  const r = stickRadius;
+  const d = Math.hypot(x,y);
+  if(d <= r) return {x,y};
+  return {x: x*(r/d), y: y*(r/d)};
+}
+stick.addEventListener('pointerdown', (e)=>{
+  if(!enabled || busy) return;
+  stick.setPointerCapture?.(e.pointerId);
+  stickPointer = e.pointerId;
+  stickStart = {x:e.clientX, y:e.clientY};
+});
+window.addEventListener('pointermove', (e)=>{
+  if(stickPointer === null || e.pointerId !== stickPointer) return;
+  const rectJ = joystick.getBoundingClientRect();
+  const center = {x: rectJ.left + rectJ.width/2, y: rectJ.top + rectJ.height/2};
+  const dx = e.clientX - center.x;
+  const dy = e.clientY - center.y;
+  const cl = clampStickPos(dx, dy);
+  stick.style.transform = `translate(${cl.x}px, ${cl.y}px)`;
+  // map horizontal stick movement to claw movement range along rail
+  const railRect = document.getElementById('rail').getBoundingClientRect();
+  const minX = railRect.left + 24;
+  const maxX = railRect.right - 24;
+  // normalized value [-1..1]
+  const nx = clamp(cl.x / stickRadius, -1, 1);
+  const target = ( (nx + 1)/2 ) * (maxX - minX) + minX;
+  moveClawTo(target - CABINET.getBoundingClientRect().left);
+});
+window.addEventListener('pointerup', (e)=>{
+  if(stickPointer === null || e.pointerId !== stickPointer) return;
+  try{ stick.releasePointerCapture?.(stickPointer);}catch{}
+  stickPointer = null;
+  stick.style.transform = `translate(0px,0px)`;
+});
 
-  // determine pick position: if targetCapsule set, else nearest capsule under clawX
-  let pick = targetCapsule;
-  if(!pick){
-    // find capsule nearest to clawX
-    const closest = capsules.reduce((acc,c)=> {
-      const d = Math.abs(c.x - clawX);
-      if(acc==null || d < acc.d) return {c, d}; return acc;
-    }, null);
-    pick = closest?.c || null;
+/* move claw to absolute x px inside cabinet (left relative to cabinet) */
+function moveClawTo(absX){
+  clawX = clamp(absX, 48, CABINET.clientWidth - 140);
+  claw.style.left = `${clamp(clawX, 64, CABINET.clientWidth - 64)}px`;
+}
+
+/* core DROP sequence */
+async function dropSequence(){
+  if(!enabled || busy) return;
+  busy = true;
+  dropBtn.disabled = true;
+  // lower arm
+  arm.style.transition = 'height 320ms cubic-bezier(.2,.9,.2,1)';
+  arm.style.height = '180px';
+  hook.style.transition = 'top 320ms cubic-bezier(.2,.9,.2,1)';
+  hook.style.top = '164px';
+  await new Promise(r=>setTimeout(r,340));
+
+  // determine which capsule is under hook center
+  const hookRect = hook.getBoundingClientRect();
+  // find capsule whose center is closest horizontally and within vertical tolerance
+  let candidate = null;
+  let bestDist = Infinity;
+  for(const c of capsules){
+    const crect = c.el.getBoundingClientRect();
+    const cx = crect.left + crect.width/2;
+    const cy = crect.top + crect.height/2;
+    const dx = Math.abs(cx - (hookRect.left + hookRect.width/2));
+    const dy = Math.abs(cy - (hookRect.top + hookRect.height/2));
+    // heuristics: allow some vertical tolerance
+    if(dx < bestDist && dy < 80){
+      bestDist = dx;
+      candidate = c;
+    }
   }
-  // if still null (no capsules) early return
-  if(!pick){
-    isBusy = false;
-    grabBtn.disabled = false;
-    return;
+
+  if(candidate){
+    // attach visual
+    attachToHook(candidate);
+    await new Promise(r=>setTimeout(r,250));
+  } else {
+    // brief wiggle to show missed
+    hook.animate([{ transform:'translateY(0)'},{ transform:'translateY(6px)'},{ transform:'translateY(0)'}], { duration: 380 });
+    await new Promise(r=>setTimeout(r,420));
   }
-
-  // move claw directly above capsule if it's not already
-  const containerRect = document.getElementById('machine').getBoundingClientRect();
-  const capsuleCenter = pick.el.getBoundingClientRect().left + pick.el.getBoundingClientRect().width/2;
-  const targetX = capsuleCenter - containerRect.left;
-  await promiseMoveClaw(targetX);
-
-  // descend
-  await descendClaw();
-
-  // "attach" capsule visually
-  attachCapsuleToClaw(pick);
 
   // lift
-  await ascendClaw();
+  arm.style.height = '80px';
+  hook.style.top = '74px';
+  await new Promise(r=>setTimeout(r,360));
 
-  // move to chute
+  // move to chute (animate claw position)
   const chuteRect = document.getElementById('chute').getBoundingClientRect();
-  const chuteCenter = chuteRect.left + chuteRect.width/2;
-  await promiseMoveClaw(chuteCenter - containerRect.left);
+  const machineRect = CABINET.getBoundingClientRect();
+  const targetLeft = chuteRect.left + chuteRect.width/2 - machineRect.left;
+  claw.style.transition = 'left 420ms cubic-bezier(.2,.9,.2,1)';
+  claw.style.left = `${targetLeft}px`;
+  await new Promise(r=>setTimeout(r,450));
 
-  // drop into bucket
-  await dropIntoBucket(pick);
+  // drop capsule into bucket
+  if(candidate){
+    await dropIntoBucket(candidate);
+    // remove capsule from field
+    candidate.el.remove();
+    capsules = capsules.filter(cc => cc !== candidate);
+    selected = null;
+    showModalForProject(candidate.projectIdx);
+  }
 
-  // show modal with project info
-  showModalForProject(pick.projectIdx);
-
-  // remove capsule from pit (simulate consumed prize)
-  pick.el.remove();
-  capsules = capsules.filter(c => c !== pick);
-  targetCapsule = null;
-
-  isBusy = false;
-  grabBtn.disabled = false;
+  // reset claw to previous position
+  claw.style.left = `${clamp(clawX,64, CABINET.clientWidth - 64)}px`;
+  busy = false;
+  dropBtn.disabled = false;
 }
 
-/* small helper to await moveClawTo */
-function promiseMoveClaw(px){
-  return new Promise(resolve => moveClawTo(px, resolve));
-}
-
-/* descend animation */
-function descendClaw(){
-  return new Promise(resolve => {
-    clawArm.style.transition = 'height 360ms cubic-bezier(.2,.9,.2,1)';
-    clawArm.style.height = '160px';
-    clawHook.style.transition = 'top 360ms cubic-bezier(.2,.9,.2,1)';
-    clawHook.style.top = '148px';
-    setTimeout(()=>{ resolve(); }, 380);
-  });
-}
-
-/* ascend animation */
-function ascendClaw(){
-  return new Promise(resolve => {
-    clawArm.style.transition = 'height 380ms cubic-bezier(.2,.9,.2,1)';
-    clawArm.style.height = '80px';
-    clawHook.style.transition = 'top 380ms cubic-bezier(.2,.9,.2,1)';
-    clawHook.style.top = '74px';
-    setTimeout(()=>{ resolve(); }, 400);
-  });
-}
-
-/* attach capsule into claw visually */
-function attachCapsuleToClaw(pick){
-  // move capsule to absolute position and append to claw hook
-  const el = pick.el;
-  const rect = el.getBoundingClientRect();
-  const machineRect = document.getElementById('machine').getBoundingClientRect();
-  // convert to absolute coordinates inside machine
-  const relLeft = rect.left - machineRect.left;
-  const relTop = rect.top - machineRect.top;
+/* attach capsule to hook visually */
+function attachToHook(capsule){
+  const el = capsule.el;
+  const machineRect = CABINET.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+  el.style.transition = 'left 220ms ease, top 220ms ease, transform 220ms ease';
+  // reparent into cabinet to avoid overflow
   el.style.position = 'absolute';
+  const relLeft = elRect.left - machineRect.left;
+  const relTop = elRect.top - machineRect.top;
   el.style.left = `${relLeft}px`;
   el.style.top = `${relTop}px`;
-  el.style.zIndex = 200;
-  // append to machine container so we can move it with the claw
-  document.getElementById('machine').appendChild(el);
-  // animate to hook center
-  const hookRect = claw.getBoundingClientRect();
-  const targetLeft = hookRect.left + hookRect.width/2 - machineRect.left - (rect.width/2);
-  const targetTop = hookRect.top + 28 - machineRect.top - (rect.height/2);
-  el.style.transition = 'left 260ms ease, top 260ms ease, transform 260ms ease';
-  el.style.left = `${targetLeft}px`;
-  el.style.top = `${targetTop}px`;
-  // small rotation to suggest grab
-  el.style.transform = 'rotate(-6deg)';
+  CABINET.appendChild(el);
+  // compute target position near hook
+  const hookRect = hook.getBoundingClientRect();
+  const targetLeft = hookRect.left - machineRect.left + (hookRect.width/2) - (el.offsetWidth/2);
+  const targetTop = hookRect.top - machineRect.top + 18;
+  requestAnimationFrame(()=> {
+    el.style.left = `${targetLeft}px`;
+    el.style.top = `${targetTop}px`;
+    el.style.transform = 'translate(-50%,0) rotate(0deg) scale(1.02)';
+  });
 }
 
 /* drop into bucket */
-function dropIntoBucket(pick){
-  return new Promise(resolve => {
-    const el = pick.el;
+function dropIntoBucket(capsule){
+  return new Promise(res=>{
+    const el = capsule.el;
+    const bucket = document.getElementById('chute').querySelector('.bucket');
     const bucketRect = bucket.getBoundingClientRect();
-    const machineRect = document.getElementById('machine').getBoundingClientRect();
-    const targetLeft = bucketRect.left + (bucketRect.width/2) - machineRect.left - (el.getBoundingClientRect().width/2);
-    const targetTop = bucketRect.top + (bucketRect.height/2) - machineRect.top - (el.getBoundingClientRect().height/2);
+    const machineRect = CABINET.getBoundingClientRect();
+    const targetLeft = bucketRect.left + bucketRect.width/2 - machineRect.left - (el.getBoundingClientRect().width/2);
+    const targetTop = bucketRect.top + bucketRect.height/2 - machineRect.top - (el.getBoundingClientRect().height/2);
     el.style.transition = 'left 360ms cubic-bezier(.2,.9,.2,1), top 360ms cubic-bezier(.2,.9,.2,1), transform 360ms ease';
     el.style.left = `${targetLeft}px`;
     el.style.top = `${targetTop}px`;
-    el.style.transform = 'rotate(0deg) scale(0.86)';
-    setTimeout(() => {
-      // append a small icon into the bucket for permanence
-      const img = el.querySelector('img') ? el.querySelector('img').cloneNode(true) : null;
-      if(img){ img.style.width='56px'; img.style.height='56px'; img.style.borderRadius='8px'; bucket.appendChild(img); }
-      resolve();
-    }, 420);
+    el.style.transform = 'translate(-50%,0) scale(.86)';
+    setTimeout(()=>{
+      // append a small marker inside bucket to show it landed
+      const clone = el.querySelector('.fav').cloneNode(true);
+      clone.style.width='48px'; clone.style.height='48px'; clone.style.borderRadius='8px';
+      bucket.appendChild(clone);
+      res();
+    },420);
   });
 }
 
-/* show modal */
+/* modal */
 function showModalForProject(idx){
   const p = projects[idx];
   modalTitle.textContent = `You got ${p.title}!`;
-  modalBody.textContent = p.subtitle || p.desc || '';
+  modalBody.textContent = p.subtitle || '';
   modal.classList.add('show');
-  // clicking the modal OK will close it
 }
+modalOk.addEventListener('click', ()=> modal.classList.remove('show'));
 
-/* reset machine */
-function resetMachine(){
-  // clear bucket images, re-render pit
+/* reset */
+resetBtn.addEventListener('click', ()=> {
+  // reset coin and re-populate
+  coin.style.opacity = '1'; coin.style.pointerEvents='auto'; coin.style.transform='scale(1)'; coin.style.left='16px'; coin.style.bottom='18px';
+  enabled = false;
+  document.querySelector('.marquee').textContent = 'Insert coin';
+  populateCapsules();
+  // clear bucket icons
+  const bucket = document.getElementById('chute').querySelector('.bucket');
   bucket.innerHTML = '';
-  targetCapsule = null;
-  renderPit();
-}
-
-/* ---------- Dragging the rail to position claw manually ---------- */
-let railPointer = null;
-let railStartX = 0;
-let clawStartX = clawX;
-rail.addEventListener('pointerdown', (e) => {
-  if(isBusy) return;
-  railPointer = e.pointerId;
-  railStartX = e.clientX;
-  clawStartX = clawX;
-  rail.setPointerCapture?.(railPointer);
-});
-rail.addEventListener('pointermove', (e) => {
-  if(railPointer === null || e.pointerId !== railPointer) return;
-  const dx = e.clientX - railStartX;
-  const newX = clawStartX + dx;
-  moveClawTo(newX);
-});
-rail.addEventListener('pointerup', (e) => { if(e.pointerId===railPointer){ try{rail.releasePointerCapture?.(railPointer)}catch{}; railPointer=null; }});
-rail.addEventListener('pointercancel', ()=>{ railPointer=null; });
-
-/* ---------- Events ---------- */
-grabBtn.addEventListener('click', () => grabSequence());
-resetBtn.addEventListener('click', () => resetMachine());
-modalOk.addEventListener('click', () => { modal.classList.remove('show'); });
-
-/* keyboard shortcuts: arrows to nudge claw, space to grab */
-window.addEventListener('keydown', (e) => {
-  if(e.key === 'ArrowLeft') moveClawTo(clawX - 30);
-  if(e.key === 'ArrowRight') moveClawTo(clawX + 30);
-  if(e.key === ' ') { e.preventDefault(); grabSequence(); }
 });
 
-/* ---------- Init ---------- */
-renderPit();
+/* wire drop button */
+dropBtn.addEventListener('click', ()=> dropSequence());
+window.addEventListener('keydown', (e)=> {
+  if(e.key === ' '){ e.preventDefault(); dropSequence(); }
+  if(e.key === 'ArrowLeft') moveClawTo(clawX - 20);
+  if(e.key === 'ArrowRight') moveClawTo(clawX + 20);
+});
 
-/* expose small debug API */
-window._claw = { selectCapsule, grabSequence, resetMachine };
+/* initialize */
+populateCapsules();
+/* position claw initial */
+moveClawTo(160);
 </script>
 </body>
 </html>
