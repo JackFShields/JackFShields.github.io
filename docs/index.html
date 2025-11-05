@@ -3,563 +3,463 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>JackFShields — Arcade Claw (Box, Joystick, Coin)</title>
+<title>JackFShields — Cube Illusion (Fixed)</title>
 <style>
   :root{
-    --bg:#071426;
-    --glass:#0f2b3b;
-    --panel:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
-    --muted: #9fbfdc;
-    --accent-1: #4cc1ff;
-    --accent-2: #9b59b6;
-    --accent-3: #1abc9c;
-    --accent-4: #f39c12;
-    --accent-5: #27ae60;
-    --accent-6: #e74c3c;
-    --cabinet-w: 920px;
-    --cabinet-h: 580px;
-    --pit-h: 220px;
+    --bg:#071425;
+    --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+    --border: rgba(255,255,255,0.08);
+    --text:#e6eef6;
+    --muted: rgba(190,215,240,0.7);
+    --gap:20px;
+    --stage-size:360px;
   }
 
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%;background:linear-gradient(180deg,#020718 0%, #021125 40%, #000612 100%);color:#e8f6ff;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;display:flex;align-items:center;justify-content:center;padding:24px}
-  .wrap{width:min(var(--cabinet-w),96vw);}
+  html,body{height:100%;margin:0;background:radial-gradient(circle at 18% 16%, #00121a 0%, var(--bg) 30%, #000814 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue";-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+  .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px;box-sizing:border-box;gap:24px;}
 
-  /* Cabinet */
-  .cabinet{
-    width:100%;
-    height:var(--cabinet-h);
-    background:linear-gradient(180deg,#071926 0%, #04111a 100%);
+  /* Bento grid container (preserve your layout) */
+  .bento {
+    width: min(1100px, 96%);
+    display:grid;
+    grid-template-columns: 1fr min(var(--stage-size), 36vw) 1fr;
+    grid-template-rows: auto min(var(--stage-size), 36vw) auto;
+    gap: var(--gap);
+    align-items:start;
+  }
+
+  .panel {
+    background: var(--panel-grad);
+    border:1px solid var(--border);
     border-radius:12px;
-    box-shadow: 0 36px 80px rgba(0,0,0,0.7);
-    border:1px solid rgba(255,255,255,0.03);
-    position:relative;overflow:visible;padding:18px;display:flex;gap:14px;
+    padding:18px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+  }
+  .panel .title { margin:0 0 8px 0; font-weight:700; font-size:1.1rem; color:var(--text); }
+  .panel .body { margin:0; color:var(--muted); font-size:0.95rem; }
+
+  .left-col { grid-column:1 / 2; grid-row:1 / 3; display:flex; flex-direction:column; gap:var(--gap); }
+  .right-col { grid-column:3 / 4; grid-row:1 / 3; display:flex; flex-direction:column; gap:var(--gap); }
+
+  .stage-cell { grid-column:2 / 3; grid-row:2 / 3; display:flex; align-items:center; justify-content:center; position:relative; }
+
+  .stage {
+    width:var(--stage-size);
+    height:var(--stage-size);
+    position:relative;
+    perspective:900px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
   }
 
-  /* Left panel (controls and coin slot) */
-  .side{
-    width:260px;display:flex;flex-direction:column;gap:12px;padding:6px;
-  }
-  .panel{
-    background:var(--panel);border-radius:10px;padding:12px;border:1px solid rgba(255,255,255,0.03);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
-  }
-  .panel h3{font-size:1rem;margin-bottom:6px}
-  .panel p{color:var(--muted);font-size:0.92rem;line-height:1.2}
-
-  /* Ultimate play area (glass box) */
-  .glass-case{
-    flex:1;position:relative;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.09));border:1px solid rgba(255,255,255,0.03);overflow:hidden;
-    display:flex;flex-direction:column;
+  .illusion {
+    width:100%;
+    height:100%;
+    position:relative;
+    overflow:visible;
   }
 
-  /* top display & coin slot */
-  .top-bar{height:86px;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;gap:10px}
-  .marquee{font-weight:700;letter-spacing:0.2px}
-  .coin-slot{
-    width:120px;height:46px;border-radius:8px;background:linear-gradient(180deg,#02141a,#081a22);border:1px solid rgba(255,255,255,0.03);
-    display:flex;align-items:center;justify-content:space-between;padding:8px 10px;gap:8px;
-  }
-  .coin-slot .slot{width:20px;height:30px;background:linear-gradient(90deg,#000,#111);border-radius:4px;border:1px solid rgba(255,255,255,0.03);box-shadow:inset 0 2px 0 rgba(255,255,255,0.02)}
-  .coin-slot .label{color:var(--muted);font-size:0.86rem}
-
-  /* inner play area with glass front and pit */
-  .play-area{flex:1;position:relative;padding:12px 18px;display:flex;flex-direction:column}
-  .glass-front{flex:1;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.06));border:1px solid rgba(255,255,255,0.02);position:relative;overflow:hidden}
-
-  /* back wall and floor perspective */
-  .back-wall{position:absolute;inset:0;background:
-    linear-gradient(180deg,#04202a 0%, #021016 100%);opacity:0.98}
-  .floor {
-    position:absolute;left:10%;right:10%;bottom:0;height:var(--pit-h);border-radius:10px 10px 0 0;background:
-    linear-gradient(180deg,#061724,#01111a);
-    box-shadow: inset 0 20px 40px rgba(0,0,0,0.6);
-    overflow:hidden;padding:8px;
-  }
-
-  /* capsules stacked (random offsets) */
-  .capsule{
-    position:absolute;left:50%;transform:translate(-50%,0);
-    min-width:84px;height:56px;border-radius:28px;padding:8px 12px;background:var(--panel);display:flex;align-items:center;gap:10px;
-    border:1px solid rgba(255,255,255,0.04);box-shadow:0 14px 28px rgba(0,0,0,0.5);
-    cursor:pointer;transition:transform 220ms cubic-bezier(.2,.9,.2,1), opacity 200ms;
+  .face-panel {
+    position:absolute;
+    top:50%;
+    left:50%;
+    width:70%;
+    height:70%;
+    transform-origin:center center;
+    display:flex;
+    align-items:flex-end;
+    justify-content:flex-start;
+    padding:16px;
+    box-sizing:border-box;
+    border-radius:12px;
+    background: var(--panel-grad);
+    border:1px solid var(--border);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.55);
+    transition: transform 380ms cubic-bezier(.2,.9,.2,1), opacity 200ms ease, filter 200ms ease;
+    cursor:pointer;
     user-select:none;
   }
-  .capsule .fav{width:36px;height:36px;border-radius:8px;background:#ffffff11;display:flex;align-items:center;justify-content:center;overflow:hidden}
-  .capsule img{width:100%;height:100%;object-fit:contain;display:block}
-  .capsule .title{font-weight:700;font-size:0.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#eaf6ff}
 
-  /* highlight */
-  .capsule.selected{outline:2px solid rgba(255,255,255,0.06);transform:translate(-50%,-8px) scale(1.02)}
+  .face-panel .meta { background:linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.28)); padding:10px; border-radius:8px; width:100%; }
+  .face-panel h3 { margin:0 0 6px 0; font-size:1.05rem; color:var(--text); }
+  .face-panel p { margin:0; color:var(--muted); font-size:0.9rem; }
 
-  /* claw rail and device */
-  .rail{position:absolute;left:40px;right:40px;top:44px;height:6px;background:linear-gradient(90deg,#071a20,#04212a);border-radius:6px;z-index:70}
-  .claw{
-    position:absolute;top:10px;width:96px;height:120px;left:120px;transform:translateX(-50%);pointer-events:none;z-index:120;
-    transition:left 260ms cubic-bezier(.2,.9,.2,1);
-  }
-  .claw .arm{position:absolute;left:50%;transform:translateX(-50%);width:6px;height:64px;background:linear-gradient(180deg,#cfeeff,#7aaed4);border-radius:6px;top:6px}
-  .claw .hook{
-    position:absolute;left:50%;top:64px;transform:translateX(-50%);width:72px;height:34px;border-radius:10px;background:linear-gradient(180deg,#e7fbff,#cfeeff);display:flex;align-items:center;justify-content:center;font-weight:700;color:#06303a;box-shadow:0 10px 26px rgba(0,0,0,0.55)
+  .face-panel .accent { position:absolute; right:12px; top:12px; width:12px; height:12px; border-radius:4px; }
+
+  /* DOM order in markup: face-0 (center), face-1 (right), face-2 (far-right), face-3 (left), face-4 (far-left) */
+  .face-0 { transform: translate(-50%,-50%) translateX(0) scale(1) skewY(0deg); z-index:30; opacity:1; }
+  .face-1 { transform: translate(-50%,-50%) translateX(48%) scale(0.84) skewY(-12deg); z-index:20; opacity:0.98; }
+  .face-2 { transform: translate(-50%,-50%) translateX(96%) scale(0.68) skewY(-18deg); z-index:10; opacity:0.86; pointer-events:none; }
+  .face-3 { transform: translate(-50%,-50%) translateX(-48%) scale(0.84) skewY(12deg); z-index:20; opacity:0.98; }
+  .face-4 { transform: translate(-50%,-50%) translateX(-96%) scale(0.68) skewY(18deg); z-index:10; opacity:0.86; pointer-events:none; }
+
+  .top-plate {
+    position:absolute;
+    width:58%;
+    height:20%;
+    left:50%;
+    top:18%;
+    transform-origin:center center;
+    transform: translateX(-50%) translateY(-50%) rotateX(60deg);
+    border-radius:8px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+    border:1px solid rgba(255,255,255,0.03);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.6) inset;
+    transition: transform 380ms cubic-bezier(.2,.9,.2,1), opacity 380ms ease;
+    pointer-events:none;
+    opacity:0.8;
   }
 
-  /* joystick and controls panel overlay */
-  .controls{
-    position:absolute;right:14px;bottom:14px;width:220px;padding:12px;background:linear-gradient(180deg,#02121a,#04151a);border-radius:10px;border:1px solid rgba(255,255,255,0.02);z-index:200;
-    display:flex;flex-direction:column;gap:10px;align-items:center;
-  }
-  .joystick{
-    width:74px;height:74px;border-radius:999px;background:linear-gradient(180deg,#081a24,#031016);display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.03);position:relative;
-    touch-action:none;
-  }
-  .stick{width:36px;height:36px;border-radius:999px;background:linear-gradient(180deg,#4cc1ff,#0c5f78);box-shadow:0 6px 12px rgba(0,0,0,0.6);transform:translate(0,0);transition:transform 120ms linear;cursor:grab;}
-  .stick:active{cursor:grabbing}
-  .drop-btn{margin-top:6px;padding:8px 12px;border-radius:8px;background:#e74c3c;color:#fff;border:none;font-weight:700;cursor:pointer;box-shadow:0 10px 22px rgba(231,76,60,0.14)}
-  .drop-btn:active{transform:translateY(2px)}
+  .controls { grid-column:1 / 4; grid-row:3 / 4; display:flex; align-items:center; justify-content:center; gap:12px; margin-top:8px; }
+  .projects-list { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:1100px; }
+  .project-btn { background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--muted); padding:8px 12px; border-radius:8px; cursor:pointer; font-size:0.92rem; }
+  .project-btn.active { border-color:rgba(255,255,255,0.18); color:var(--text); background:rgba(255,255,255,0.02); }
 
-  /* coin (draggable) */
-  .coin{
-    width:56px;height:56px;border-radius:50%;background:linear-gradient(180deg,#ffd86b,#f7c948);border:2px solid rgba(0,0,0,0.1);display:flex;align-items:center;justify-content:center;font-weight:800;color:#382600;cursor:grab;user-select:none;position:absolute;left:16px;bottom:18px;z-index:220;
-  }
-  .coin.dragging{opacity:0.9;transform:scale(1.06);cursor:grabbing}
+  .hint { grid-column:1 / 4; text-align:center; color:var(--muted); font-size:0.88rem; margin-top:6px; }
 
-  /* modal */
-  .modal{
-    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(.98);min-width:300px;padding:18px;border-radius:12px;background:linear-gradient(180deg,#071827,#021017);border:1px solid rgba(255,255,255,0.03);z-index:9999;box-shadow:0 40px 90px rgba(0,0,0,0.7);opacity:0;pointer-events:none;transition:opacity 180ms ease, transform 180ms cubic-bezier(.2,.9,.2,1)
-  }
-  .modal.show{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
-  .modal h3{margin-bottom:8px}
-  .modal p{color:var(--muted);margin-bottom:12px}
-
-  /* small responsive */
-  @media (max-width:940px){
-    .side{display:none}
-    .cabinet{height:680px;flex-direction:column;padding:12px}
-    .controls{right:10px;bottom:8px}
-    .coin{left:10px;bottom:10px}
+  @media (max-width:980px) {
+    .bento { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
+    .left-col, .right-col { grid-column:1; grid-row:auto; order:2; }
+    .stage-cell { grid-column:1; order:1; }
   }
 </style>
 </head>
 <body>
-  <div class="wrap" aria-live="polite">
-    <div class="cabinet" id="cabinet">
-      <div class="side" aria-hidden="false">
-        <div class="panel">
-          <h3>Claw Machine</h3>
-          <p>Drag the quarter into the slot to power the machine. Drag the joystick to move the claw back and forth. Press DROP to lower and try to grab a capsule.</p>
+  <div class="wrap">
+    <div class="bento" id="bentoRoot">
+      <div class="left-col">
+        <div class="panel" id="leftPanelTop">
+          <div class="title" id="leftTitle">Loading…</div>
+          <p class="body" id="leftBody">Loading subtitle…</p>
         </div>
-        <div class="panel">
-          <h3>Prizes</h3>
-          <p>Capsules represent projects. Each capsule uses a color accent that matches the palette. Click a capsule to set it as the target.</p>
-        </div>
-        <div style="display:flex;gap:10px;align-items:center;margin-top:auto">
-          <div class="coin" id="coin" title="Drag coin into slot" role="button" tabindex="0">¢</div>
+        <div class="panel" id="leftPanelBottom">
+          <div class="title" id="leftSmallTitle">Meta</div>
+          <p class="body" id="leftSmallBody">Extra info</p>
         </div>
       </div>
 
-      <div class="glass-case" id="glass">
-        <div class="top-bar">
-          <div class="marquee">Arcade Cabinet — Project Prizes</div>
-          <div class="coin-slot" id="coinSlot" aria-label="coin slot">
-            <div class="label">Insert coin</div>
-            <div class="slot"></div>
-          </div>
-        </div>
-
-        <div class="play-area">
-          <div class="glass-front" id="glassFront" role="region" aria-label="claw playfield">
-            <div class="back-wall"></div>
-
-            <div class="rail" id="rail"></div>
-            <div class="claw" id="claw" style="left:120px">
-              <div class="arm" id="arm"></div>
-              <div class="hook" id="hook">▂▂▂</div>
-            </div>
-
-            <div class="floor" id="floor"></div>
-
-            <!-- controls overlay -->
-            <div class="controls" aria-hidden="false">
-              <div class="joystick" id="joystick" aria-label="joystick" role="application">
-                <div class="stick" id="stick" tabindex="0" role="slider" aria-valuemin="-1" aria-valuemax="1" aria-valuenow="0"></div>
+      <div class="stage-cell">
+        <div class="stage" aria-hidden="false">
+          <div class="illusion" id="illusion" aria-live="polite">
+            <div class="face-panel face-0" data-slot="0" role="button" tabindex="0">
+              <div class="accent" aria-hidden="true"></div>
+              <div class="meta">
+                <h3 class="title">Loading…</h3>
+                <p class="subtitle">Please wait</p>
               </div>
-              <button class="drop-btn" id="dropBtn" aria-pressed="false">DROP</button>
+            </div>
+
+            <div class="face-panel face-1" data-slot="1" role="button" tabindex="-1">
+              <div class="accent" aria-hidden="true"></div>
+              <div class="meta">
+                <h3 class="title">Loading…</h3>
+                <p class="subtitle">Please wait</p>
+              </div>
+            </div>
+
+            <div class="face-panel face-2" data-slot="2" role="presentation" aria-hidden="true">
+              <div class="accent" aria-hidden="true"></div>
+              <div class="meta">
+                <h3 class="title">Loading…</h3>
+                <p class="subtitle">Please wait</p>
+              </div>
+            </div>
+
+            <div class="face-panel face-3" data-slot="3" role="button" tabindex="-1">
+              <div class="accent" aria-hidden="true"></div>
+              <div class="meta">
+                <h3 class="title">Loading…</h3>
+                <p class="subtitle">Please wait</p>
+              </div>
+            </div>
+
+            <div class="face-panel face-4" data-slot="4" role="presentation" aria-hidden="true">
+              <div class="accent" aria-hidden="true"></div>
+              <div class="meta">
+                <h3 class="title">Loading…</h3>
+                <p class="subtitle">Please wait</p>
+              </div>
             </div>
           </div>
+
+          <div class="top-plate" id="topPlate" aria-hidden="true"></div>
         </div>
       </div>
-    </div>
 
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
-      <div style="color:var(--muted)">Playful demo — no repo assets added</div>
-      <div style="display:flex;gap:8px">
-        <button id="reset" class="panel" style="cursor:pointer">Reset</button>
+      <div class="right-col">
+        <div class="panel" id="rightPanelTop">
+          <div class="title" id="rightTitle">Loading…</div>
+          <p class="body" id="rightBody">Loading subtitle…</p>
+        </div>
+        <div class="panel" id="rightPanelBottom">
+          <div class="title" id="rightSmallTitle">Links</div>
+          <p class="body" id="rightSmallBody">Project links</p>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <div class="modal" id="modal" role="dialog" aria-modal="true">
-    <h3 id="modalTitle">You got…</h3>
-    <p id="modalBody"></p>
-    <div style="display:flex;justify-content:flex-end">
-      <button id="modalOk" class="panel" style="cursor:pointer">Nice!</button>
+      <div class="controls">
+        <div class="projects-list" id="projectsList" aria-label="Project shortcuts"></div>
+      </div>
+
+      <div class="hint">Click a face to open; use the buttons to jump. This is a 3D illusion (no real 3D transforms).</div>
     </div>
   </div>
 
 <script>
-/* Claw machine implementation
-   - Capsules are randomly stacked within the floor area (not a grid).
-   - Coin must be dragged into coin slot to enable the machine.
-   - Joystick drag moves claw horizontally across rail.
-   - DROP lowers claw, grabs the capsule nearest under the hook if within reach, lifts and drops to the chute.
-   - Modal shows project info.
-*/
+/* ---------- Helpers ---------- */
+const mod = (n, m) => ((n % m) + m) % m;
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 
-/* Sample projects (replace or load from projects.json if desired) */
-const projects = [
-  { title:"Minesweeper", subtitle:"Interactive tile puzzle", url:"https://jackfshields.github.io/minesweeper", color:"var(--accent-6)" },
-  { title:"Poly Weave", subtitle:"Generative geometry", url:"https://jackfshields.github.io/polyweave", color:"var(--accent-2)" },
-  { title:"Grid Tools", subtitle:"UI grid utilities", url:"https://jackfshields.github.io/gridtools", color:"var(--accent-3)" },
-  { title:"UX Microinteractions", subtitle:"Playful UI snippets", url:"https://jackfshields.github.io/uxmicro", color:"var(--accent-4)" },
-  { title:"Data Viz Playground", subtitle:"Visual experiments", url:"https://jackfshields.github.io/dataviz", color:"var(--accent-5)" },
-  { title:"Portfolio Experiments", subtitle:"Design systems", url:"https://jackfshields.github.io/experiments", color:"var(--accent-1)" }
-];
+/* ---------- Config / State ---------- */
+const TRANSITION_MS = 380;
+const projectsJsonPath = '/docs/projects.json'; // per your request
+let projects = [];
+let frontIndex = 0; // logical index of center project
+let isAnimating = false;
 
 /* DOM refs */
-const floor = document.getElementById('floor');
-const pit = floor; // same area
-const coin = document.getElementById('coin');
-const coinSlot = document.getElementById('coinSlot');
-const joystick = document.getElementById('joystick');
-const stick = document.getElementById('stick');
-const claw = document.getElementById('claw');
-const arm = document.getElementById('arm');
-const hook = document.getElementById('hook');
-const dropBtn = document.getElementById('dropBtn');
-const modal = document.getElementById('modal');
-const modalTitle = document.getElementById('modalTitle');
-const modalBody = document.getElementById('modalBody');
-const modalOk = document.getElementById('modalOk');
-const resetBtn = document.getElementById('reset');
+const illusion = document.getElementById('illusion');
+const slotEls = Array.from(illusion.querySelectorAll('.face-panel')); // order matches markup
+const topPlate = document.getElementById('topPlate');
+const projectsList = document.getElementById('projectsList');
 
-let enabled = false;          // machine enabled after coin inserted
-let capsules = [];           // array of capsule objects {el, projectIdx, x, y}
-let selected = null;         // user-selected capsule
-let busy = false;
-let clawX = 120;             // current center position within glass (px)
-const CABINET = document.getElementById('cabinet');
+/* --- Load projects.json (fallback inline) --- */
+async function loadProjects() {
+  try {
+    const res = await fetch(projectsJsonPath);
+    if (!res.ok) throw new Error('no json');
+    const data = await res.json();
+    if (Array.isArray(data) && data.length) projects = data;
+    else throw new Error('empty');
+  } catch (e) {
+    projects = [
+      { title: "Minesweeper", subtitle: "Interactive tile-based puzzle", desc: "Classic minesweeper rebuilt", url: "", image: null, color: "#e74c3c" },
+      { title: "Poly Weave", subtitle: "Generative geometry experiments", desc: "Woven polygons", url: "", image: null, color: "#9b59b6" },
+      { title: "Grid Tools", subtitle: "UI toolkit for responsive grids", desc: "Utilities for layouts", url: "", image: null, color: "#1abc9c" },
+      { title: "UX Microinteractions", subtitle: "Interaction experiments", desc: "Playful loaders", url: "", image: null, color: "#f39c12" },
+      { title: "Data Viz Playground", subtitle: "Algorithmic visualizations", desc: "Visual encodings", url: "", image: null, color: "#27ae60" },
+      { title: "Portfolio Experiments", subtitle: "Design systems and transitions", desc: "Sandbox experiments", url: "", image: null, color: "#34495e" }
+    ];
+  }
 
-/* Helpers */
-const rand = (a,b)=> Math.random()*(b-a)+a;
-const clamp = (v,a,b)=> Math.max(a,Math.min(b,v));
-const rect = el => el.getBoundingClientRect();
+  // preload a few images
+  projects.slice(0, 12).forEach(p => { if (p.image) { const i = new Image(); i.src = p.image; }});
 
-/* Place capsules randomly stacked, trying to avoid heavy overlaps */
-function populateCapsules(){
-  floor.innerHTML = '';
-  capsules = [];
-  const floorRect = floor.getBoundingClientRect();
-  const zoneLeft = floorRect.left + 24;
-  const zoneRight = floorRect.right - 24;
-  const zoneTop = floorRect.top + 8;
-  const zoneBottom = floorRect.bottom - 12;
-  // We'll create more items than projects to feel crowded; map content cyclically
-  const count = projects.length + 6;
-  for(let i=0;i<count;i++){
-    const p = projects[i % projects.length];
-    const el = document.createElement('div');
-    el.className = 'capsule';
-    el.dataset.idx = i % projects.length;
-    // pick a random x inside floor; we offset by percentage relative to floor width
-    const relX = rand(0.15,0.85);
-    const left = relX * 100; // percent for CSS calc: use translate(-50%)
-    const offsetX = rand(-28,28); // small random shift
-    // random y stacking: lower numbers are deeper (higher on screen)
-    const depth = rand(0,1);
-    const bottom = rand(6, 38) + (i*2); // slight incremental stacking
-    // apply color accent
-    el.innerHTML = `<div class="fav" aria-hidden="true" style="border-radius:8px;background:${p.color}"></div><div class="title">${p.title}</div>`;
-    floor.appendChild(el);
-    // measure & place using left in px
-    const elRect = el.getBoundingClientRect();
-    // compute left relative to floor container
-    const floorLeft = floor.getBoundingClientRect().left;
-    const x = rand(40, floor.clientWidth - 120); // px within floor area
-    const y = rand(12, floor.clientHeight - 64); // px from top of floor
-    el.style.left = `calc(${x}px)`;
-    el.style.top = `${y}px`;
-    // slight rotation to look messy
-    el.style.transform = `translate(-50%,0) rotate(${rand(-10,10)}deg)`;
-    // assign
-    capsules.push({el, projectIdx: i % projects.length, x, y});
-    // interaction
-    el.addEventListener('click', () => {
-      if (busy) return;
-      selectCapsuleByEl(el);
+  renderProjectButtons();
+  renderVisibleSlots();
+  wireSlotInteractions();
+  populateSidePanels();
+}
+
+/* ---------- Render visible slots ---------- */
+/* DOM order slots correspond to: [center, right, far-right, left, far-left]
+   We map them to logical offsets: [0, +1, +2, -1, -2] relative to frontIndex.
+   This uses modular wrapping so you never get negative labels.
+*/
+function renderVisibleSlots() {
+  const N = Math.max(1, projects.length);
+  const offsets = [0, 1, 2, -1, -2]; // mapping aligned to slotEls order
+  slotEls.forEach((slotEl, i) => {
+    const logical = frontIndex + offsets[i];
+    const wrapped = mod(logical, N);
+    applySlotContent(slotEl, wrapped, logical);
+    // accessibility: center and immediate neighbors interactive
+    const isInteractive = (offsets[i] === 0 || offsets[i] === 1 || offsets[i] === -1);
+    slotEl.tabIndex = isInteractive ? 0 : -1;
+    slotEl.setAttribute('role', isInteractive ? 'button' : 'presentation');
+  });
+
+  updateTopPlateVisual();
+  updateButtonsActiveState();
+}
+
+/* ---------- Apply content to slot ---------- */
+/* We always wrap to a valid project index to avoid negative labels; if you want placeholders instead,
+   change to show placeholder when logical is out of [0..N-1]. */
+function applySlotContent(slotEl, wrappedIdx, logicalIdx) {
+  const p = projects[wrappedIdx] || {};
+  const titleEl = slotEl.querySelector('h3.title');
+  const subEl = slotEl.querySelector('p.subtitle');
+  const accent = slotEl.querySelector('.accent');
+  titleEl.textContent = p.title || `Project ${wrappedIdx + 1}`;
+  subEl.textContent = p.subtitle || p.desc || '';
+  accent.style.background = p.color || '#888';
+  slotEl.style.backgroundImage = p.image ? `url(${p.image})` : '';
+  slotEl.dataset.index = wrappedIdx;
+}
+
+/* ---------- Top plate visual ---------- */
+function updateTopPlateVisual() {
+  const offset = (frontIndex % 2 === 0) ? -6 : 6; // tiny shift for subtle motion
+  topPlate.style.transform = `translateX(${offset}px) translateY(-50%) rotateX(60deg)`;
+}
+
+/* ---------- Navigation / animation ---------- */
+function stepTo(delta) {
+  if (isAnimating) return;
+  isAnimating = true;
+  const prev = frontIndex;
+  frontIndex = frontIndex + delta;
+
+  // visual nudge: temporarily move the illusion container then reset and re-render
+  illusion.style.transition = `transform ${TRANSITION_MS}ms cubic-bezier(.2,.9,.2,1)`;
+  const pixelShift = -delta * 38; // visual nudge
+  illusion.style.transform = `translateX(${pixelShift}px)`;
+
+  slotEls.forEach((s, idx) => {
+    s.style.transition = `transform ${TRANSITION_MS}ms cubic-bezier(.2,.9,.2,1), opacity ${TRANSITION_MS}ms ease`;
+    if (Math.abs(idx - 1) > 1) s.style.opacity = '0.7';
+  });
+
+  setTimeout(() => {
+    illusion.style.transition = '';
+    illusion.style.transform = '';
+    slotEls.forEach(s => { s.style.transition = ''; s.style.opacity = ''; });
+    renderVisibleSlots();
+    populateSidePanels();
+    isAnimating = false;
+  }, TRANSITION_MS + 20);
+}
+
+/* Minimal signed jump (wrap-aware) */
+function jumpTo(targetIdx) {
+  if (isAnimating) return;
+  const N = Math.max(1, projects.length);
+  // compute minimal signed delta in [-floor(N/2), ceil(N/2)]
+  let raw = targetIdx - frontIndex;
+  raw = ((raw + Math.floor(N/2) * 1000) % N) - Math.floor(N/2);
+  stepTo(raw);
+}
+
+/* ---------- Slot interactions ---------- */
+function wireSlotInteractions() {
+  slotEls.forEach(s => {
+    s.addEventListener('click', () => {
+      const idx = Number(s.dataset.index);
+      if (!Number.isFinite(idx)) return;
+      // if clicked center, open; otherwise jump to it
+      const centerWrapped = mod(frontIndex, Math.max(1, projects.length));
+      if (idx === centerWrapped) openProject(idx);
+      else jumpTo(idx);
     });
-  }
-}
+    s.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault();
+        s.click();
+      }
+    });
+  });
 
-/* selection highlight */
-function selectCapsuleByEl(el){
-  capsules.forEach(c=>c.el.classList.remove('selected'));
-  el.classList.add('selected');
-  selected = capsules.find(c=>c.el===el) || null;
-  // move claw over it slightly
-  if(selected){
-    const floorRect = floor.getBoundingClientRect();
-    const centerX = selected.x + (selected.el.getBoundingClientRect().width/2);
-    moveClawTo(centerX);
-  }
-}
+  // Desktop drag on illusion: pointer capture used on illusion element
+  let pointerId = null;
+  let startX = null;
 
-/* coin drag into slot logic */
-let coinDragging = false;
-let coinPointerId = null;
-let coinOffset = {x:0,y:0};
-coin.addEventListener('pointerdown', (e)=>{
-  coin.setPointerCapture?.(e.pointerId);
-  coinDragging = true;
-  coinPointerId = e.pointerId;
-  coin.classList.add('dragging');
-  coinOffset.x = e.clientX - coin.getBoundingClientRect().left;
-  coinOffset.y = e.clientY - coin.getBoundingClientRect().top;
-});
-window.addEventListener('pointermove', (e)=>{
-  if(!coinDragging || e.pointerId !== coinPointerId) return;
-  const parentRect = CABINET.getBoundingClientRect();
-  coin.style.left = `${clamp(e.clientX - parentRect.left - coinOffset.x, 8, parentRect.width - 64)}px`;
-  coin.style.bottom = `${clamp(parentRect.bottom - e.clientY - 8, 8, parentRect.height - 64)}px`;
-});
-window.addEventListener('pointerup', (e)=>{
-  if(!coinDragging || e.pointerId !== coinPointerId) return;
-  coin.releasePointerCapture?.(coinPointerId);
-  coinDragging = false;
-  coin.classList.remove('dragging');
-  // check if coin intersects slot
-  const slotRect = coinSlot.getBoundingClientRect();
-  const coinRect = coin.getBoundingClientRect();
-  const overlap = !(coinRect.right < slotRect.left || coinRect.left > slotRect.right || coinRect.bottom < slotRect.top || coinRect.top > slotRect.bottom);
-  if(overlap){
-    // animate coin into slot and enable machine
-    coin.style.transition = 'transform 360ms ease, left 360ms ease, bottom 360ms ease, opacity 300ms';
-    const machineRect = CABINET.getBoundingClientRect();
-    const targetLeft = slotRect.left - machineRect.left + 12;
-    const targetBottom = machineRect.bottom - slotRect.top - 8;
-    coin.style.left = `${targetLeft}px`;
-    coin.style.bottom = `${targetBottom}px`;
-    coin.style.transform = 'scale(.6) rotate(-12deg)';
-    setTimeout(()=>{ coin.style.opacity = '0'; coin.style.pointerEvents='none'; enableMachine(); }, 420);
-  } else {
-    // reset coin pos
-    coin.style.transition = 'left 260ms ease, bottom 260ms ease';
-    coin.style.left = `16px`;
-    coin.style.bottom = `18px`;
-    setTimeout(()=>{ coin.style.transition=''; }, 300);
-  }
-});
+  illusion.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (isAnimating) return;
+    pointerId = e.pointerId;
+    startX = e.clientX;
+    illusion.setPointerCapture?.(pointerId);
+  });
 
-/* enable machine */
-function enableMachine(){
-  enabled = true;
-  document.querySelector('.marquee').textContent = 'Machine Ready — Good luck!';
-}
-
-/* joystick logic: pointer drag within joystick area */
-let stickPointer = null;
-let stickStart = null;
-let stickRadius = 22; // px
-function clampStickPos(x,y){
-  const r = stickRadius;
-  const d = Math.hypot(x,y);
-  if(d <= r) return {x,y};
-  return {x: x*(r/d), y: y*(r/d)};
-}
-stick.addEventListener('pointerdown', (e)=>{
-  if(!enabled || busy) return;
-  stick.setPointerCapture?.(e.pointerId);
-  stickPointer = e.pointerId;
-  stickStart = {x:e.clientX, y:e.clientY};
-});
-window.addEventListener('pointermove', (e)=>{
-  if(stickPointer === null || e.pointerId !== stickPointer) return;
-  const rectJ = joystick.getBoundingClientRect();
-  const center = {x: rectJ.left + rectJ.width/2, y: rectJ.top + rectJ.height/2};
-  const dx = e.clientX - center.x;
-  const dy = e.clientY - center.y;
-  const cl = clampStickPos(dx, dy);
-  stick.style.transform = `translate(${cl.x}px, ${cl.y}px)`;
-  // map horizontal stick movement to claw movement range along rail
-  const railRect = document.getElementById('rail').getBoundingClientRect();
-  const minX = railRect.left + 24;
-  const maxX = railRect.right - 24;
-  // normalized value [-1..1]
-  const nx = clamp(cl.x / stickRadius, -1, 1);
-  const target = ( (nx + 1)/2 ) * (maxX - minX) + minX;
-  moveClawTo(target - CABINET.getBoundingClientRect().left);
-});
-window.addEventListener('pointerup', (e)=>{
-  if(stickPointer === null || e.pointerId !== stickPointer) return;
-  try{ stick.releasePointerCapture?.(stickPointer);}catch{}
-  stickPointer = null;
-  stick.style.transform = `translate(0px,0px)`;
-});
-
-/* move claw to absolute x px inside cabinet (left relative to cabinet) */
-function moveClawTo(absX){
-  clawX = clamp(absX, 48, CABINET.clientWidth - 140);
-  claw.style.left = `${clamp(clawX, 64, CABINET.clientWidth - 64)}px`;
-}
-
-/* core DROP sequence */
-async function dropSequence(){
-  if(!enabled || busy) return;
-  busy = true;
-  dropBtn.disabled = true;
-  // lower arm
-  arm.style.transition = 'height 320ms cubic-bezier(.2,.9,.2,1)';
-  arm.style.height = '180px';
-  hook.style.transition = 'top 320ms cubic-bezier(.2,.9,.2,1)';
-  hook.style.top = '164px';
-  await new Promise(r=>setTimeout(r,340));
-
-  // determine which capsule is under hook center
-  const hookRect = hook.getBoundingClientRect();
-  // find capsule whose center is closest horizontally and within vertical tolerance
-  let candidate = null;
-  let bestDist = Infinity;
-  for(const c of capsules){
-    const crect = c.el.getBoundingClientRect();
-    const cx = crect.left + crect.width/2;
-    const cy = crect.top + crect.height/2;
-    const dx = Math.abs(cx - (hookRect.left + hookRect.width/2));
-    const dy = Math.abs(cy - (hookRect.top + hookRect.height/2));
-    // heuristics: allow some vertical tolerance
-    if(dx < bestDist && dy < 80){
-      bestDist = dx;
-      candidate = c;
+  illusion.addEventListener('pointermove', (e) => {
+    if (pointerId === null || e.pointerId !== pointerId) return;
+    const dx = e.clientX - startX;
+    // threshold to trigger a step
+    if (Math.abs(dx) > 36) {
+      const steps = dx > 0 ? -1 : 1; // drag right -> show previous
+      // consume movement
+      startX = e.clientX;
+      stepTo(steps);
     }
-  }
-
-  if(candidate){
-    // attach visual
-    attachToHook(candidate);
-    await new Promise(r=>setTimeout(r,250));
-  } else {
-    // brief wiggle to show missed
-    hook.animate([{ transform:'translateY(0)'},{ transform:'translateY(6px)'},{ transform:'translateY(0)'}], { duration: 380 });
-    await new Promise(r=>setTimeout(r,420));
-  }
-
-  // lift
-  arm.style.height = '80px';
-  hook.style.top = '74px';
-  await new Promise(r=>setTimeout(r,360));
-
-  // move to chute (animate claw position)
-  const chuteRect = document.getElementById('chute').getBoundingClientRect();
-  const machineRect = CABINET.getBoundingClientRect();
-  const targetLeft = chuteRect.left + chuteRect.width/2 - machineRect.left;
-  claw.style.transition = 'left 420ms cubic-bezier(.2,.9,.2,1)';
-  claw.style.left = `${targetLeft}px`;
-  await new Promise(r=>setTimeout(r,450));
-
-  // drop capsule into bucket
-  if(candidate){
-    await dropIntoBucket(candidate);
-    // remove capsule from field
-    candidate.el.remove();
-    capsules = capsules.filter(cc => cc !== candidate);
-    selected = null;
-    showModalForProject(candidate.projectIdx);
-  }
-
-  // reset claw to previous position
-  claw.style.left = `${clamp(clawX,64, CABINET.clientWidth - 64)}px`;
-  busy = false;
-  dropBtn.disabled = false;
-}
-
-/* attach capsule to hook visually */
-function attachToHook(capsule){
-  const el = capsule.el;
-  const machineRect = CABINET.getBoundingClientRect();
-  const elRect = el.getBoundingClientRect();
-  el.style.transition = 'left 220ms ease, top 220ms ease, transform 220ms ease';
-  // reparent into cabinet to avoid overflow
-  el.style.position = 'absolute';
-  const relLeft = elRect.left - machineRect.left;
-  const relTop = elRect.top - machineRect.top;
-  el.style.left = `${relLeft}px`;
-  el.style.top = `${relTop}px`;
-  CABINET.appendChild(el);
-  // compute target position near hook
-  const hookRect = hook.getBoundingClientRect();
-  const targetLeft = hookRect.left - machineRect.left + (hookRect.width/2) - (el.offsetWidth/2);
-  const targetTop = hookRect.top - machineRect.top + 18;
-  requestAnimationFrame(()=> {
-    el.style.left = `${targetLeft}px`;
-    el.style.top = `${targetTop}px`;
-    el.style.transform = 'translate(-50%,0) rotate(0deg) scale(1.02)';
   });
-}
 
-/* drop into bucket */
-function dropIntoBucket(capsule){
-  return new Promise(res=>{
-    const el = capsule.el;
-    const bucket = document.getElementById('chute').querySelector('.bucket');
-    const bucketRect = bucket.getBoundingClientRect();
-    const machineRect = CABINET.getBoundingClientRect();
-    const targetLeft = bucketRect.left + bucketRect.width/2 - machineRect.left - (el.getBoundingClientRect().width/2);
-    const targetTop = bucketRect.top + bucketRect.height/2 - machineRect.top - (el.getBoundingClientRect().height/2);
-    el.style.transition = 'left 360ms cubic-bezier(.2,.9,.2,1), top 360ms cubic-bezier(.2,.9,.2,1), transform 360ms ease';
-    el.style.left = `${targetLeft}px`;
-    el.style.top = `${targetTop}px`;
-    el.style.transform = 'translate(-50%,0) scale(.86)';
-    setTimeout(()=>{
-      // append a small marker inside bucket to show it landed
-      const clone = el.querySelector('.fav').cloneNode(true);
-      clone.style.width='48px'; clone.style.height='48px'; clone.style.borderRadius='8px';
-      bucket.appendChild(clone);
-      res();
-    },420);
+  illusion.addEventListener('pointerup', (e) => {
+    if (pointerId === null || e.pointerId !== pointerId) return;
+    try { illusion.releasePointerCapture?.(pointerId); } catch (_) {}
+    pointerId = null;
+    startX = null;
   });
+
+  illusion.addEventListener('pointercancel', () => { pointerId = null; startX = null; });
 }
 
-/* modal */
-function showModalForProject(idx){
+/* ---------- Open project ---------- */
+function openProject(idx) {
   const p = projects[idx];
-  modalTitle.textContent = `You got ${p.title}!`;
-  modalBody.textContent = p.subtitle || '';
-  modal.classList.add('show');
+  if (!p) return;
+  if (p.url) window.open(p.url, '_blank');
+  else {
+    // fallback lightweight modal using alert for now
+    alert(`${p.title || 'Project'}\n\n${p.desc || p.subtitle || ''}`);
+  }
 }
-modalOk.addEventListener('click', ()=> modal.classList.remove('show'));
 
-/* reset */
-resetBtn.addEventListener('click', ()=> {
-  // reset coin and re-populate
-  coin.style.opacity = '1'; coin.style.pointerEvents='auto'; coin.style.transform='scale(1)'; coin.style.left='16px'; coin.style.bottom='18px';
-  enabled = false;
-  document.querySelector('.marquee').textContent = 'Insert coin';
-  populateCapsules();
-  // clear bucket icons
-  const bucket = document.getElementById('chute').querySelector('.bucket');
-  bucket.innerHTML = '';
-});
+/* ---------- Buttons rendering ---------- */
+function renderProjectButtons() {
+  projectsList.innerHTML = '';
+  projects.forEach((p, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'project-btn';
+    btn.textContent = p.title || `Project ${i+1}`;
+    btn.addEventListener('click', () => jumpTo(i));
+    projectsList.appendChild(btn);
+  });
+  updateButtonsActiveState();
+}
+function updateButtonsActiveState() {
+  const active = mod(frontIndex, Math.max(1, projects.length));
+  Array.from(projectsList.children).forEach((btn, i) => {
+    btn.classList.toggle('active', i === active);
+  });
+}
 
-/* wire drop button */
-dropBtn.addEventListener('click', ()=> dropSequence());
-window.addEventListener('keydown', (e)=> {
-  if(e.key === ' '){ e.preventDefault(); dropSequence(); }
-  if(e.key === 'ArrowLeft') moveClawTo(clawX - 20);
-  if(e.key === 'ArrowRight') moveClawTo(clawX + 20);
-});
+/* ---------- Side panels (preserve layout) ---------- */
+function populateSidePanels() {
+  const leftTitle = document.getElementById('leftTitle');
+  const leftBody = document.getElementById('leftBody');
+  const leftSmallTitle = document.getElementById('leftSmallTitle');
+  const leftSmallBody = document.getElementById('leftSmallBody');
 
-/* initialize */
-populateCapsules();
-/* position claw initial */
-moveClawTo(160);
+  const rightTitle = document.getElementById('rightTitle');
+  const rightBody = document.getElementById('rightBody');
+  const rightSmallTitle = document.getElementById('rightSmallTitle');
+  const rightSmallBody = document.getElementById('rightSmallBody');
+
+  const center = projects[mod(frontIndex, projects.length)] || {};
+  const right = projects[mod(frontIndex + 1, projects.length)] || {};
+  const left = projects[mod(frontIndex - 1, projects.length)] || {};
+
+  leftTitle.textContent = left.title || `Project ${mod(frontIndex - 1, projects.length) + 1}`;
+  leftBody.textContent = left.subtitle || left.desc || '';
+  leftSmallTitle.textContent = 'Preview';
+  leftSmallBody.textContent = `Showing nearby: ${center.title || '…'}`;
+
+  rightTitle.textContent = right.title || `Project ${mod(frontIndex + 1, projects.length) + 1}`;
+  rightBody.textContent = right.subtitle || right.desc || '';
+  rightSmallTitle.textContent = 'Links';
+  rightSmallBody.textContent = right.url || '';
+}
+
+/* ---------- Init ---------- */
+async function init() {
+  await loadProjects();
+  renderProjectButtons();
+  renderVisibleSlots();
+  wireSlotInteractions();
+  populateSidePanels();
+  // keyboard nav
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') stepTo(-1);
+    if (e.key === 'ArrowRight') stepTo(1);
+  });
+}
+
+init();
+
+/* Dev helpers */
+window._cube = { stepTo, jumpTo, state: () => ({ frontIndex, total: projects.length }) };
 </script>
 </body>
 </html>
