@@ -3,463 +3,500 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>JackFShields — Cube Illusion (Fixed)</title>
+<title>Portfolio Cube — Robust Build</title>
 <style>
   :root{
-    --bg:#071425;
+    --bg: #071425;
     --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
     --border: rgba(255,255,255,0.08);
-    --text:#e6eef6;
+    --text: #e6eef6;
     --muted: rgba(190,215,240,0.7);
-    --gap:20px;
-    --stage-size:360px;
+    --gap: 2vw;
+
+    /* Base sizes (responsive adjustments later) */
+    --cube-size: 336px;    /* ~20% bigger than earlier */
+    --bite-radius: 270px;  /* generous breathing room */
   }
 
-  html,body{height:100%;margin:0;background:radial-gradient(circle at 18% 16%, #00121a 0%, var(--bg) 30%, #000814 100%);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue";-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
-  .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px;box-sizing:border-box;gap:24px;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;-webkit-font-smoothing:antialiased}
+  .viewport{width:100vw;height:100vh;position:relative;overflow:hidden}
 
-  /* Bento grid container (preserve your layout) */
-  .bento {
-    width: min(1100px, 96%);
-    display:grid;
-    grid-template-columns: 1fr min(var(--stage-size), 36vw) 1fr;
-    grid-template-rows: auto min(var(--stage-size), 36vw) auto;
-    gap: var(--gap);
-    align-items:start;
-  }
-
+  /* Generic panel style (title, description, image) */
   .panel {
+    position:absolute;
     background: var(--panel-grad);
-    border:1px solid var(--border);
-    border-radius:12px;
-    padding:18px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 10px 36px rgba(0,0,0,0.36);
+    overflow: visible;
+    z-index: 1;
   }
-  .panel .title { margin:0 0 8px 0; font-weight:700; font-size:1.1rem; color:var(--text); }
-  .panel .body { margin:0; color:var(--muted); font-size:0.95rem; }
 
-  .left-col { grid-column:1 / 2; grid-row:1 / 3; display:flex; flex-direction:column; gap:var(--gap); }
-  .right-col { grid-column:3 / 4; grid-row:1 / 3; display:flex; flex-direction:column; gap:var(--gap); }
+  /* Left column: title + description */
+  .title {
+    left: 2vw;
+    top: 2vh;
+    width: calc(42vw - var(--gap));
+    height: 36vh;
+  }
+  .title h1 { font-size: 30px; margin-bottom: 8px; }
+  .title p { color: var(--muted); margin-top: 6px; }
 
-  .stage-cell { grid-column:2 / 3; grid-row:2 / 3; display:flex; align-items:center; justify-content:center; position:relative; }
+  .description {
+    left: 2vw;
+    top: calc(2vh + 36vh + var(--gap));
+    width: calc(42vw - var(--gap));
+    height: calc(82vh - 36vh - var(--gap) - 2vh);
+  }
+  .description p { color: var(--muted); line-height: 1.45; }
 
-  .stage {
-    width:var(--stage-size);
-    height:var(--stage-size);
-    position:relative;
-    perspective:900px;
+  /* Right image panel */
+  .image {
+    right: 2vw;
+    top: 2vh;
+    width: 54vw;
+    height: 80vh;
     display:flex;
     align-items:center;
     justify-content:center;
+    text-align:center;
+    color:var(--muted);
   }
 
-  .illusion {
-    width:100%;
-    height:100%;
-    position:relative;
-    overflow:visible;
-  }
-
-  .face-panel {
+  /* Invisible anchor/footprint (center of bite and cube). Positioned in CSS to match gap midpoint */
+  .anchor {
     position:absolute;
-    top:50%;
-    left:50%;
-    width:70%;
-    height:70%;
-    transform-origin:center center;
-    display:flex;
-    align-items:flex-end;
-    justify-content:flex-start;
-    padding:16px;
-    box-sizing:border-box;
+    left: calc(42vw - var(--gap)/2);
+    top: 50%;
+    width: calc(var(--bite-radius) * 2);
+    height: calc(var(--bite-radius) * 2);
+    transform: translate(-50%, -50%);
+    pointer-events:none;
+    opacity:0;
+    z-index:2;
+  }
+
+  /* SVG overlay: single circle that visually removes panels under it and provides rim stroke + inner shadow.
+     The circle is filled with the page bg so panels visually disappear where it overlaps.
+     Stroke + filter emulate continuous border and inner bevel so panels' border and shadow read continuous.
+  */
+  .bite-svg {
+    position:absolute;
+    left:0; top:0;
+    width:100%; height:100%;
+    pointer-events:none;
+    z-index:3;
+  }
+
+  /* Cube container sits exactly at anchor center, vertically centered at 50% viewport height */
+  .cube-wrap {
+    position:absolute;
+    left: calc(42vw - var(--gap)/2);
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: var(--cube-size);
+    height: var(--cube-size);
+    z-index: 5;  /* above bite, above panels' rim elements */
+    pointer-events:none;
+  }
+
+  .scene { width:100%; height:100%; perspective:1200px; position:relative; pointer-events:auto; user-select:none; touch-action:none; }
+  .cube {
+    width:100%; height:100%;
+    position:relative; transform-style:preserve-3d;
+    transform: translateZ(-140px) rotateX(-10deg) rotateY(0deg);
+    transition: transform .08s linear;
+    z-index:5;
+  }
+
+  /* Face common */
+  .face {
+    position:absolute; left:0; top:0; width:100%; height:100%;
     border-radius:12px;
     background: var(--panel-grad);
-    border:1px solid var(--border);
-    box-shadow: 0 18px 40px rgba(0,0,0,0.55);
-    transition: transform 380ms cubic-bezier(.2,.9,.2,1), opacity 200ms ease, filter 200ms ease;
-    cursor:pointer;
-    user-select:none;
+    border: 1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; flex-direction:column;
+    box-shadow: 0 10px 36px rgba(0,0,0,0.6);
+    backface-visibility:hidden; cursor:pointer;
+    box-sizing:border-box;
   }
 
-  .face-panel .meta { background:linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.28)); padding:10px; border-radius:8px; width:100%; }
-  .face-panel h3 { margin:0 0 6px 0; font-size:1.05rem; color:var(--text); }
-  .face-panel p { margin:0; color:var(--muted); font-size:0.9rem; }
-
-  .face-panel .accent { position:absolute; right:12px; top:12px; width:12px; height:12px; border-radius:4px; }
-
-  /* DOM order in markup: face-0 (center), face-1 (right), face-2 (far-right), face-3 (left), face-4 (far-left) */
-  .face-0 { transform: translate(-50%,-50%) translateX(0) scale(1) skewY(0deg); z-index:30; opacity:1; }
-  .face-1 { transform: translate(-50%,-50%) translateX(48%) scale(0.84) skewY(-12deg); z-index:20; opacity:0.98; }
-  .face-2 { transform: translate(-50%,-50%) translateX(96%) scale(0.68) skewY(-18deg); z-index:10; opacity:0.86; pointer-events:none; }
-  .face-3 { transform: translate(-50%,-50%) translateX(-48%) scale(0.84) skewY(12deg); z-index:20; opacity:0.98; }
-  .face-4 { transform: translate(-50%,-50%) translateX(-96%) scale(0.68) skewY(18deg); z-index:10; opacity:0.86; pointer-events:none; }
-
-  .top-plate {
-    position:absolute;
-    width:58%;
-    height:20%;
-    left:50%;
-    top:18%;
-    transform-origin:center center;
-    transform: translateX(-50%) translateY(-50%) rotateX(60deg);
-    border-radius:8px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
-    border:1px solid rgba(255,255,255,0.03);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.6) inset;
-    transition: transform 380ms cubic-bezier(.2,.9,.2,1), opacity 380ms ease;
-    pointer-events:none;
-    opacity:0.8;
+  /* Accent bar left on each face; filled by inline style set in HTML/JS to match project color */
+  .face .accent {
+    position:absolute; left:0; top:0; bottom:0; width:6px;
+    border-top-left-radius:12px; border-bottom-left-radius:12px;
   }
 
-  .controls { grid-column:1 / 4; grid-row:3 / 4; display:flex; align-items:center; justify-content:center; gap:12px; margin-top:8px; }
-  .projects-list { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:1100px; }
-  .project-btn { background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--muted); padding:8px 12px; border-radius:8px; cursor:pointer; font-size:0.92rem; }
-  .project-btn.active { border-color:rgba(255,255,255,0.18); color:var(--text); background:rgba(255,255,255,0.02); }
+  .face h3 { font-size:22px; margin:0 0 6px 0; }
+  .face p { color:var(--muted); margin:0; font-size:13px; text-align:center; padding:0 10px; }
 
-  .hint { grid-column:1 / 4; text-align:center; color:var(--muted); font-size:0.88rem; margin-top:6px; }
+  /* Face transforms */
+  .front  { transform: rotateY(0deg)   translateZ(calc(var(--cube-size)/2)); }
+  .right  { transform: rotateY(90deg)  translateZ(calc(var(--cube-size)/2)); }
+  .back   { transform: rotateY(180deg) translateZ(calc(var(--cube-size)/2)); }
+  .left   { transform: rotateY(270deg) translateZ(calc(var(--cube-size)/2)); }
+  .top    { transform: rotateX(90deg)  translateZ(calc(var(--cube-size)/2)); }
+  .bottom { transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
-  @media (max-width:980px) {
-    .bento { grid-template-columns: 1fr; grid-template-rows: auto auto auto; }
-    .left-col, .right-col { grid-column:1; grid-row:auto; order:2; }
-    .stage-cell { grid-column:1; order:1; }
+  /* Projects bar: wrap capable, taller rectangular buttons */
+  .projects {
+    position:absolute; left:0; right:0; bottom:0;
+    display:flex; gap:14px; padding:2vh 2vw; flex-wrap:wrap; justify-content:center; align-items:center;
+    background: linear-gradient(to top, rgba(0,0,0,0.45), transparent);
+    z-index:7;
+  }
+  .proj-btn {
+    width:140px; height:84px; background:var(--panel-grad); border:1px solid var(--border); border-radius:10px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition:transform .18s, box-shadow .18s;
+  }
+  .proj-btn:hover { transform: translateY(-6px); box-shadow: 0 12px 30px rgba(0,0,0,0.45); }
+  .proj-btn strong { font-size:18px; }
+  .proj-btn span { font-size:12px; color:var(--muted); margin-top:6px; }
+
+  /* subtle responsive tuning */
+  @media (max-width: 980px) {
+    :root { --cube-size: 260px; --bite-radius: 160px; }
+    .title, .description { left:2vw; width: calc(100% - 4vw); }
+    .title { top:2vh; height: 20vh; }
+    .description { top: calc(2vh + 20vh + var(--gap)); height: 28vh; }
+    .image {
+      left:2vw; right:2vw; top: calc(2vh + 20vh + 28vh + calc(var(--gap)*2));
+      width: calc(100% - 4vw); height:32vh;
+    }
+    .cube-wrap { left: 50%; top: calc(2vh + 20vh + (28vh/2)); transform: translate(-50%, -50%); }
+    .anchor { left: 50%; top: calc(2vh + 20vh + (28vh/2)); transform: translate(-50%, -50%); }
   }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="bento" id="bentoRoot">
-      <div class="left-col">
-        <div class="panel" id="leftPanelTop">
-          <div class="title" id="leftTitle">Loading…</div>
-          <p class="body" id="leftBody">Loading subtitle…</p>
-        </div>
-        <div class="panel" id="leftPanelBottom">
-          <div class="title" id="leftSmallTitle">Meta</div>
-          <p class="body" id="leftSmallBody">Extra info</p>
-        </div>
-      </div>
-
-      <div class="stage-cell">
-        <div class="stage" aria-hidden="false">
-          <div class="illusion" id="illusion" aria-live="polite">
-            <div class="face-panel face-0" data-slot="0" role="button" tabindex="0">
-              <div class="accent" aria-hidden="true"></div>
-              <div class="meta">
-                <h3 class="title">Loading…</h3>
-                <p class="subtitle">Please wait</p>
-              </div>
-            </div>
-
-            <div class="face-panel face-1" data-slot="1" role="button" tabindex="-1">
-              <div class="accent" aria-hidden="true"></div>
-              <div class="meta">
-                <h3 class="title">Loading…</h3>
-                <p class="subtitle">Please wait</p>
-              </div>
-            </div>
-
-            <div class="face-panel face-2" data-slot="2" role="presentation" aria-hidden="true">
-              <div class="accent" aria-hidden="true"></div>
-              <div class="meta">
-                <h3 class="title">Loading…</h3>
-                <p class="subtitle">Please wait</p>
-              </div>
-            </div>
-
-            <div class="face-panel face-3" data-slot="3" role="button" tabindex="-1">
-              <div class="accent" aria-hidden="true"></div>
-              <div class="meta">
-                <h3 class="title">Loading…</h3>
-                <p class="subtitle">Please wait</p>
-              </div>
-            </div>
-
-            <div class="face-panel face-4" data-slot="4" role="presentation" aria-hidden="true">
-              <div class="accent" aria-hidden="true"></div>
-              <div class="meta">
-                <h3 class="title">Loading…</h3>
-                <p class="subtitle">Please wait</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="top-plate" id="topPlate" aria-hidden="true"></div>
-        </div>
-      </div>
-
-      <div class="right-col">
-        <div class="panel" id="rightPanelTop">
-          <div class="title" id="rightTitle">Loading…</div>
-          <p class="body" id="rightBody">Loading subtitle…</p>
-        </div>
-        <div class="panel" id="rightPanelBottom">
-          <div class="title" id="rightSmallTitle">Links</div>
-          <p class="body" id="rightSmallBody">Project links</p>
-        </div>
-      </div>
-
-      <div class="controls">
-        <div class="projects-list" id="projectsList" aria-label="Project shortcuts"></div>
-      </div>
-
-      <div class="hint">Click a face to open; use the buttons to jump. This is a 3D illusion (no real 3D transforms).</div>
+  <div class="viewport" id="viewport">
+    <!-- Panels -->
+    <div class="panel title" id="titlePanel">
+      <h1 id="projTitle">Minesweeper</h1>
+      <p id="projSubtitle">Interactive tile-based puzzle</p>
+      <div style="margin-top:10px;color:var(--muted);font-size:13px"><a href="https://jackfshields.github.io" style="color:inherit;text-decoration:underline">JackFShields.github.io</a></div>
     </div>
+
+    <div class="panel description" id="descPanel">
+      <p id="projDesc">Classic minesweeper rebuilt with modern UI. Drag the cube to rotate projects, or click the numbered buttons below to jump to a project. The central cube sits exactly at mid-height; panels keep a smooth bevel and shadow around the circular bite.</p>
+    </div>
+
+    <div class="panel image" id="imagePanel">Minesweeper preview (no image)</div>
+
+    <!-- Invisible anchor used to derive bite and cube center -->
+    <div class="anchor" id="anchor" aria-hidden="true"></div>
+
+    <!-- SVG bite overlay (single circle) -->
+    <svg class="bite-svg" id="biteSVG" aria-hidden="true">
+      <defs>
+        <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur"/>
+          <feOffset dx="0" dy="6" result="offsetBlur"/>
+          <feComposite in="offsetBlur" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="innerShadow"/>
+          <feColorMatrix in="innerShadow" type="matrix" values="0 0 0 0 0   0 0 0 0 0   0 0 0 0 0   0 0 0 0.35" result="shadow"/>
+          <feMerge>
+            <feMergeNode in="shadow"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+      </defs>
+      <!-- circle: fill is page background so it visually removes underlying panels where it overlaps -->
+      <circle id="biteCircle" cx="0" cy="0" r="0" fill="#071425" stroke="rgba(255,255,255,0.08)" stroke-width="2" filter="url(#innerShadow)"></circle>
+    </svg>
+
+    <!-- Cube centered on anchor (50% height midpoint) -->
+    <div class="cube-wrap" id="cubeWrap">
+      <div class="scene" id="scene">
+        <div class="cube" id="cube" role="application" aria-label="interactive cube">
+          <div class="face front" data-slot="front">
+            <div class="accent" style="background:#e74c3c"></div>
+            <h3>Project 1</h3>
+            <p>Interactive tile puzzle</p>
+          </div>
+          <div class="face right" data-slot="right">
+            <div class="accent" style="background:#27ae60"></div>
+            <h3>Project 2</h3>
+            <p>Utility tool</p>
+          </div>
+          <div class="face back" data-slot="back">
+            <div class="accent" style="background:#9b59b6"></div>
+            <h3>Project 3</h3>
+            <p>Algorithmic art</p>
+          </div>
+          <div class="face left" data-slot="left">
+            <div class="accent" style="background:#1abc9c"></div>
+            <h3>Project 4</h3>
+            <p>UX experiments</p>
+          </div>
+          <div class="face top" data-slot="top">
+            <div class="accent" style="background:#f39c12"></div>
+            <h3>Project 5</h3>
+            <p>Extra face</p>
+          </div>
+          <div class="face bottom" data-slot="bottom">
+            <div class="accent" style="background:#34495e"></div>
+            <h3>Project 6</h3>
+            <p>Extra face</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Projects bar (wrap capable) -->
+    <div class="projects" id="projectsBar"></div>
   </div>
 
 <script>
-/* ---------- Helpers ---------- */
-const mod = (n, m) => ((n % m) + m) % m;
-const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
-
-/* ---------- Config / State ---------- */
-const TRANSITION_MS = 380;
-const projectsJsonPath = '/docs/projects.json'; // per your request
-let projects = [];
-let frontIndex = 0; // logical index of center project
-let isAnimating = false;
+/* ====== data: projects must map in order to cube faces (front, right, back, left, top, bottom) ====== */
+const projects = [
+  {title: 'Minesweeper', subtitle: 'Interactive tile-based puzzle', desc: 'Classic minesweeper rebuilt with modern UI', url:'#', color:'#e74c3c'},
+  {title: 'Project 2', subtitle: 'Utility tool', desc: 'Small utility demo', url:'#', color:'#27ae60'},
+  {title: 'Project 3', subtitle: 'Algorithmic art', desc: 'Generative visuals', url:'#', color:'#9b59b6'},
+  {title: 'Project 4', subtitle: 'UX experiments', desc: 'Micro interactions', url:'#', color:'#1abc9c'},
+  {title: 'Project 5', subtitle: 'Extra', desc: 'Misc experiments', url:'#', color:'#f39c12'},
+  {title: 'Project 6', subtitle: 'Extra 2', desc: 'More experiments', url:'#', color:'#34495e'}
+];
 
 /* DOM refs */
-const illusion = document.getElementById('illusion');
-const slotEls = Array.from(illusion.querySelectorAll('.face-panel')); // order matches markup
-const topPlate = document.getElementById('topPlate');
-const projectsList = document.getElementById('projectsList');
+const viewport = document.getElementById('viewport');
+const anchor = document.getElementById('anchor');
+const biteSVG = document.getElementById('biteSVG');
+const biteCircle = document.getElementById('biteCircle');
+const cubeWrap = document.getElementById('cubeWrap');
+const scene = document.getElementById('scene');
+const cube = document.getElementById('cube');
+const titlePanel = document.getElementById('titlePanel');
+const descPanel = document.getElementById('descPanel');
+const imagePanel = document.getElementById('imagePanel');
+const projectsBar = document.getElementById('projectsBar');
 
-/* --- Load projects.json (fallback inline) --- */
-async function loadProjects() {
-  try {
-    const res = await fetch(projectsJsonPath);
-    if (!res.ok) throw new Error('no json');
-    const data = await res.json();
-    if (Array.isArray(data) && data.length) projects = data;
-    else throw new Error('empty');
-  } catch (e) {
-    projects = [
-      { title: "Minesweeper", subtitle: "Interactive tile-based puzzle", desc: "Classic minesweeper rebuilt", url: "", image: null, color: "#e74c3c" },
-      { title: "Poly Weave", subtitle: "Generative geometry experiments", desc: "Woven polygons", url: "", image: null, color: "#9b59b6" },
-      { title: "Grid Tools", subtitle: "UI toolkit for responsive grids", desc: "Utilities for layouts", url: "", image: null, color: "#1abc9c" },
-      { title: "UX Microinteractions", subtitle: "Interaction experiments", desc: "Playful loaders", url: "", image: null, color: "#f39c12" },
-      { title: "Data Viz Playground", subtitle: "Algorithmic visualizations", desc: "Visual encodings", url: "", image: null, color: "#27ae60" },
-      { title: "Portfolio Experiments", subtitle: "Design systems and transitions", desc: "Sandbox experiments", url: "", image: null, color: "#34495e" }
-    ];
-  }
+/* build projects bar (wrap-capable) */
+function renderProjects(){
+  projectsBar.innerHTML = '';
+  projects.forEach((p,i)=>{
+    const btn = document.createElement('div');
+    btn.className = 'proj-btn';
+    btn.innerHTML = `<strong>${i+1}</strong><span>${p.title}</span>`;
+    btn.addEventListener('click', ()=> centerCubeOnProject(i));
+    projectsBar.appendChild(btn);
+  });
+}
+renderProjects();
 
-  // preload a few images
-  projects.slice(0, 12).forEach(p => { if (p.image) { const i = new Image(); i.src = p.image; }});
-
-  renderProjectButtons();
-  renderVisibleSlots();
-  wireSlotInteractions();
-  populateSidePanels();
+/* compute anchor center & radius from anchor bounding rect */
+function computeAnchor(){
+  const r = anchor.getBoundingClientRect();
+  return { x: r.left + r.width/2, y: r.top + r.height/2, r: Math.min(r.width, r.height)/2 };
 }
 
-/* ---------- Render visible slots ---------- */
-/* DOM order slots correspond to: [center, right, far-right, left, far-left]
-   We map them to logical offsets: [0, +1, +2, -1, -2] relative to frontIndex.
-   This uses modular wrapping so you never get negative labels.
+/* Position SVG bite circle, update panel rim pseudo positions, and ensure no stroke shows outside panels:
+   - SVG circle is drawn on top of panels, filled with page bg so it "cuts" panels.
+   - Stroke + innerShadow filter provide the rim/ bevel look.
+   - Panels themselves keep their borders; we also place pseudo rim positions for subtle continuity
 */
-function renderVisibleSlots() {
-  const N = Math.max(1, projects.length);
-  const offsets = [0, 1, 2, -1, -2]; // mapping aligned to slotEls order
-  slotEls.forEach((slotEl, i) => {
-    const logical = frontIndex + offsets[i];
-    const wrapped = mod(logical, N);
-    applySlotContent(slotEl, wrapped, logical);
-    // accessibility: center and immediate neighbors interactive
-    const isInteractive = (offsets[i] === 0 || offsets[i] === 1 || offsets[i] === -1);
-    slotEl.tabIndex = isInteractive ? 0 : -1;
-    slotEl.setAttribute('role', isInteractive ? 'button' : 'presentation');
-  });
+function positionBiteAndCube(){
+  const a = computeAnchor();
+  biteCircle.setAttribute('cx', a.x);
+  biteCircle.setAttribute('cy', a.y);
+  biteCircle.setAttribute('r', a.r);
+  // ensure SVG pixel dims match viewport so circle coords align with DOM coords
+  biteSVG.setAttribute('width', window.innerWidth);
+  biteSVG.setAttribute('height', window.innerHeight);
 
-  updateTopPlateVisual();
-  updateButtonsActiveState();
-}
-
-/* ---------- Apply content to slot ---------- */
-/* We always wrap to a valid project index to avoid negative labels; if you want placeholders instead,
-   change to show placeholder when logical is out of [0..N-1]. */
-function applySlotContent(slotEl, wrappedIdx, logicalIdx) {
-  const p = projects[wrappedIdx] || {};
-  const titleEl = slotEl.querySelector('h3.title');
-  const subEl = slotEl.querySelector('p.subtitle');
-  const accent = slotEl.querySelector('.accent');
-  titleEl.textContent = p.title || `Project ${wrappedIdx + 1}`;
-  subEl.textContent = p.subtitle || p.desc || '';
-  accent.style.background = p.color || '#888';
-  slotEl.style.backgroundImage = p.image ? `url(${p.image})` : '';
-  slotEl.dataset.index = wrappedIdx;
-}
-
-/* ---------- Top plate visual ---------- */
-function updateTopPlateVisual() {
-  const offset = (frontIndex % 2 === 0) ? -6 : 6; // tiny shift for subtle motion
-  topPlate.style.transform = `translateX(${offset}px) translateY(-50%) rotateX(60deg)`;
-}
-
-/* ---------- Navigation / animation ---------- */
-function stepTo(delta) {
-  if (isAnimating) return;
-  isAnimating = true;
-  const prev = frontIndex;
-  frontIndex = frontIndex + delta;
-
-  // visual nudge: temporarily move the illusion container then reset and re-render
-  illusion.style.transition = `transform ${TRANSITION_MS}ms cubic-bezier(.2,.9,.2,1)`;
-  const pixelShift = -delta * 38; // visual nudge
-  illusion.style.transform = `translateX(${pixelShift}px)`;
-
-  slotEls.forEach((s, idx) => {
-    s.style.transition = `transform ${TRANSITION_MS}ms cubic-bezier(.2,.9,.2,1), opacity ${TRANSITION_MS}ms ease`;
-    if (Math.abs(idx - 1) > 1) s.style.opacity = '0.7';
-  });
-
-  setTimeout(() => {
-    illusion.style.transition = '';
-    illusion.style.transform = '';
-    slotEls.forEach(s => { s.style.transition = ''; s.style.opacity = ''; });
-    renderVisibleSlots();
-    populateSidePanels();
-    isAnimating = false;
-  }, TRANSITION_MS + 20);
-}
-
-/* Minimal signed jump (wrap-aware) */
-function jumpTo(targetIdx) {
-  if (isAnimating) return;
-  const N = Math.max(1, projects.length);
-  // compute minimal signed delta in [-floor(N/2), ceil(N/2)]
-  let raw = targetIdx - frontIndex;
-  raw = ((raw + Math.floor(N/2) * 1000) % N) - Math.floor(N/2);
-  stepTo(raw);
-}
-
-/* ---------- Slot interactions ---------- */
-function wireSlotInteractions() {
-  slotEls.forEach(s => {
-    s.addEventListener('click', () => {
-      const idx = Number(s.dataset.index);
-      if (!Number.isFinite(idx)) return;
-      // if clicked center, open; otherwise jump to it
-      const centerWrapped = mod(frontIndex, Math.max(1, projects.length));
-      if (idx === centerWrapped) openProject(idx);
-      else jumpTo(idx);
-    });
-    s.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Enter' || ev.key === ' ') {
-        ev.preventDefault();
-        s.click();
-      }
-    });
-  });
-
-  // Desktop drag on illusion: pointer capture used on illusion element
-  let pointerId = null;
-  let startX = null;
-
-  illusion.addEventListener('pointerdown', (e) => {
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-    if (isAnimating) return;
-    pointerId = e.pointerId;
-    startX = e.clientX;
-    illusion.setPointerCapture?.(pointerId);
-  });
-
-  illusion.addEventListener('pointermove', (e) => {
-    if (pointerId === null || e.pointerId !== pointerId) return;
-    const dx = e.clientX - startX;
-    // threshold to trigger a step
-    if (Math.abs(dx) > 36) {
-      const steps = dx > 0 ? -1 : 1; // drag right -> show previous
-      // consume movement
-      startX = e.clientX;
-      stepTo(steps);
+  // update panels: compute closest local point and set CSS variables for optional rim decorations (if used later)
+  [titlePanel, descPanel, imagePanel].forEach(el=>{
+    const rect = el.getBoundingClientRect();
+    const cx = Math.max(rect.left, Math.min(a.x, rect.right));
+    const cy = Math.max(rect.top, Math.min(a.y, rect.bottom));
+    const localX = Math.round(cx - rect.left);
+    const localY = Math.round(cy - rect.top);
+    el.style.setProperty('--bite-x', `${localX}px`);
+    el.style.setProperty('--bite-y', `${localY}px`);
+    el.style.setProperty('--bite-radius', `${a.r}px`);
+    // show/hide by distance test (keeps pseudo decorations performant)
+    const dist = Math.hypot(cx - a.x, cy - a.y);
+    const margin = 6;
+    if(dist < a.r + margin){
+      el.setAttribute('data-bite', '1');
+    } else {
+      el.setAttribute('data-bite', '0');
     }
   });
 
-  illusion.addEventListener('pointerup', (e) => {
-    if (pointerId === null || e.pointerId !== pointerId) return;
-    try { illusion.releasePointerCapture?.(pointerId); } catch (_) {}
-    pointerId = null;
-    startX = null;
-  });
-
-  illusion.addEventListener('pointercancel', () => { pointerId = null; startX = null; });
+  // place cubeWrap center at anchor center in page coordinates
+  cubeWrap.style.left = `${a.x}px`;
+  cubeWrap.style.top = `${a.y}px`;
+  cubeWrap.style.transform = 'translate(-50%, -50%)';
 }
 
-/* ---------- Open project ---------- */
-function openProject(idx) {
-  const p = projects[idx];
-  if (!p) return;
-  if (p.url) window.open(p.url, '_blank');
-  else {
-    // fallback lightweight modal using alert for now
-    alert(`${p.title || 'Project'}\n\n${p.desc || p.subtitle || ''}`);
+/* === Cube rotation and interaction ===
+   - drag uses cumulative-delta model (startX → currentX) to avoid inversion
+   - click detection threshold is kept to differentiate tap vs drag
+   - inertia simulated by angular velocity
+*/
+let rotY = 0;
+let isDown = false;
+let startX = 0, startRot = 0, startT = 0;
+let angVel = 0;
+const SENS = 0.35;
+const CLICK_MOVE_THRESHOLD = 6;
+const CLICK_TIME_THRESHOLD = 300;
+
+scene.addEventListener('pointerdown', e=>{
+  isDown = true;
+  startX = e.clientX;
+  startRot = rotY;
+  startT = performance.now();
+  angVel = 0;
+  try{ scene.setPointerCapture(e.pointerId); }catch(e){}
+});
+scene.addEventListener('pointermove', e=>{
+  if(!isDown) return;
+  const dx = e.clientX - startX;
+  const target = startRot + dx * SENS;
+  angVel = target - rotY;
+  rotY = target;
+  applyRotation();
+});
+scene.addEventListener('pointerup', e=>{
+  try{ scene.releasePointerCapture(e.pointerId); }catch(e){}
+  const dt = performance.now() - startT;
+  const moved = Math.hypot(e.clientX - startX, e.clientY - startX);
+  const isClick = moved <= CLICK_MOVE_THRESHOLD && dt <= CLICK_TIME_THRESHOLD;
+  isDown = false;
+  angVel = Math.max(-20, Math.min(20, angVel));
+  if(isClick){
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const face = el && el.closest && el.closest('.face');
+    if(face) openFaceProject(face);
+  }
+});
+
+/* Apply rotation (and update most-visible face => update left panels) */
+function applyRotation(){
+  cube.style.transform = `translateZ(-140px) rotateX(-10deg) rotateY(${rotY}deg)`;
+  updateMostVisibleFace();
+}
+
+/* Determine most visible face using angle heuristic (front=0°, right=90°, back=180°, left=270°)
+   This mapping is adjacent-order: front->projects[0], right->projects[1], back->projects[2], left->projects[3]
+*/
+function updateMostVisibleFace(){
+  const rad = (rotY % 360) * Math.PI / 180;
+  const slotAngles = [0, -Math.PI/2, Math.PI, Math.PI/2]; // front, right, back, left
+  const scores = slotAngles.map(sa=>{
+    const diff = normalizeAngleRad(-rad - sa);
+    return Math.max(0, Math.cos(diff)); // higher = more facing camera
+  });
+  let best = -1, bestIdx = 0;
+  scores.forEach((s,i)=>{ if(s>best){ best=s; bestIdx=i }});
+  const mapping = [0,1,2,3]; // front->0, right->1, back->2, left->3
+  const projIndex = mapping[bestIdx] % projects.length;
+  const p = projects[projIndex];
+  if(p){
+    // update left-side panels and image accent
+    document.getElementById('projTitle').textContent = p.title;
+    document.getElementById('projSubtitle').textContent = p.subtitle;
+    document.getElementById('projDesc').textContent = p.desc;
+    imagePanel.textContent = `${p.title} preview (no image)`;
+    imagePanel.style.borderLeft = `4px solid ${p.color}`;
   }
 }
+function normalizeAngleRad(a){
+  const two = Math.PI * 2;
+  let v = (a + Math.PI) % two;
+  if(v < 0) v += two;
+  return v - Math.PI;
+}
 
-/* ---------- Buttons rendering ---------- */
-function renderProjectButtons() {
-  projectsList.innerHTML = '';
-  projects.forEach((p, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'project-btn';
-    btn.textContent = p.title || `Project ${i+1}`;
-    btn.addEventListener('click', () => jumpTo(i));
-    projectsList.appendChild(btn);
+/* Clicking a face opens the matched project (mapping same as updateMostVisibleFace) */
+function openFaceProject(faceEl){
+  const map = { front:0, right:1, back:2, left:3, top:4, bottom:5 };
+  const slot = faceEl.dataset.slot;
+  const idx = (map[slot] ?? 0) % projects.length;
+  const p = projects[idx];
+  if(p && p.url) window.open(p.url, '_blank');
+}
+
+/* Animate rotation to center a desired project index (projIdx maps to slot via projIdx % 4) */
+function centerCubeOnProject(projIdx){
+  const slot = projIdx % 4; // 0 front, 1 right, 2 back, 3 left
+  const targetRel = -slot * 90;
+  animateRotationTo(rotY + targetRel, 420);
+}
+function animateRotationTo(targetDeg, duration=420){
+  const start = performance.now(), from = rotY;
+  function step(ts){
+    const t = Math.min(1, (ts - start)/duration);
+    const eased = 1 - Math.pow(1-t, 3); // ease-out-cubic
+    rotY = from + (targetDeg - from) * eased;
+    applyRotation();
+    if(t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* inertia loop (simple exponential friction) */
+let last = performance.now();
+function loop(now){
+  const dt = (now - last)/1000;
+  last = now;
+  if(!isDown && Math.abs(angVel) > 0.0005){
+    rotY += angVel;
+    angVel *= Math.pow(0.90, dt * 60);
+    applyRotation();
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* Build the bottom projects bar and ensure it maps to faces in correct order */
+function buildBottomBar(){
+  projectsBar.innerHTML = '';
+  projects.forEach((p,i)=>{
+    const el = document.createElement('div');
+    el.className = 'proj-btn';
+    el.innerHTML = `<strong>${i+1}</strong><span>${p.title}</span>`;
+    el.addEventListener('click', ()=> centerCubeOnProject(i));
+    projectsBar.appendChild(el);
   });
-  updateButtonsActiveState();
 }
-function updateButtonsActiveState() {
-  const active = mod(frontIndex, Math.max(1, projects.length));
-  Array.from(projectsList.children).forEach((btn, i) => {
-    btn.classList.toggle('active', i === active);
+buildBottomBar();
+
+/* layout recalculations on load/resize: position bite circle and cube center precisely */
+function layoutUpdate(){
+  positionBiteAndCube();
+  applyRotation();
+}
+/* robust resize handling and debounce */
+let resizeTimer;
+window.addEventListener('resize', ()=>{ clearTimeout(resizeTimer); resizeTimer = setTimeout(layoutUpdate, 80); });
+
+window.addEventListener('load', ()=>{ layoutUpdate(); setTimeout(layoutUpdate, 120); });
+
+/* bind face clicks (also supports opening via pointers) */
+Array.from(document.querySelectorAll('.face')).forEach(f=>{
+  f.addEventListener('click', ()=> openFaceProject(f));
+});
+
+/* initial mapping: set accents of faces to match projects data (keeps faces/colors in sync) */
+(function syncFaceAccents(){
+  const faces = document.querySelectorAll('.face');
+  faces.forEach((face, idx) => {
+    const p = projects[idx % projects.length];
+    const accent = face.querySelector('.accent');
+    if(accent && p) accent.style.background = p.color;
   });
-}
+})();
 
-/* ---------- Side panels (preserve layout) ---------- */
-function populateSidePanels() {
-  const leftTitle = document.getElementById('leftTitle');
-  const leftBody = document.getElementById('leftBody');
-  const leftSmallTitle = document.getElementById('leftSmallTitle');
-  const leftSmallBody = document.getElementById('leftSmallBody');
-
-  const rightTitle = document.getElementById('rightTitle');
-  const rightBody = document.getElementById('rightBody');
-  const rightSmallTitle = document.getElementById('rightSmallTitle');
-  const rightSmallBody = document.getElementById('rightSmallBody');
-
-  const center = projects[mod(frontIndex, projects.length)] || {};
-  const right = projects[mod(frontIndex + 1, projects.length)] || {};
-  const left = projects[mod(frontIndex - 1, projects.length)] || {};
-
-  leftTitle.textContent = left.title || `Project ${mod(frontIndex - 1, projects.length) + 1}`;
-  leftBody.textContent = left.subtitle || left.desc || '';
-  leftSmallTitle.textContent = 'Preview';
-  leftSmallBody.textContent = `Showing nearby: ${center.title || '…'}`;
-
-  rightTitle.textContent = right.title || `Project ${mod(frontIndex + 1, projects.length) + 1}`;
-  rightBody.textContent = right.subtitle || right.desc || '';
-  rightSmallTitle.textContent = 'Links';
-  rightSmallBody.textContent = right.url || '';
-}
-
-/* ---------- Init ---------- */
-async function init() {
-  await loadProjects();
-  renderProjectButtons();
-  renderVisibleSlots();
-  wireSlotInteractions();
-  populateSidePanels();
-  // keyboard nav
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft') stepTo(-1);
-    if (e.key === 'ArrowRight') stepTo(1);
-  });
-}
-
-init();
-
-/* Dev helpers */
-window._cube = { stepTo, jumpTo, state: () => ({ frontIndex, total: projects.length }) };
+/* Prevent common pitfalls checklist (runtime guards):
+   - Ensure bite SVG uses viewport coordinates (we set width/height on layoutUpdate).
+   - Ensure cubeWrap is positioned using page coordinates (we set left/top to anchor center).
+   - Use setPointerCapture with try/catch for cross-browser robustness.
+   - Use cumulative drag from start position (not frame deltas) to avoid inversion.
+*/
 </script>
 </body>
 </html>
