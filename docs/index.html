@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>JackFShields — Cube Illusion (Bento layout + projects.json)</title>
+<title>JackFShields — Cube Illusion (Fixed)</title>
 <style>
   :root{
     --bg:#071425;
@@ -11,7 +11,6 @@
     --border: rgba(255,255,255,0.08);
     --text:#e6eef6;
     --muted: rgba(190,215,240,0.7);
-    --accent:#4cc1ff;
     --gap:20px;
     --stage-size:360px;
   }
@@ -29,7 +28,6 @@
     align-items:start;
   }
 
-  /* Left info column */
   .panel {
     background: var(--panel-grad);
     border:1px solid var(--border);
@@ -40,14 +38,11 @@
   .panel .title { margin:0 0 8px 0; font-weight:700; font-size:1.1rem; color:var(--text); }
   .panel .body { margin:0; color:var(--muted); font-size:0.95rem; }
 
-  /* Right info column uses same styles */
   .left-col { grid-column:1 / 2; grid-row:1 / 3; display:flex; flex-direction:column; gap:var(--gap); }
   .right-col { grid-column:3 / 4; grid-row:1 / 3; display:flex; flex-direction:column; gap:var(--gap); }
 
-  /* Stage cell (center) */
   .stage-cell { grid-column:2 / 3; grid-row:2 / 3; display:flex; align-items:center; justify-content:center; position:relative; }
 
-  /* Fake cube stage (no preserve-3d required) */
   .stage {
     width:var(--stage-size);
     height:var(--stage-size);
@@ -58,7 +53,6 @@
     justify-content:center;
   }
 
-  /* We implement panels as horizontal carousel slides with depth illusion via skew/scale */
   .illusion {
     width:100%;
     height:100%;
@@ -93,15 +87,13 @@
 
   .face-panel .accent { position:absolute; right:12px; top:12px; width:12px; height:12px; border-radius:4px; }
 
-  /* positions for 4 visible faces (front,right,back,left) expressed as offsets and transforms for illusion */
-  /* Index 0 = front (center). Others translate horizontally and skew to imply rotation */
-  .face-0 { transform: translate(-50%,-50%) translateX(0) scale(1) skewY(0deg); z-index:30; opacity:1; filter: none; }
-  .face-1 { transform: translate(-50%,-50%) translateX(48%) scale(0.84) skewY(-12deg) translateZ(-10px); z-index:20; opacity:0.98; filter:brightness(.96); }
-  .face-2 { transform: translate(-50%,-50%) translateX(96%) scale(0.68) skewY(-18deg) translateZ(-20px); z-index:10; opacity:0.86; filter:brightness(.9) blur(0.0px); pointer-events:none; }
-  .face-3 { transform: translate(-50%,-50%) translateX(-48%) scale(0.84) skewY(12deg) translateZ(-10px); z-index:20; opacity:0.98; filter:brightness(.96); }
-  .face-4 { transform: translate(-50%,-50%) translateX(-96%) scale(0.68) skewY(18deg) translateZ(-20px); z-index:10; opacity:0.86; filter:brightness(.9) blur(0.0px); pointer-events:none; }
+  /* DOM order in markup: face-0 (center), face-1 (right), face-2 (far-right), face-3 (left), face-4 (far-left) */
+  .face-0 { transform: translate(-50%,-50%) translateX(0) scale(1) skewY(0deg); z-index:30; opacity:1; }
+  .face-1 { transform: translate(-50%,-50%) translateX(48%) scale(0.84) skewY(-12deg); z-index:20; opacity:0.98; }
+  .face-2 { transform: translate(-50%,-50%) translateX(96%) scale(0.68) skewY(-18deg); z-index:10; opacity:0.86; pointer-events:none; }
+  .face-3 { transform: translate(-50%,-50%) translateX(-48%) scale(0.84) skewY(12deg); z-index:20; opacity:0.98; }
+  .face-4 { transform: translate(-50%,-50%) translateX(-96%) scale(0.68) skewY(18deg); z-index:10; opacity:0.86; pointer-events:none; }
 
-  /* Top plate (visual only) - rotates/slides to match illusion */
   .top-plate {
     position:absolute;
     width:58%;
@@ -119,7 +111,6 @@
     opacity:0.8;
   }
 
-  /* bottom buttons area (preserve your project shortcuts) */
   .controls { grid-column:1 / 4; grid-row:3 / 4; display:flex; align-items:center; justify-content:center; gap:12px; margin-top:8px; }
   .projects-list { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:1100px; }
   .project-btn { background:transparent; border:1px solid rgba(255,255,255,0.06); color:var(--muted); padding:8px 12px; border-radius:8px; cursor:pointer; font-size:0.92rem; }
@@ -150,8 +141,7 @@
 
       <div class="stage-cell">
         <div class="stage" aria-hidden="false">
-          <div class="illusion" id="illusion">
-            <!-- face panels (we render 5 slots: center + 2 left + 2 right for smooth motion) -->
+          <div class="illusion" id="illusion" aria-live="polite">
             <div class="face-panel face-0" data-slot="0" role="button" tabindex="0">
               <div class="accent" aria-hidden="true"></div>
               <div class="meta">
@@ -217,189 +207,141 @@
   </div>
 
 <script>
-/*
-  Fake-cube implementation (option 1) that:
-  - preserves your bento layout
-  - loads projects from docs/projects.json (fallback to inline if fetch fails)
-  - provides clickable face panels and buttons
-  - includes a visible top plate that moves to simulate rotation
-  - avoids real preserve-3d collapsing issues by operating purely with 2D transforms, skew and scale
-*/
+/* ---------- Helpers ---------- */
+const mod = (n, m) => ((n % m) + m) % m;
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 
-/* --- Config --- */
-const VISIBLE_SLOTS = 5; // we render five slots: indices relative to the current front
-const SLOT_ORDER = [ -1, 0, 1, 2, 3 ]; // logical mapping for left-of-left .. right-most
-const SLOT_CLASSES = ['face-3','face-0','face-1','face-2','face-4']; // matches markup order
+/* ---------- Config / State ---------- */
 const TRANSITION_MS = 380;
-const PRELOAD_AHEAD = 12; // how many project thumbnails to preload (if images present)
-
-/* --- State --- */
+const projectsJsonPath = '/docs/projects.json'; // per your request
 let projects = [];
-let frontIndex = 0; // logical index of the project currently centered (front)
+let frontIndex = 0; // logical index of center project
 let isAnimating = false;
-let queue = []; // queued jump targets (if desired later)
+
+/* DOM refs */
 const illusion = document.getElementById('illusion');
-const slotEls = Array.from(illusion.querySelectorAll('.face-panel'));
+const slotEls = Array.from(illusion.querySelectorAll('.face-panel')); // order matches markup
 const topPlate = document.getElementById('topPlate');
 const projectsList = document.getElementById('projectsList');
 
-/* --- Load projects.json then init --- */
-async function loadProjectsJSON() {
+/* --- Load projects.json (fallback inline) --- */
+async function loadProjects() {
   try {
-    const res = await fetch('/docs/projects.json');
-    if (!res.ok) throw new Error('no projects.json');
+    const res = await fetch(projectsJsonPath);
+    if (!res.ok) throw new Error('no json');
     const data = await res.json();
-    if (Array.isArray(data) && data.length) {
-      projects = data;
-    } else {
-      throw new Error('invalid json');
-    }
+    if (Array.isArray(data) && data.length) projects = data;
+    else throw new Error('empty');
   } catch (e) {
-    // fallback inline if fetch fails (safe and predictable)
     projects = [
-      { title: "Minesweeper", subtitle: "Interactive tile-based puzzle", desc: "Classic minesweeper rebuilt", image: null, color: "#e74c3c" },
-      { title: "Poly Weave", subtitle: "Generative geometry experiments", desc: "Woven polygons and creative coding", image: null, color: "#9b59b6" },
-      { title: "Grid Tools", subtitle: "UI toolkit for responsive grids", desc: "Utilities for layouts", image: null, color: "#1abc9c" },
-      { title: "UX Microinteractions", subtitle: "Interaction experiments", desc: "Playful loaders and toggles", image: null, color: "#f39c12" },
-      { title: "Data Viz Playground", subtitle: "Algorithmic visualizations", desc: "Visual encodings and layouts", image: null, color: "#27ae60" },
-      { title: "Portfolio Experiments", subtitle: "Design systems and transitions", desc: "Sandbox experiments", image: null, color: "#34495e" }
+      { title: "Minesweeper", subtitle: "Interactive tile-based puzzle", desc: "Classic minesweeper rebuilt", url: "", image: null, color: "#e74c3c" },
+      { title: "Poly Weave", subtitle: "Generative geometry experiments", desc: "Woven polygons", url: "", image: null, color: "#9b59b6" },
+      { title: "Grid Tools", subtitle: "UI toolkit for responsive grids", desc: "Utilities for layouts", url: "", image: null, color: "#1abc9c" },
+      { title: "UX Microinteractions", subtitle: "Interaction experiments", desc: "Playful loaders", url: "", image: null, color: "#f39c12" },
+      { title: "Data Viz Playground", subtitle: "Algorithmic visualizations", desc: "Visual encodings", url: "", image: null, color: "#27ae60" },
+      { title: "Portfolio Experiments", subtitle: "Design systems and transitions", desc: "Sandbox experiments", url: "", image: null, color: "#34495e" }
     ];
   }
-  // preload images conservatively
-  projects.slice(0, PRELOAD_AHEAD).forEach(p => { if (p.image) { const i = new Image(); i.src = p.image; }});
+
+  // preload a few images
+  projects.slice(0, 12).forEach(p => { if (p.image) { const i = new Image(); i.src = p.image; }});
+
   renderProjectButtons();
   renderVisibleSlots();
   wireSlotInteractions();
   populateSidePanels();
 }
 
-/* --- Utility helpers --- */
-const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-const mod = (n, m) => ((n % m) + m) % m;
-
-/* --- Rendering slots (fake cube faces) --- */
+/* ---------- Render visible slots ---------- */
+/* DOM order slots correspond to: [center, right, far-right, left, far-left]
+   We map them to logical offsets: [0, +1, +2, -1, -2] relative to frontIndex.
+   This uses modular wrapping so you never get negative labels.
+*/
 function renderVisibleSlots() {
-  // For each slot element, compute which project index it should show
-  // Slot mapping chosen to create left-to-right visual order
-  // center (face-0) shows frontIndex
-  const mapping = [
-    frontIndex - 1, // face-3 (left)
-    frontIndex,     // face-0 (center)
-    frontIndex + 1, // face-1 (right of center)
-    frontIndex + 2, // face-2 (far right)
-    frontIndex + 3  // face-4 (far left beyond)
-  ];
-
+  const N = Math.max(1, projects.length);
+  const offsets = [0, 1, 2, -1, -2]; // mapping aligned to slotEls order
   slotEls.forEach((slotEl, i) => {
-    const projIdx = mapping[i];
-    applySlotContent(slotEl, projIdx);
-    // update accessibility: only center and near-center slots are tabbable
-    const isInteractive = (i === 1 || i === 2 || i === 0); // center and immediate neighbors and left neighbor clickable
+    const logical = frontIndex + offsets[i];
+    const wrapped = mod(logical, N);
+    applySlotContent(slotEl, wrapped, logical);
+    // accessibility: center and immediate neighbors interactive
+    const isInteractive = (offsets[i] === 0 || offsets[i] === 1 || offsets[i] === -1);
     slotEl.tabIndex = isInteractive ? 0 : -1;
     slotEl.setAttribute('role', isInteractive ? 'button' : 'presentation');
   });
 
-  // animate topplate to reflect "rotation" direction/position
   updateTopPlateVisual();
+  updateButtonsActiveState();
 }
 
-function applySlotContent(slotEl, projIdx) {
+/* ---------- Apply content to slot ---------- */
+/* We always wrap to a valid project index to avoid negative labels; if you want placeholders instead,
+   change to show placeholder when logical is out of [0..N-1]. */
+function applySlotContent(slotEl, wrappedIdx, logicalIdx) {
+  const p = projects[wrappedIdx] || {};
   const titleEl = slotEl.querySelector('h3.title');
   const subEl = slotEl.querySelector('p.subtitle');
   const accent = slotEl.querySelector('.accent');
-
-  if (projIdx < 0 || projIdx >= projects.length) {
-    titleEl.textContent = `Project ${projIdx + 1}`;
-    subEl.textContent = "Hold your horses! I haven't finished this yet!";
-    accent.style.background = '#666';
-    slotEl.style.backgroundImage = '';
-    slotEl.dataset.index = projIdx;
-    return;
-  }
-
-  const p = projects[projIdx];
-  titleEl.textContent = p.title || `Project ${projIdx + 1}`;
+  titleEl.textContent = p.title || `Project ${wrappedIdx + 1}`;
   subEl.textContent = p.subtitle || p.desc || '';
   accent.style.background = p.color || '#888';
-  if (p.image) slotEl.style.backgroundImage = `url(${p.image})`; else slotEl.style.backgroundImage = '';
-  slotEl.dataset.index = projIdx;
+  slotEl.style.backgroundImage = p.image ? `url(${p.image})` : '';
+  slotEl.dataset.index = wrappedIdx;
 }
 
-/* --- Top plate visuals --- */
+/* ---------- Top plate visual ---------- */
 function updateTopPlateVisual() {
-  // Position topPlate to give illusion of perspective based on frontIndex mod 4
-  // We'll slide and skew slightly to suggest rotation direction
-  const pos = frontIndex % projects.length;
-  // compute a small lateral offset based on parity of frontIndex so it subtly moves
-  const offset = (frontIndex % 2 === 0) ? -6 : 6;
+  const offset = (frontIndex % 2 === 0) ? -6 : 6; // tiny shift for subtle motion
   topPlate.style.transform = `translateX(${offset}px) translateY(-50%) rotateX(60deg)`;
 }
 
-/* --- Navigation (left/right steps) --- */
+/* ---------- Navigation / animation ---------- */
 function stepTo(delta) {
   if (isAnimating) return;
   isAnimating = true;
-
-  // Animate by shifting frontIndex then animate CSS transforms for slots
-  const prevFront = frontIndex;
+  const prev = frontIndex;
   frontIndex = frontIndex + delta;
 
-  // We'll animate slot transforms by toggling classes with slight delay to smooth motion.
-  // Implementation strategy: apply CSS class adjustments on illusion element
-  //  - animate by translating the whole illusion container horizontally, then on end update content and reset transform.
-
+  // visual nudge: temporarily move the illusion container then reset and re-render
   illusion.style.transition = `transform ${TRANSITION_MS}ms cubic-bezier(.2,.9,.2,1)`;
-  // push illusion left or right visually (negative delta moves left)
-  const pixelShift = -delta * 34; // small visual nudge proportional to step
+  const pixelShift = -delta * 38; // visual nudge
   illusion.style.transform = `translateX(${pixelShift}px)`;
 
-  // temporarily reduce opacity of far slots
   slotEls.forEach((s, idx) => {
     s.style.transition = `transform ${TRANSITION_MS}ms cubic-bezier(.2,.9,.2,1), opacity ${TRANSITION_MS}ms ease`;
-    // push visual ordering by updating class list (we rely on CSS classes for base transforms)
-    // lightly dim far slots during motion
-    if (Math.abs(idx - 1) > 1) { s.style.opacity = '0.7'; }
+    if (Math.abs(idx - 1) > 1) s.style.opacity = '0.7';
   });
 
-  // on animation end, reset and re-render slots to new mapping
   setTimeout(() => {
     illusion.style.transition = '';
     illusion.style.transform = '';
     slotEls.forEach(s => { s.style.transition = ''; s.style.opacity = ''; });
     renderVisibleSlots();
+    populateSidePanels();
     isAnimating = false;
   }, TRANSITION_MS + 20);
 }
 
-/* --- Click-to-jump --- */
+/* Minimal signed jump (wrap-aware) */
 function jumpTo(targetIdx) {
   if (isAnimating) return;
-  // compute minimal delta (allow larger lists; here we prefer sign towards nearest)
   const N = Math.max(1, projects.length);
-  const raw = targetIdx - frontIndex;
-  let wrapped = ((raw % N) + N) % N;
-  if (wrapped > N/2) wrapped -= N;
-  // perform step animation in unit increments if small; otherwise animate once with delta
-  // We'll animate a single step equivalent to wrapped (positive means move right)
-  stepTo(wrapped);
+  // compute minimal signed delta in [-floor(N/2), ceil(N/2)]
+  let raw = targetIdx - frontIndex;
+  raw = ((raw + Math.floor(N/2) * 1000) % N) - Math.floor(N/2);
+  stepTo(raw);
 }
 
-/* --- Slot interaction wiring --- */
+/* ---------- Slot interactions ---------- */
 function wireSlotInteractions() {
   slotEls.forEach(s => {
     s.addEventListener('click', () => {
-      const idx = parseInt(s.dataset.index, 10);
-      if (Number.isFinite(idx)) {
-        // clicking a non-front slot should center it (compute delta)
-        const delta = idx - frontIndex;
-        if (delta === 0) {
-          // center clicked — open or perform action (placeholder)
-          openProject(idx);
-        } else {
-          // move by delta (small)
-          jumpTo(idx);
-        }
-      }
+      const idx = Number(s.dataset.index);
+      if (!Number.isFinite(idx)) return;
+      // if clicked center, open; otherwise jump to it
+      const centerWrapped = mod(frontIndex, Math.max(1, projects.length));
+      if (idx === centerWrapped) openProject(idx);
+      else jumpTo(idx);
     });
     s.addEventListener('keydown', (ev) => {
       if (ev.key === 'Enter' || ev.key === ' ') {
@@ -408,46 +350,73 @@ function wireSlotInteractions() {
       }
     });
   });
+
+  // Desktop drag on illusion: pointer capture used on illusion element
+  let pointerId = null;
+  let startX = null;
+
+  illusion.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (isAnimating) return;
+    pointerId = e.pointerId;
+    startX = e.clientX;
+    illusion.setPointerCapture?.(pointerId);
+  });
+
+  illusion.addEventListener('pointermove', (e) => {
+    if (pointerId === null || e.pointerId !== pointerId) return;
+    const dx = e.clientX - startX;
+    // threshold to trigger a step
+    if (Math.abs(dx) > 36) {
+      const steps = dx > 0 ? -1 : 1; // drag right -> show previous
+      // consume movement
+      startX = e.clientX;
+      stepTo(steps);
+    }
+  });
+
+  illusion.addEventListener('pointerup', (e) => {
+    if (pointerId === null || e.pointerId !== pointerId) return;
+    try { illusion.releasePointerCapture?.(pointerId); } catch (_) {}
+    pointerId = null;
+    startX = null;
+  });
+
+  illusion.addEventListener('pointercancel', () => { pointerId = null; startX = null; });
 }
 
-/* --- Open project action (placeholder) --- */
+/* ---------- Open project ---------- */
 function openProject(idx) {
-  if (idx < 0 || idx >= projects.length) {
-    // nothing to open; show small feedback
-    alert(`Project ${idx + 1} not finished yet.`);
-    return;
-  }
   const p = projects[idx];
-  // default behavior: if there's a URL open it, otherwise alert
-  if (p.url) {
-    window.open(p.url, '_blank');
-  } else {
-    alert(`${p.title}\n\n${p.desc || p.subtitle || ''}`);
+  if (!p) return;
+  if (p.url) window.open(p.url, '_blank');
+  else {
+    // fallback lightweight modal using alert for now
+    alert(`${p.title || 'Project'}\n\n${p.desc || p.subtitle || ''}`);
   }
 }
 
-/* --- Buttons rendering (bottom) --- */
+/* ---------- Buttons rendering ---------- */
 function renderProjectButtons() {
   projectsList.innerHTML = '';
   projects.forEach((p, i) => {
     const btn = document.createElement('button');
     btn.className = 'project-btn';
-    btn.textContent = p.title || `Project ${i + 1}`;
-    btn.addEventListener('click', () => { jumpTo(i); });
+    btn.textContent = p.title || `Project ${i+1}`;
+    btn.addEventListener('click', () => jumpTo(i));
     projectsList.appendChild(btn);
   });
   updateButtonsActiveState();
 }
-
 function updateButtonsActiveState() {
+  const active = mod(frontIndex, Math.max(1, projects.length));
   Array.from(projectsList.children).forEach((btn, i) => {
-    btn.classList.toggle('active', i === frontIndex);
+    btn.classList.toggle('active', i === active);
   });
 }
 
-/* --- Side panels (left/right) content mapping preserves layout) --- */
+/* ---------- Side panels (preserve layout) ---------- */
 function populateSidePanels() {
-  // center content on current front and neighbors (keeps your bento boxes meaningful)
   const leftTitle = document.getElementById('leftTitle');
   const leftBody = document.getElementById('leftBody');
   const leftSmallTitle = document.getElementById('leftSmallTitle');
@@ -458,45 +427,39 @@ function populateSidePanels() {
   const rightSmallTitle = document.getElementById('rightSmallTitle');
   const rightSmallBody = document.getElementById('rightSmallBody');
 
-  const a = projects[mod(frontIndex, projects.length)] || {};
-  const b = projects[mod(frontIndex + 1, projects.length)] || {};
-  const c = projects[mod(frontIndex - 1, projects.length)] || {};
+  const center = projects[mod(frontIndex, projects.length)] || {};
+  const right = projects[mod(frontIndex + 1, projects.length)] || {};
+  const left = projects[mod(frontIndex - 1, projects.length)] || {};
 
-  leftTitle.textContent = c.title || `Project ${frontIndex}`;
-  leftBody.textContent = c.subtitle || c.desc || '';
+  leftTitle.textContent = left.title || `Project ${mod(frontIndex - 1, projects.length) + 1}`;
+  leftBody.textContent = left.subtitle || left.desc || '';
   leftSmallTitle.textContent = 'Preview';
-  leftSmallBody.textContent = `Showing nearby: ${a.title || '…'}`;
+  leftSmallBody.textContent = `Showing nearby: ${center.title || '…'}`;
 
-  rightTitle.textContent = b.title || `Project ${frontIndex + 2}`;
-  rightBody.textContent = b.subtitle || b.desc || '';
+  rightTitle.textContent = right.title || `Project ${mod(frontIndex + 1, projects.length) + 1}`;
+  rightBody.textContent = right.subtitle || right.desc || '';
   rightSmallTitle.textContent = 'Links';
-  rightSmallBody.textContent = b.url || '';
+  rightSmallBody.textContent = right.url || '';
 }
 
-/* --- Kickoff and housekeeping --- */
-function renderVisibleSlotsAndPanels() {
+/* ---------- Init ---------- */
+async function init() {
+  await loadProjects();
+  renderProjectButtons();
   renderVisibleSlots();
+  wireSlotInteractions();
   populateSidePanels();
-  updateButtonsActiveState();
-}
-
-// Re-render when frontIndex changes inside stepTo/jumpTo via renderVisibleSlots called there
-function init() {
-  loadProjectsJSON();
-  // When frontIndex changes, keep side panels & buttons in sync
-  const originalStepTo = stepTo;
-  // no-op; stepTo already calls renderVisibleSlots at end
+  // keyboard nav
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') stepTo(-1);
+    if (e.key === 'ArrowRight') stepTo(1);
+  });
 }
 
 init();
 
-/* Expose a tiny API for debugging in console */
-window._cubeIllusion = {
-  stepLeft: () => stepTo(-1),
-  stepRight: () => stepTo(1),
-  jumpTo,
-  getState: () => ({ frontIndex, projectsCount: projects.length })
-};
+/* Dev helpers */
+window._cube = { stepTo, jumpTo, state: () => ({ frontIndex, total: projects.length }) };
 </script>
 </body>
 </html>
