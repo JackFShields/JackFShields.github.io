@@ -149,7 +149,29 @@
   <script>
     /* OneCompiler cube logic (literal, not adapted from GitHub cube) */
 
-    const projects = []; // left empty; mapping to projects handled later if desired
+    const projects = [
+  {title: 'Minesweeper', subtitle: 'Interactive tile-based puzzle', desc: 'Classic minesweeper rebuilt with modern UI', url:'#', color:'#e74c3c'},
+  {title: 'Project 2', subtitle: 'Utility tool', desc: 'Small utility demo', url:'#', color:'#27ae60'},
+  // add more as needed
+];
+function buildBottomBar(){
+  projectsBar.innerHTML = '';
+  projects.forEach((p,i)=>{
+    const el = document.createElement('div');
+    el.className = 'proj-btn';
+    el.innerHTML = `<strong>${i+1}</strong><span>${p.title}</span>`;
+    el.addEventListener('click', ()=> centerCubeOnProject(i));
+    projectsBar.appendChild(el);
+  });
+}
+buildBottomBar();
+
+function centerCubeOnProject(projIdx){
+  // this will rotate the cube to show the face with that project
+  const targetRotation = -projIdx * 90;
+  animateRotationTo(targetRotation, 480);
+}
+
 
     /* DOM refs */
     const anchor = document.getElementById('anchor');
