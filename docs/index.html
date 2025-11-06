@@ -191,8 +191,8 @@
     const CLICK_TIME_THRESHOLD = 300;
 
     // faceIndices are the sequence values displayed on faces; initial mapping from OneCompiler
-    let faceIndices = { front: 0, right: 3, back: 2, left: 1, top: 4, bottom: 5 };
-    let projectCounter = 0; // increments each 90° boundary
+    let faceIndices = { front: 0, right: 1, back: 0, left: 0, top: 0, bottom: 0 };
+    let projectCounter = 1; // increments each 90° boundary
     let lastBoundary = null;
 
     /* Pointer handlers from OneCompiler */
