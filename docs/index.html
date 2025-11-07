@@ -225,6 +225,19 @@ function initializeFaces() {
   // Going CW: front=0, right=1, back=2, left=3
   faceIndices = { front: 0, right: 1, back: 2, left: 3, top: 0, bottom: 0 };
 }
+// Initialize faces with proper sequence
+function initializeFaceSequence() {
+  faceIndices = { 
+    front: 0, 
+    right: 1, 
+    back: 2, 
+    left: 3, 
+    top: 0, 
+    bottom: 0 
+  };
+  projectCounter = 0;
+}
+initializeFaceSequence();
 
     // // 10: Pointer handlers (drag/click)
     scene.addEventListener('pointerdown', e=>{
