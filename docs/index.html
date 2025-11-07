@@ -158,6 +158,18 @@ async function loadProjects() {
     console.log('Projects.json not loaded:', e);
   }
 }
+    async function loadProjects() {
+  try {
+    const response = await fetch('projects.json');
+    projectsData = await response.json();
+    updatePanelsFromVisibleFace();
+    refreshFaceContent(); // Add this
+    updateFaceImages();   // Add this
+  } catch(e) {
+    console.log('Projects.json not loaded:', e);
+  }
+}
+
 loadProjects();
 
     // 7.2 DOM refs
