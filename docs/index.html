@@ -145,15 +145,20 @@
 
   <!-- // 7: Script: data and DOM refs -->
   <script>
-    // 7.1 projects (example set; mapping will use modulo on faceIndices)
-    const projects = [
-      {title: 'Minesweeper', subtitle: 'Interactive tile-based puzzle', desc: 'Classic minesweeper with modern UI', url:'#', color:'#e74c3c'},
-      {title: 'Project 2', subtitle: 'Utility tool', desc: 'Small utility demo', url:'#', color:'#27ae60'},
-      {title: 'Project 3', subtitle: 'Algorithmic art', desc: 'Generative visuals', url:'#', color:'#9b59b6'},
-      {title: 'Project 4', subtitle: 'UX experiments', desc: 'Micro interactions', url:'#', color:'#1abc9c'},
-      {title: 'Project 5', subtitle: 'Extra', desc: 'Misc experiments', url:'#', color:'#f39c12'},
-      {title: 'Project 6', subtitle: 'Extra 2', desc: 'More experiments', url:'#', color:'#34495e'}
-    ];
+// 7.1 Dynamic project loading
+let projectsData = [];
+let currentVisibleValue = 0;
+
+async function loadProjects() {
+  try {
+    const response = await fetch('projects.json');
+    projectsData = await response.json();
+    updatePanelsFromVisibleFace(); // Update after load
+  } catch(e) {
+    console.log('Projects.json not loaded:', e);
+  }
+}
+loadProjects();
 
     // 7.2 DOM refs
     const anchor = document.getElementById('anchor');
@@ -167,18 +172,7 @@
     const imagePanel = document.getElementById('imagePanel');
     const projectsBar = document.getElementById('projectsBar');
 
-    // 7.3 bottom bar builder (safe to call now)
-    function buildBottomBar(){
-      projectsBar.innerHTML = '';
-      projects.forEach((p,i)=>{
-        const el = document.createElement('div');
-        el.className = 'proj-btn';
-        el.innerHTML = `<strong>${i+1}</strong><span>${p.title}</span>`;
-        el.addEventListener('click', ()=> centerCubeOnIndex(i));
-        projectsBar.appendChild(el);
-      });
-    }
-    if(projects.length) buildBottomBar();
+// 7.3 (removed bottom bar - using infinite scroll instead)
 
     // // 8: Layout and bite positioning
     function computeAnchor(){
@@ -208,10 +202,17 @@
     const CLICK_MOVE_THRESHOLD = 6;
     const CLICK_TIME_THRESHOLD = 300;
 
-    // Seed as agreed: right=1, others 0; projectCounter starts at 1
-    let faceIndices = { front: 0, right: 1, back: 0, left: 0, top: 0, bottom: 0 };
-    let projectCounter = 1;
-    let lastBoundary = null;
+// Start everything at 0
+let faceIndices = { front: 0, right: 0, back: 0, left: 0, top: 0, bottom: 0 };
+let projectCounter = 0;
+let lastBoundary = null;
+
+// Add this function to properly seed the faces
+function initializeFaces() {
+  // Set faces based on current rotation (0 degrees = front visible)
+  // Going CW: front=0, right=1, back=2, left=3
+  faceIndices = { front: 0, right: 1, back: 2, left: 3, top: 0, bottom: 0 };
+}
 
     // // 10: Pointer handlers (drag/click)
     scene.addEventListener('pointerdown', e=>{
@@ -288,37 +289,40 @@ function applyRotation(){
       }
     }
 
-    // // 14: Face/DOM refresh (numbers now; tomorrow map to projects)
-    function refreshFaceContent(){
-      const slots = ['front','right','back','left','top','bottom'];
-      slots.forEach(slot=>{
-        const faceEl = document.querySelector(`.face.${slot}`);
-        if(!faceEl) return;
-        const idx = faceIndices[slot] ?? 0;
-        faceEl.querySelector('h3').textContent = String(idx);
-        faceEl.querySelector('p').textContent = slot;
-      });
-    }
+// // 14: Face/DOM refresh (display projectCounter-1 to start at 0)
+function refreshFaceContent(){
+  const slots = ['front','right','back','left','top','bottom'];
+  slots.forEach(slot=>{
+    const faceEl = document.querySelector(`.face.${slot}`);
+    if(!faceEl) return;
+    const idx = faceIndices[slot] ?? 0;
+    const displayIdx = Math.max(0, idx - 1); // Offset by -1 for display
+    faceEl.querySelector('h3').textContent = String(displayIdx);
+    faceEl.querySelector('p').textContent = slot;
+  });
+}
 
-// // 15: Panels update from visible face (infinite titles, no looping)
+// // 15: Panels update from visible face (dynamic JSON lookup)
 function updatePanelsFromVisibleFace(){
   const slot = mostVisibleFace();
-  const n = faceIndices[slot] ?? 0;
-  const p = projects[n]; // Direct index, no modulo
-
-  if(p){
-    document.getElementById('projTitle').textContent = p.title;
-    document.getElementById('projSubtitle').textContent = p.subtitle;
-    document.getElementById('projDesc').textContent = p.desc;
-    imagePanel.textContent = `${p.title} preview (placeholder)`;
-    imagePanel.style.borderLeft = `4px solid ${p.color}`;
-  }else{
-    // Past defined projects - keep counting infinitely
-    document.getElementById('projTitle').textContent = `Project ${n}`;
+  currentVisibleValue = faceIndices[slot] ?? 0;
+  
+  // Find project with matching value
+  const project = projectsData.find(p => p.value === currentVisibleValue);
+  
+  if(project){
+    document.getElementById('projTitle').textContent = project.project_name;
+    document.getElementById('projSubtitle').textContent = project.github_link;
+    document.getElementById('projDesc').textContent = project.description;
+    imagePanel.innerHTML = `<img src="${project.image_link}" style="max-width:100%;max-height:100%;object-fit:contain;">`;
+    imagePanel.style.borderLeft = '4px solid #19a6ff';
+  } else {
+    // No project for this value - show generic
+    document.getElementById('projTitle').textContent = `Project ${currentVisibleValue}`;
     document.getElementById('projSubtitle').textContent = '';
     document.getElementById('projDesc').textContent = '';
     imagePanel.textContent = '';
-    imagePanel.style.borderLeft = `4px solid rgba(255,255,255,0.12)`;
+    imagePanel.style.borderLeft = '4px solid rgba(255,255,255,0.12)';
   }
 }
 
@@ -385,6 +389,10 @@ prevRotation = totalRotation;
         if(p && p.url) window.open(p.url, '_blank');
       });
     });
+    // Initialize faces properly
+initializeFaces();
+refreshFaceContent();
+
   </script>
 </body>
 </html>
