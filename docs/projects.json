@@ -5,8 +5,8 @@
     "project_link": "jackfshields.github.io",
     "github_link": "github.com/JackFShields/portfolio",
     "description": "Interactive 3D portfolio with infinite rotation",
-    "image_link": "https://via.placeholder.com/400x300/071425/e8f7ff?text=Portfolio",
-    "face_of_cube_image_link": "https://via.placeholder.com/336x336/071425/e8f7ff?text=0"
+    "image_link": "https://miro.medium.com/v2/resize:fit:1080/1*8DDN_DRuSBlM74dVYUjR9Q.png",
+    "face_of_cube_image_link": "https://miro.medium.com/v2/resize:fit:1080/1*8DDN_DRuSBlM74dVYUjR9Q.png"
   },
   {
     "value": 1,
@@ -14,7 +14,7 @@
     "project_link": "jackfshields.github.io/polyweave-mines",
     "github_link": "github.com/JackFShields/polyweave-mines",
     "description": "Minesweeper with customizable adjacency rules",
-    "image_link": "https://via.placeholder.com/400x300/e74c3c/ffffff?text=Minesweeper",
-    "face_of_cube_image_link": "https://via.placeholder.com/336x336/e74c3c/ffffff?text=1"
+    "image_link": "https://www.bumblescoop.com/wp-content/uploads/2022/12/Neuroflash-696x696.png",
+    "face_of_cube_image_link": "https://www.bumblescoop.com/wp-content/uploads/2022/12/Neuroflash-696x696.png"
   }
 ]
