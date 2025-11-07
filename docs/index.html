@@ -301,6 +301,21 @@ function refreshFaceContent(){
     faceEl.querySelector('p').textContent = slot;
   });
 }
+// // 14.5: Update face images from JSON
+function updateFaceImages(){
+  const slots = ['front','right','back','left','top','bottom'];
+  slots.forEach(slot => {
+    const faceEl = document.querySelector(`.face.${slot}`);
+    if(!faceEl) return;
+    const idx = faceIndices[slot] ?? 0;
+    const project = projectsData.find(p => p.value === idx);
+    if(project && project.face_of_cube_image_link){
+      faceEl.style.backgroundImage = `url(${project.face_of_cube_image_link})`;
+      faceEl.style.backgroundSize = 'cover';
+      faceEl.style.backgroundPosition = 'center';
+    }
+  });
+}
 
 // // 15: Panels update from visible face (dynamic JSON lookup)
 function updatePanelsFromVisibleFace(){
@@ -312,7 +327,7 @@ function updatePanelsFromVisibleFace(){
   
   if(project){
     document.getElementById('projTitle').textContent = project.project_name;
-    document.getElementById('projSubtitle').textContent = project.github_link;
+    document.getElementById('projSubtitle').innerHTML = `<a href="https://${project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>`;
     document.getElementById('projDesc').textContent = project.description;
     imagePanel.innerHTML = `<img src="${project.image_link}" style="max-width:100%;max-height:100%;object-fit:contain;">`;
     imagePanel.style.borderLeft = '4px solid #19a6ff';
