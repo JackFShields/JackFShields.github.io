@@ -282,13 +282,12 @@ initializeFaceSequence();
 // // 11: Rotation application and updates
 let prevRotation = 0; // Add this line to track actual previous
 function applyRotation(){
-  cube.style.transform = `translateZ(-140px) rotateX(-10deg) rotateY(${rotY}deg)`;
+  cube.style.transform = `translateZ(-140px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
   handleThresholds(prevRotation, totalRotation); // Use actual previous
   prevRotation = totalRotation; // Save for next frame
   updatePanelsFromVisibleFace();
   refreshFaceContent();
 }
-
     // // 12: Helpers
     function normalizeDeg(d){ let v = d % 360; if(v < 0) v += 360; return v; }
     function mostVisibleFace(){
