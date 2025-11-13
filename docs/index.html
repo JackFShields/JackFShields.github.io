@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Portfolio Cube — Centered Scoop Layout</title>
+  <title>Portfolio Cube — Hub + Gutters</title>
   <link rel="icon" href="https://raw.githubusercontent.com/JackFShields/JackFShields.github.io/refs/heads/main/cube.png" type="image/x-icon" />
 
   <style>
@@ -14,10 +14,10 @@
       --text: #e6eef6;
       --muted: rgba(190,215,240,0.7);
 
-      /* Geometry controls */
-      --cube-size: 280px;        /* change cube size here */
-      --scoop-radius: 225px;     /* change scoop radius to match cube scale */
-      --gap: 14px;               /* visible gap thickness between panels */
+      /* geometry */
+      --cube-size: 280px;       /* change to scale cube */
+      --scoop-radius: 225px;    /* change to keep scoop matched to cube */
+      --gutter: 14px;           /* visible gap thickness between panels */
       --corner-radius: 14px;
       --scene-perspective: 1200px;
     }
@@ -26,102 +26,95 @@
     html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;-webkit-font-smoothing:antialiased}
     .viewport{width:100vw;height:100vh;position:relative;overflow:hidden}
 
-    /* Panels */
-    .panel {
-      position:absolute;
-      background: var(--panel-grad);
-      border: 1px solid var(--border);
-      border-radius: var(--corner-radius);
-      padding: 20px;
-      box-shadow: 0 10px 36px rgba(0,0,0,0.36);
-      overflow: visible;
-      z-index: 2; /* below hub which sits at 4 and cube at 6 */
+    /* Simple two-column layout so left stack and right image align reliably */
+    .layout {
+      position:relative;
+      width:100%;
+      height:100%;
+      display:grid;
+      grid-template-columns: calc(42vw - var(--gutter)/2) calc(54vw - var(--gutter)/2);
+      grid-template-rows: auto 1fr;
+      gap: var(--gutter);
+      padding: 2vh 2vw;
     }
 
-    /* Left stack (title above description). Their inner edges align to viewport center */
     .title {
-      width: calc(42vw - var(--gap));
-      height: 40vh;
-      right: calc(50vw + var(--gap)/2);   /* push slightly to leave room for vertical gutter */
-      bottom: calc(50vh - var(--gap)/2);  /* inner corner touches hub center line */
+      grid-column: 1 / 2;
+      grid-row: 1 / 2;
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
     }
-    .title h1 { font-size: 30px; margin-bottom: 8px; }
-    .title p { color: var(--muted); margin-top: 6px; }
-
     .description {
-      width: calc(42vw - var(--gap));
-      height: calc(100vh - (40vh + var(--gap) + 4vh));
-      right: calc(50vw + var(--gap)/2);
-      top: calc(50vh + var(--gap)/2);
+      grid-column: 1 / 2;
+      grid-row: 2 / 3;
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
     }
-    .description p { color: var(--muted); line-height: 1.45; }
-
-    /* Right image panel: left inner edge aligns to viewport center */
     .image {
-      width: calc(54vw - var(--gap));
-      height: calc(96vh - 4vh);
-      left: calc(50vw + var(--gap)/2);
-      top: 50%;
-      transform: translateY(-50%);
-      display:flex; align-items:center; justify-content:center; text-align:center; color:var(--muted);
+      grid-column: 2 / 3;
+      grid-row: 1 / 3;
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
+      display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);
     }
 
-    /* Center hub holds the scoop and gutters and cube; fixed to viewport center for stable alignment */
+    .panel {
+      background: var(--panel-grad);
+      border:1px solid var(--border);
+      border-radius: var(--corner-radius);
+      padding:20px;
+      box-shadow: 0 10px 36px rgba(0,0,0,0.36);
+      z-index:1;
+    }
+
+    /* Center hub (fixed) keeps scoop and gutters exactly at viewport center */
     .center-hub {
       position:fixed;
-      left:50vw;
-      top:50vh;
+      left:50vw; top:50vh;
       width: calc(var(--scoop-radius) * 2);
       height: calc(var(--scoop-radius) * 2);
       transform: translate(-50%,-50%);
       pointer-events:none;
-      z-index:4; /* above panels but below cube (cube z-index 6) */
+      z-index:3; /* above panels */
     }
 
-    /* The scoop eraser is a disk filled with the page background color; sits above panels so it "carves" them visually */
-    .scoop-eraser{
-      position:absolute;
-      inset:0;
-      border-radius:50%;
+    /* Scoop drawn first (below gutters) so it's continuous */
+    .scoop-eraser {
+      position:absolute; inset:0; border-radius:50%;
       background: var(--bg);
-      box-shadow: inset 0 12px 28px rgba(0,0,0,0.25);
+      box-shadow: inset 0 10px 30px rgba(0,0,0,0.22);
       z-index:1;
       pointer-events:none;
     }
 
-    /* Gutters are thin overlays drawn after the scoop so gaps appear continuous */
-    .gutter { position:absolute; background: var(--bg); z-index:2; pointer-events:none; }
-    .gutter-vertical{
-      width: var(--gap);
+    /* Gutters drawn after scoop, visually creating gaps */
+    .gutter {
+      position:absolute; background: var(--bg); z-index:2; pointer-events:none;
+    }
+    .gutter-vertical {
+      width: var(--gutter);
       height: 100%;
-      left: calc(50% - var(--gap)/2);
+      left: calc(50% - var(--gutter)/2);
       top: 0;
     }
-    .gutter-horizontal-top{
-      height: var(--gap);
+    .gutter-h-top {
+      height: var(--gutter);
       width: calc(50% + var(--scoop-radius));
       left: 50%;
       top: calc(50% - var(--scoop-radius));
     }
-    .gutter-horizontal-bottom{
-      height: var(--gap);
+    .gutter-h-bottom {
+      height: var(--gutter);
       width: calc(50% + var(--scoop-radius));
       left: 50%;
       bottom: calc(50% - var(--scoop-radius));
     }
 
-    /* Cube */
-    .cube-wrap { position:fixed; left:50vw; top:50vh; transform: translate(-50%,-50%); width: var(--cube-size); height: var(--cube-size); z-index:6; pointer-events:none; }
+    /* Cube sits centered at viewport center (fixed) so hub and cube never drift */
+    .cube-wrap { position:fixed; left:50vw; top:50vh; transform: translate(-50%,-50%); width: var(--cube-size); height: var(--cube-size); z-index:4; pointer-events:none; }
     .scene { width:100%; height:100%; perspective:var(--scene-perspective); position:relative; pointer-events:auto; user-select:none; touch-action:none; }
-    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:6; }
+    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size)/-2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:4; }
 
-    /* Faces */
     .face { position:absolute; left:0; top:0; width:100%; height:100%; border-radius:12px; background: var(--panel-grad); border: 1px solid var(--border); display:flex; align-items:center; justify-content:center; box-shadow: 0 10px 36px rgba(0,0,0,0.6); backface-visibility:hidden; cursor:pointer; box-sizing:border-box; }
     .front { transform: rotateY(0deg) translateZ(calc(var(--cube-size)/2)); }
     .right { transform: rotateY(90deg) translateZ(calc(var(--cube-size)/2)); }
@@ -130,60 +123,53 @@
     .top   { transform: rotateX(90deg) translateZ(calc(var(--cube-size)/2)); }
     .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
-    /* Accent ring (optional, subtle) */
+    /* subtle visual ring under scoop (optional) */
     .accent-ring {
-      position:fixed; left:50vw; top:50vh;
-      width: calc(var(--scoop-radius) * 2); height: calc(var(--scoop-radius) * 2);
-      transform: translate(-50%,-50%);
-      border-radius: 50%;
-      pointer-events:none;
-      background:
-        radial-gradient(circle at center,
-          rgba(25,166,255,0.06) 0%,
-          rgba(25,166,255,0.03) 55%,
-          transparent 100%);
-      filter: blur(2px);
-      z-index:3;
+      position:fixed; left:50vw; top:50vh; transform:translate(-50%,-50%);
+      width: calc(var(--scoop-radius)*2); height: calc(var(--scoop-radius)*2);
+      border-radius:50%; pointer-events:none; z-index:2;
+      background: radial-gradient(circle at center, rgba(25,166,255,0.06), rgba(25,166,255,0.02) 60%, transparent 100%); filter:blur(2px);
     }
 
-    @media (max-width: 980px) {
-      :root { --cube-size: 260px; --scoop-radius: 210px; --gap: 12px; }
-      .title { width: calc(100vw - 4vw); height: 22vh; right: calc(50vw + var(--gap)/2); bottom: calc(50vh - var(--gap)/2); }
-      .description { width: calc(100vw - 4vw); right: calc(50vw + var(--gap)/2); top: calc(50vh + var(--gap)/2); height: 30vh; }
-      .image { width: calc(100vw - 4vw); left: calc(50vw + var(--gap)/2); height: 34vh; top: 50%; transform: translateY(-50%); }
-      .center-hub, .accent-ring { width: calc(var(--scoop-radius) * 2); height: calc(var(--scoop-radius) * 2); transform: translate(-50%,-50%); left:50vw; top:50vh; }
+    @media (max-width:980px){
+      :root{ --cube-size:260px; --scoop-radius:210px; --gutter:12px; }
+      .layout{ grid-template-columns: 1fr; grid-template-rows: auto auto auto; gap: var(--gutter); padding: 2vh 4vw;}
+      .title{ grid-column:1; grid-row:1; border-top-right-radius: var(--corner-radius); border-bottom-right-radius: var(--corner-radius); }
+      .description{ grid-column:1; grid-row:2; }
+      .image{ grid-column:1; grid-row:3; order:3; transform:none; left:auto; top:auto; width:calc(100% - 4vw); height:36vh; }
+      .center-hub{ display:none; } /* mobile: hide hub for simplicity */
+      .cube-wrap{ position:relative; left:auto; top:auto; transform:none; margin: 0 auto; display:block; }
     }
   </style>
 </head>
 <body>
-  <div class="viewport" id="viewport">
+  <div class="viewport">
 
-    <!-- Left panels (title + description) -->
-    <div class="panel title" id="titlePanel">
-      <h1 id="projTitle">Unfinished project</h1>
-      <p id="projSubtitle"></p>
-      <div style="margin-top:10px;color:var(--muted);font-size:13px"></div>
+    <div class="layout" id="layout">
+      <div class="panel title" id="titlePanel">
+        <h1 id="projTitle">Unfinished project</h1>
+        <p id="projSubtitle"></p>
+        <div style="margin-top:10px;color:var(--muted);font-size:13px"></div>
+      </div>
+
+      <div class="panel description" id="descPanel">
+        <p id="projDesc"></p>
+      </div>
+
+      <div class="panel image" id="imagePanel">Preview area</div>
     </div>
 
-    <div class="panel description" id="descPanel">
-      <p id="projDesc"></p>
-    </div>
-
-    <!-- Right image panel -->
-    <div class="panel image" id="imagePanel">Preview area</div>
-
-    <!-- Center hub contains the scoop eraser and gutters; fixed to viewport center -->
+    <!-- center hub fixed to viewport center -->
     <div class="center-hub" id="centerHub" aria-hidden="true">
-      <div class="scoop-eraser" id="scoopEraser" aria-hidden="true"></div>
+      <div class="scoop-eraser" id="scoop"></div>
       <div class="gutter gutter-vertical" aria-hidden="true"></div>
-      <div class="gutter gutter-horizontal-top" aria-hidden="true"></div>
-      <div class="gutter gutter-horizontal-bottom" aria-hidden="true"></div>
+      <div class="gutter gutter-h-top" aria-hidden="true"></div>
+      <div class="gutter gutter-h-bottom" aria-hidden="true"></div>
     </div>
 
-    <!-- Accent ring (subtle) -->
     <div class="accent-ring" aria-hidden="true"></div>
 
-    <!-- Cube (centered at viewport center) -->
+    <!-- cube fixed at center -->
     <div class="cube-wrap" id="cubeWrap">
       <div class="scene" id="scene">
         <div class="cube" id="cube" role="application" aria-label="cube">
@@ -200,32 +186,17 @@
   </div>
 
   <script>
-    // Lightweight project/face logic and rotation handlers
+    /* Lightweight rotation / face logic (unchanged semantics) */
     let projectsData = [];
-    let currentVisibleValue = 0;
-
     const scene = document.getElementById('scene');
     const cube = document.getElementById('cube');
-    const titlePanel = document.getElementById('titlePanel');
-    const descPanel = document.getElementById('descPanel');
-    const imagePanel = document.getElementById('imagePanel');
 
-    // Rotation state
-    let totalRotation = 0;
-    let rotY = 0;
-    let isDown = false;
-    let startX = 0, startRot = 0, startT = 0;
-    let angVel = 0;
-    const SENS = 0.35;
-    const CLICK_MOVE_THRESHOLD = 6;
-    const CLICK_TIME_THRESHOLD = 300;
+    let rotY = 0, isDown = false, startX = 0, startRot = 0, startT = 0, angVel = 0;
+    const SENS = 0.35, CLICK_MOVE_THRESHOLD = 6, CLICK_TIME_THRESHOLD = 300;
 
-    // Face indices
-    let faceIndices = { front: 0, right: 0, back: 2, left: 1, top: -1, bottom: -1 };
-    let projectCounter = 0;
-    let lastBoundary = null;
+    let faceIndices = { front:0, right:1, back:2, left:3, top:0, bottom:0 };
+    let projectCounter = 0, lastBoundary = null, totalRotation = 0, prevRotation = 0;
 
-    // Pointer handlers on scene (not faces) so drag and click co-exist
     scene.addEventListener('pointerdown', e=>{
       isDown = true;
       startX = e.clientX;
@@ -256,17 +227,15 @@
         if(face){
           const slot = face.dataset.slot;
           const idx = faceIndices[slot] ?? 0;
-          const project = projectsData.find(p => p.value === idx);
-          if(project && project.project_link){
-            const href = project.project_link.startsWith('http') ? project.project_link : `https://${project.project_link}`;
-            window.open(href, '_blank');
+          const p = projectsData.find(x=>x.value===idx);
+          if(p && p.project_link){
+            const href = p.project_link.startsWith('http') ? p.project_link : `https://${p.project_link}`;
+            window.open(href,'_blank');
           }
         }
       }
     });
 
-    // Rotation application and boundary handling
-    let prevRotation = 0;
     function applyRotation(){
       cube.style.transform = `translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(${rotY}deg)`;
       handleThresholds(prevRotation, totalRotation);
@@ -275,23 +244,21 @@
       refreshFaceContent();
     }
 
-    function normalizeDeg(d){ let v = d % 360; if(v < 0) v += 360; return v; }
+    function normalizeDeg(d){ let v = d % 360; if(v<0) v+=360; return v; }
     function mostVisibleFace(){
       const norm = normalizeDeg(rotY);
-      if(norm >= 45 && norm < 135) return 'left';
-      if(norm >= 135 && norm < 225) return 'back';
-      if(norm >= 225 && norm < 315) return 'right';
+      if(norm>=45 && norm<135) return 'left';
+      if(norm>=135 && norm<225) return 'back';
+      if(norm>=225 && norm<315) return 'right';
       return 'front';
     }
-
-    function handleThresholds(prevTotal, newTotal){
-      if(lastBoundary === null) lastBoundary = Math.floor(totalRotation / 90);
-      const currentBoundary = Math.floor(newTotal / 90);
+    function handleThresholds(prevTotal,newTotal){
+      if(lastBoundary===null) lastBoundary = Math.floor(totalRotation/90);
+      const currentBoundary = Math.floor(newTotal/90);
       if(currentBoundary !== lastBoundary){
         const direction = currentBoundary > lastBoundary ? 1 : -1;
         projectCounter = Math.max(0, projectCounter + direction);
         lastBoundary = currentBoundary;
-
         const visibleFace = mostVisibleFace();
         const hiddenMap = { front:'back', left:'right', back:'front', right:'left' };
         const hiddenFace = hiddenMap[visibleFace];
@@ -299,88 +266,61 @@
       }
     }
 
-    // Face refresh: apply images and safe click handlers
     function refreshFaceContent(){
-      const slots = ['front','right','back','left','top','bottom'];
-      slots.forEach(slot=>{
-        const faceEl = document.querySelector(`.face.${slot}`);
-        if(!faceEl) return;
-        faceEl.innerHTML = '';
+      ['front','right','back','left','top','bottom'].forEach(slot=>{
+        const el = document.querySelector(`.face.${slot}`);
+        if(!el) return;
+        el.innerHTML = '';
       });
       updateFaceImages();
     }
-
     function updateFaceImages(){
-      const slots = ['front','right','back','left','top','bottom'];
-      slots.forEach(slot => {
-        const faceEl = document.querySelector(`.face.${slot}`);
-        if(!faceEl) return;
-
+      ['front','right','back','left','top','bottom'].forEach(slot=>{
+        const el = document.querySelector(`.face.${slot}`);
+        if(!el) return;
         const idx = faceIndices[slot] ?? 0;
-        const project = projectsData.find(p => p.value === idx);
-
-        faceEl.style.backgroundImage = '';
-        faceEl.style.cursor = 'default';
-        if(faceEl._removeHandlers){ faceEl._removeHandlers(); faceEl._removeHandlers = null; }
-
+        const project = projectsData.find(p=>p.value===idx);
+        el.style.backgroundImage = '';
+        el.style.cursor = 'default';
+        if(el._removeHandlers){ el._removeHandlers(); el._removeHandlers=null; }
         if(project && project.face_of_cube_image_link){
-          faceEl.style.backgroundImage = `url(${project.face_of_cube_image_link})`;
-          faceEl.style.backgroundSize = 'cover';
-          faceEl.style.backgroundPosition = 'center';
-          faceEl.style.cursor = 'pointer';
-
-          let downX = 0, downY = 0, moved = false;
-          const threshold = 6;
-
-          const onPointerDown = (e) => { moved = false; downX = e.clientX; downY = e.clientY; };
-          const onPointerMove = (e) => {
-            if(Math.abs(e.clientX - downX) > threshold || Math.abs(e.clientY - downY) > threshold){ moved = true; }
-          };
-          const onPointerUp = (e) => {
-            if(!moved){
-              const href = project.project_link.startsWith('http') ? project.project_link : `https://${project.project_link}`;
-              window.open(href, '_blank');
-            }
-          };
-
-          faceEl.addEventListener('pointerdown', onPointerDown, { passive: true });
-          faceEl.addEventListener('pointermove', onPointerMove, { passive: true });
-          faceEl.addEventListener('pointerup', onPointerUp, { passive: true });
-
-          faceEl._removeHandlers = () => {
-            faceEl.removeEventListener('pointerdown', onPointerDown);
-            faceEl.removeEventListener('pointermove', onPointerMove);
-            faceEl.removeEventListener('pointerup', onPointerUp);
-          };
+          el.style.backgroundImage = `url(${project.face_of_cube_image_link})`;
+          el.style.backgroundSize = 'cover';
+          el.style.backgroundPosition = 'center';
+          el.style.cursor = 'pointer';
+          let downX=0, downY=0, moved=false, threshold=6;
+          const onDown = e=>{ moved=false; downX=e.clientX; downY=e.clientY; };
+          const onMove = e=>{ if(Math.abs(e.clientX-downX)>threshold||Math.abs(e.clientY-downY)>threshold) moved=true; };
+          const onUp = e=>{ if(!moved){ const href = project.project_link.startsWith('http')?project.project_link:`https://${project.project_link}`; window.open(href,'_blank'); } };
+          el.addEventListener('pointerdown', onDown, {passive:true});
+          el.addEventListener('pointermove', onMove, {passive:true});
+          el.addEventListener('pointerup', onUp, {passive:true});
+          el._removeHandlers = ()=>{ el.removeEventListener('pointerdown', onDown); el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerup', onUp); };
         }
       });
     }
 
-    // Panels update using JSON fields
     function updatePanelsFromVisibleFace(){
       const slot = mostVisibleFace();
       const currentVisibleValue = faceIndices[slot] ?? 0;
-      const project = projectsData.find(p => p.value === currentVisibleValue);
-
+      const project = projectsData.find(p=>p.value===currentVisibleValue);
       if(project){
         document.getElementById('projTitle').textContent = project.project_name;
-        document.getElementById('projSubtitle').innerHTML =
-          `<a href="${project.project_link.startsWith('http') ? project.project_link : 'https://' + project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>`;
+        document.getElementById('projSubtitle').innerHTML = `<a href="${project.project_link.startsWith('http')?project.project_link:'https://'+project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>`;
         document.getElementById('projDesc').textContent = project.description;
-
         const scale = project.image_scale || '100%';
-        imagePanel.innerHTML = `<img src="${project.image_link}" style="width:${scale};height:auto;object-fit:contain;">`;
-        imagePanel.style.borderLeft = '4px solid #19a6ff';
+        document.getElementById('imagePanel').innerHTML = `<img src="${project.image_link}" style="width:${scale};height:auto;object-fit:contain;">`;
+        document.getElementById('imagePanel').style.borderLeft = '4px solid #19a6ff';
       } else {
         document.getElementById('projTitle').textContent = 'Unfinished project';
         document.getElementById('projSubtitle').textContent = '';
         document.getElementById('projDesc').textContent = '';
-        imagePanel.textContent = '';
-        imagePanel.style.borderLeft = '4px solid rgba(255,255,255,0.12)';
+        document.getElementById('imagePanel').textContent = '';
+        document.getElementById('imagePanel').style.borderLeft = '4px solid rgba(255,255,255,0.12)';
       }
     }
 
-    // Inertia loop
+    // inertia loop
     let lastFrame = performance.now();
     function loop(now){
       const dt = (now - lastFrame)/1000;
@@ -395,28 +335,18 @@
     }
     requestAnimationFrame(loop);
 
-    // Layout init and wiring: keep scoop/gutters purely CSS so no JS clipping is required
-    function layoutUpdate(){
-      // ensure cube transform and panels match current state
-      applyRotation();
+    // load projects.json
+    async function loadProjects(){
+      try{
+        const r = await fetch('projects.json');
+        projectsData = await r.json();
+      }catch(e){ console.log('projects.json not loaded', e); }
     }
-    let resizeTimer;
-    window.addEventListener('resize', ()=>{ clearTimeout(resizeTimer); resizeTimer = setTimeout(layoutUpdate, 80); });
-    window.addEventListener('load', ()=>{ layoutUpdate(); setTimeout(layoutUpdate, 120); });
+    loadProjects().then(()=>{ refreshFaceContent(); updatePanelsFromVisibleFace(); });
 
-    // Load projects.json and initialize faces/UI
-    async function loadProjects() {
-      try {
-        const response = await fetch('projects.json');
-        projectsData = await response.json();
-      } catch (e) {
-        console.log('Projects.json not loaded:', e);
-      }
-    }
-    loadProjects().then(() => {
-      refreshFaceContent();
-      updatePanelsFromVisibleFace();
-    });
+    // layout init
+    window.addEventListener('load', ()=>{ applyRotation(); setTimeout(applyRotation, 120); });
+    window.addEventListener('resize', ()=>{ applyRotation(); });
   </script>
 </body>
 </html>
