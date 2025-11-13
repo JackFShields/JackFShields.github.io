@@ -327,9 +327,11 @@ function refreshFaceContent(){
   updateFaceImages(); // always refresh images + click handlers
 }
 
-// // 14.5: Update face images from JSON with click + scale
+// // 14.5: Update face images from JSON with click that doesn't break drag
 function updateFaceImages(){
   const slots = ['front','right','back','left','top','bottom'];
+
+  // Clean up any previous listeners to avoid duplicates
   slots.forEach(slot => {
     const faceEl = document.querySelector(`.face.${slot}`);
     if(!faceEl) return;
@@ -337,26 +339,61 @@ function updateFaceImages(){
     const idx = faceIndices[slot] ?? 0;
     const project = projectsData.find(p => p.value === idx);
 
+    // Always reset visuals first
+    faceEl.style.backgroundImage = '';
+    faceEl.style.cursor = 'default';
+    faceEl.classList.remove('clickable-face');
+
+    // Remove prior handlers if we stored them
+    if(faceEl._removeHandlers){
+      faceEl._removeHandlers();
+      faceEl._removeHandlers = null;
+    }
+
     if(project && project.face_of_cube_image_link){
       // Apply cube face image
       faceEl.style.backgroundImage = `url(${project.face_of_cube_image_link})`;
       faceEl.style.backgroundSize = 'cover';
       faceEl.style.backgroundPosition = 'center';
 
-      // Make face clickable
+      // Make face clickable without breaking drag
       faceEl.style.cursor = 'pointer';
-      faceEl.onclick = () => {
-        window.open(`https://${project.project_link}`, '_blank');
+      faceEl.classList.add('clickable-face');
+
+      let startX = 0, startY = 0, moved = false;
+      const threshold = 6; // pixels before we consider it a drag
+
+      const onPointerDown = (e) => {
+        moved = false;
+        startX = e.clientX;
+        startY = e.clientY;
       };
-    } else {
-      // Clear if no project
-      faceEl.style.backgroundImage = '';
-      faceEl.style.cursor = 'default';
-      faceEl.onclick = null;
+      const onPointerMove = (e) => {
+        if(Math.abs(e.clientX - startX) > threshold || Math.abs(e.clientY - startY) > threshold){
+          moved = true;
+        }
+      };
+      const onPointerUp = (e) => {
+        // If not dragged, treat as click
+        if(!moved){
+          // Open project link safely
+          window.open(`https://${project.project_link}`, '_blank');
+        }
+      };
+
+      faceEl.addEventListener('pointerdown', onPointerDown, { passive: true });
+      faceEl.addEventListener('pointermove', onPointerMove, { passive: true });
+      faceEl.addEventListener('pointerup', onPointerUp, { passive: true });
+
+      // Store a remover to avoid stacking listeners on refresh
+      faceEl._removeHandlers = () => {
+        faceEl.removeEventListener('pointerdown', onPointerDown);
+        faceEl.removeEventListener('pointermove', onPointerMove);
+        faceEl.removeEventListener('pointerup', onPointerUp);
+      };
     }
   });
 }
-
 // // 15: Panels update from visible face (dynamic JSON lookup, no "Project N")
 function updatePanelsFromVisibleFace(){
   const slot = mostVisibleFace();
