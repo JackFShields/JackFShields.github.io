@@ -9,7 +9,8 @@
   <style>
     :root{
       --bg: #071425;
-      --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+      --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      --panel-solid: rgba(10,18,28,0.82);
       --border: rgba(255,255,255,0.08);
       --text: #e6eef6;
       --muted: rgba(190,215,240,0.7);
@@ -45,13 +46,17 @@
     }
 
     .panel {
+      /* make panels visually opaque enough so underlying hub doesn't show through seams */
       background: var(--panel-grad);
+      /* An additional near-solid layer ensures no underlying dark rectangles are visible */
+      background-color: var(--panel-solid);
       border:1px solid var(--border);
       border-radius: var(--corner-radius);
       padding:20px;
       box-shadow: 0 10px 36px rgba(0,0,0,0.36);
-      z-index:9;
+      z-index:6; /* ensure panels render above hub by default */
       overflow:visible;
+      position:relative;
     }
 
     .title {
@@ -77,6 +82,22 @@
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
       display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);
+      overflow:hidden; /* clip image and prevent hub artifacts from showing through */
+      padding:0;
+      min-height: 120px;
+      position:relative;
+    }
+
+    .image img {
+      display:block;
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      border-radius: calc(var(--corner-radius)); /* match panel rounding */
+      -webkit-user-drag: none;
+      user-drag: none;
+      pointer-events: none;
+      background-color: transparent;
     }
 
     /* Compute the intersection point (where the three boxes meet).
@@ -93,11 +114,11 @@
       width: var(--cube-size);
       height: var(--cube-size);
       transform: translate(-50%,-50%); /* center the cube on the computed intersection */
-      z-index:7; /* above panels and above the scoop/gutters if needed */
+      z-index:9; /* above panels and cube interactions */
       pointer-events:none;
     }
     .scene { width:100%; height:100%; perspective:var(--scene-perspective); position:relative; pointer-events:auto; user-select:none; touch-action:none; }
-    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:8; }
+    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:9; }
 
     .face { position:absolute; left:0; top:0; width:100%; height:100%; border-radius:12px; background: var(--panel-grad); border: 1px solid var(--border); display:flex; align-items:center; justify-content:center; box-shadow: 0 10px 36px rgba(0,0,0,0.6); backface-visibility:hidden; cursor:pointer; box-sizing:border-box; }
     .front { transform: rotateY(0deg) translateZ(calc(var(--cube-size)/2)); }
@@ -107,7 +128,8 @@
     .top   { transform: rotateX(90deg) translateZ(calc(var(--cube-size)/2)); }
     .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
-    /* Center hub (scoop eraser + gutters) positioned at the same computed intersection */
+    /* Center hub (scoop eraser + gutters) positioned at the same computed intersection.
+       Important: place this UNDER the panels so its background rectangles won't paint over panels. */
     .center-hub {
       position:absolute;
       left: calc(var(--padding-x) + (42vw - var(--gap)/2));
@@ -116,7 +138,7 @@
       height: calc(var(--scoop-radius) * 2);
       transform: translate(-50%,-50%);
       pointer-events:none;
-      z-index:1; /* above panels but below cube by default */
+      z-index:2; /* underneath panels (panels z-index:6) */
     }
 
     .scoop-eraser{
@@ -125,13 +147,15 @@
       box-shadow: inset 0 10px 30px rgba(0,0,0,0.22);
       z-index:1;
       pointer-events:none;
+      /* slightly feather edges so there are no hard seams */
+      filter: blur(0.25px);
     }
 
     /* Gutters drawn after scoop so gaps visually cut panels but scoop remains continuous */
-    .gutter { position:absolute; background: var(--bg); z-index:2; pointer-events:none; }
-    .gutter-vertical { width: var(--gap); height: 100%; left: calc(50% - var(--gap)/2); top: 0; }
-    .gutter-h-top { height: var(--gap); width: calc(50% + var(--scoop-radius)); left: 50%; top: calc(50% - var(--scoop-radius)); }
-    .gutter-h-bottom { height: var(--gap); width: calc(50% + var(--scoop-radius)); left: 50%; bottom: calc(50% - var(--scoop-radius)); }
+    .gutter { position:absolute; background: var(--bg); z-index:1; pointer-events:none; }
+    .gutter-vertical { width: var(--gap); height: 100%; left: calc(50% - var(--gap)/2); top: 0; border-radius:2px; }
+    .gutter-h-top { height: var(--gap); width: calc(50% + var(--scoop-radius)); left: 50%; top: calc(50% - var(--scoop-radius)); border-radius:2px; }
+    .gutter-h-bottom { height: var(--gap); width: calc(50% + var(--scoop-radius)); left: 50%; bottom: calc(50% - var(--scoop-radius)); border-radius:2px; }
 
     /* Optional subtle accent ring placed under scoop */
     .accent-ring {
@@ -145,11 +169,11 @@
       pointer-events:none;
       background: radial-gradient(circle at center, rgba(25,166,255,0.06), rgba(25,166,255,0.02) 60%, transparent 100%);
       filter: blur(2px);
-      z-index:2;
+      z-index:3;
     }
 
-    /* Make sure panels are on top of background */
-    .title, .description, .image { z-index:1; }
+    /* Make sure panels are on top of background and hub */
+    .title, .description, .image { z-index:6; }
 
     @media (max-width:980px){
       /* On small screens keep a simpler layout and hide the hub to avoid clutter */
@@ -183,7 +207,7 @@
     <!-- accent ring under scoop for subtle glow -->
     <div class="accent-ring" id="accentRing" aria-hidden="true"></div>
 
-    <!-- center hub at the intersection (scoop + gutters) -->
+    <!-- center hub at the intersection (scoop + gutters) - intentionally placed under panels -->
     <div class="center-hub" id="centerHub" aria-hidden="true">
       <div class="scoop-eraser" id="scoop"></div>
       <div class="gutter gutter-vertical" aria-hidden="true"></div>
@@ -333,13 +357,15 @@
         document.getElementById('projSubtitle').innerHTML = `<a href="${project.project_link.startsWith('http')?project.project_link:'https://'+project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>`;
         document.getElementById('projDesc').textContent = project.description;
         const scale = project.image_scale || '100%';
-        document.getElementById('imagePanel').innerHTML = `<img src="${project.image_link}" style="width:${scale};height:auto;object-fit:contain;">`;
+        // sanitize basic values: ensure scale ends with % or px
+        const safeScale = (typeof scale === 'string' && (scale.endsWith('%') || scale.endsWith('px'))) ? scale : '100%';
+        document.getElementById('imagePanel').innerHTML = `<img src="${project.image_link}" style="width:${safeScale};height:auto;object-fit:contain;" alt="${project.project_name}">`;
         document.getElementById('imagePanel').style.borderLeft = '4px solid #19a6ff';
       } else {
         document.getElementById('projTitle').textContent = 'Unfinished project';
         document.getElementById('projSubtitle').textContent = '';
         document.getElementById('projDesc').textContent = '';
-        document.getElementById('imagePanel').textContent = '';
+        document.getElementById('imagePanel').textContent = 'Preview area';
         document.getElementById('imagePanel').style.borderLeft = '4px solid rgba(255,255,255,0.12)';
       }
     }
