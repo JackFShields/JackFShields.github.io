@@ -20,7 +20,8 @@
 
       /* layout tuning */
       --gap: 14px;
-      --padding: 2vh 2vw;
+      --viewport-padding-y: 2vh;
+      --viewport-padding-x: 2vw;
 
       --corner-radius: 14px;
       --scene-perspective: 1200px;
@@ -28,17 +29,24 @@
 
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;-webkit-font-smoothing:antialiased}
-    .viewport{width:100vw;height:100vh;position:relative;overflow:hidden;padding:var(--padding)}
+    .viewport{
+      width:100vw;
+      height:100vh;
+      position:relative;
+      overflow:hidden;
+      padding: var(--viewport-padding-y) var(--viewport-padding-x);
+    }
 
-    /* Two-row layout:
-       - Row 1: top-left cube (fixed column) + title box (fills rest of top)
-       - Row 2: description (left column) + image (right column)
-       Columns: left column fixed (cube + description), right column flexible (title + image)
+    /*
+      Grid:
+      - columns: left fixed 240px, right flexible
+      - rows: top row equal to cube height + small gap, bottom row fills remaining space
+      This ensures the lower row (description left, image right) expands to fill the page height.
     */
     .layout {
       display:grid;
       grid-template-columns: 240px 1fr;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: calc(var(--cube-size) + 12px) 1fr;
       gap: var(--gap);
       width:100%;
       height:100%;
@@ -63,7 +71,7 @@
       display:flex;
       align-items:center;
       justify-content:center;
-      padding:10px;
+      padding:8px;
       background: transparent;
       box-shadow: none;
     }
@@ -75,7 +83,8 @@
       display:flex;
       flex-direction:column;
       justify-content:center;
-      min-height: calc(var(--cube-size) + 12px);
+      min-height: calc(var(--cube-size));
+      padding:20px;
     }
     .title h1 { font-size: 28px; margin-bottom: 8px; }
     .title p { color: var(--muted); margin-top: 6px; }
@@ -84,8 +93,10 @@
     .description {
       grid-column: 1 / 2;
       grid-row: 2 / 3;
-      max-height: calc(100vh - 160px);
+      /* fill the entire bottom-left cell */
+      height: 100%;
       overflow:auto;
+      padding:18px;
     }
     .description p { color: var(--muted); line-height: 1.45; }
 
@@ -93,22 +104,30 @@
     .image {
       grid-column: 2 / 3;
       grid-row: 2 / 3;
-      display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);
-      overflow:hidden;
-      padding:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      color:var(--muted);
+      overflow:auto; /* allow scrolling if image is taller than available space */
+      padding:12px;
       position:relative;
     }
+
+    /* Make the image scale to the available bottom-right cell without overflowing viewport */
     .image img {
       display:block;
-      width:100%;
-      height:100%;
+      max-width:100%;
+      max-height:100%;
+      width:auto;
+      height:auto;
       object-fit:contain;
       border-radius: calc(var(--corner-radius));
       pointer-events: none;
       background-color: transparent;
     }
 
-    /* Cube wrap inside its grid cell: relative so cube sits in top-left area */
+    /* Cube wrap inside its grid cell: fixed size equals --cube-size */
     .cube-wrap {
       width: var(--cube-size);
       height: var(--cube-size);
@@ -134,12 +153,12 @@
     .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
     @media (max-width:980px){
-      /* stack vertically on small screens: cube on top, then title, description, image */
+      /* stack vertically on small screens */
       .layout { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr 36vh; padding: 2vh 4vw; }
-      .cube-cell { grid-column:1; grid-row:1; justify-content:center; }
-      .title { grid-column:1; grid-row:2; min-height:auto; }
-      .description { grid-column:1; grid-row:3; max-height:none; }
-      .image { grid-column:1; grid-row:4; height:36vh; }
+      .cube-cell { grid-column:1; grid-row:1; justify-content:center; padding:8px; }
+      .title { grid-column:1; grid-row:2; min-height:auto; padding:14px; }
+      .description { grid-column:1; grid-row:3; height:auto; max-height:36vh; overflow:auto; padding:12px; }
+      .image { grid-column:1; grid-row:4; height:36vh; padding:8px; overflow:hidden; }
       .cube-wrap { margin: 8px auto; }
     }
   </style>
@@ -306,7 +325,8 @@
         document.getElementById('projDesc').textContent = project.description;
         const scale = project.image_scale || '100%';
         const safeScale = (typeof scale === 'string' && (scale.endsWith('%') || scale.endsWith('px'))) ? scale : '100%';
-        document.getElementById('imagePanel').innerHTML = `<img src="${project.image_link}" style="width:${safeScale};height:auto;object-fit:contain;" alt="${project.project_name}">`;
+        // create img element but let CSS sizing (max-width/max-height) contain it
+        document.getElementById('imagePanel').innerHTML = `<img src="${project.image_link}" alt="${project.project_name}">`;
         document.getElementById('imagePanel').style.borderLeft = '4px solid #19a6ff';
       } else {
         document.getElementById('projTitle').textContent = 'Unfinished project';
