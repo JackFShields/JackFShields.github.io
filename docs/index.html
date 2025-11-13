@@ -50,7 +50,7 @@
       border-radius: var(--corner-radius);
       padding:20px;
       box-shadow: 0 10px 36px rgba(0,0,0,0.36);
-      z-index:1;
+      z-index:6;
       overflow:visible;
     }
 
@@ -93,11 +93,11 @@
       width: var(--cube-size);
       height: var(--cube-size);
       transform: translate(-50%,-50%); /* center the cube on the computed intersection */
-      z-index:5; /* above panels and above the scoop/gutters if needed */
+      z-index:7; /* above panels and above the scoop/gutters if needed */
       pointer-events:none;
     }
     .scene { width:100%; height:100%; perspective:var(--scene-perspective); position:relative; pointer-events:auto; user-select:none; touch-action:none; }
-    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:5; }
+    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:8; }
 
     .face { position:absolute; left:0; top:0; width:100%; height:100%; border-radius:12px; background: var(--panel-grad); border: 1px solid var(--border); display:flex; align-items:center; justify-content:center; box-shadow: 0 10px 36px rgba(0,0,0,0.6); backface-visibility:hidden; cursor:pointer; box-sizing:border-box; }
     .front { transform: rotateY(0deg) translateZ(calc(var(--cube-size)/2)); }
