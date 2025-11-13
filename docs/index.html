@@ -314,58 +314,81 @@ function applyRotation(){
       }
     }
 
-// // 14: Face/DOM refresh (display projectCounter-1 to start at 0)
+// // 14: Face/DOM refresh (no numbers or labels)
 function refreshFaceContent(){
   const slots = ['front','right','back','left','top','bottom'];
   slots.forEach(slot=>{
     const faceEl = document.querySelector(`.face.${slot}`);
     if(!faceEl) return;
-    const idx = faceIndices[slot] ?? 0;
-    const displayIdx = Math.max(0, idx - 1); // Offset by -1 for display
-    faceEl.querySelector('h3').textContent = String(displayIdx);
-    faceEl.querySelector('p').textContent = slot;
+    // Clear text content entirely
+    faceEl.innerHTML = '';
   });
+  updateFaceImages(); // still apply images
 }
-// // 14.5: Update face images from JSON
+// // 14.5: Update face images from JSON with click + scale
 function updateFaceImages(){
   const slots = ['front','right','back','left','top','bottom'];
   slots.forEach(slot => {
     const faceEl = document.querySelector(`.face.${slot}`);
     if(!faceEl) return;
+
     const idx = faceIndices[slot] ?? 0;
     const project = projectsData.find(p => p.value === idx);
+
     if(project && project.face_of_cube_image_link){
+      // Apply cube face image
       faceEl.style.backgroundImage = `url(${project.face_of_cube_image_link})`;
       faceEl.style.backgroundSize = 'cover';
       faceEl.style.backgroundPosition = 'center';
+
+      // Make face clickable
+      faceEl.style.cursor = 'pointer';
+      faceEl.onclick = () => {
+        window.open(`https://${project.project_link}`, '_blank');
+      };
+    } else {
+      // Clear if no project
+      faceEl.style.backgroundImage = '';
+      faceEl.style.cursor = 'default';
+      faceEl.onclick = null;
     }
   });
 }
 
-// // 15: Panels update from visible face (dynamic JSON lookup)
+// // 15: Panels update from visible face (dynamic JSON lookup, no "Project N")
 function updatePanelsFromVisibleFace(){
   const slot = mostVisibleFace();
-  currentVisibleValue = faceIndices[slot] ?? 0;
-  
+  const currentVisibleValue = faceIndices[slot] ?? 0;
+
   // Find project with matching value
   const project = projectsData.find(p => p.value === currentVisibleValue);
-  
+
   if(project){
+    // Title
     document.getElementById('projTitle').textContent = project.project_name;
-    document.getElementById('projSubtitle').innerHTML = `<a href="https://${project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>`;
+
+    // Clickable project link
+    document.getElementById('projSubtitle').innerHTML =
+      `<a href="https://${project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>`;
+
+    // Description
     document.getElementById('projDesc').textContent = project.description;
-    imagePanel.innerHTML = `<img src="${project.image_link}" style="max-width:100%;max-height:100%;object-fit:contain;">`;
+
+    // Image panel with adjustable scale from JSON
+    const scale = project.image_scale || '100%';
+    imagePanel.innerHTML =
+      `<img src="${project.image_link}" style="width:${scale};height:auto;object-fit:contain;">`;
+
     imagePanel.style.borderLeft = '4px solid #19a6ff';
   } else {
-    // No project for this value - show generic
-    document.getElementById('projTitle').textContent = `Project ${currentVisibleValue}`;
+    // Fallback for missing project
+    document.getElementById('projTitle').textContent = 'Unfinished project';
     document.getElementById('projSubtitle').textContent = '';
     document.getElementById('projDesc').textContent = '';
     imagePanel.textContent = '';
     imagePanel.style.borderLeft = '4px solid rgba(255,255,255,0.12)';
   }
 }
-
     // // 16: Bottom bar snap (kept minimal; won’t break mechanism)
     function centerCubeOnIndex(idx){
       const baseTarget = -idx * 90;
