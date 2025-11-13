@@ -15,12 +15,12 @@
       --text: #e6eef6;
       --muted: rgba(190,215,240,0.7);
 
+      /* cube visual size */
       --cube-size: 200px;
-      --scoop-radius: 165px;
 
+      /* layout tuning */
       --gap: 14px;
-      --padding-x: 2vw;
-      --padding-y: 2vh;
+      --padding: 2vh 2vw;
 
       --corner-radius: 14px;
       --scene-perspective: 1200px;
@@ -28,17 +28,21 @@
 
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;-webkit-font-smoothing:antialiased}
-    .viewport{width:100vw;height:100vh;position:relative;overflow:hidden}
+    .viewport{width:100vw;height:100vh;position:relative;overflow:hidden;padding:var(--padding)}
 
+    /* Two-row layout:
+       - Row 1: top-left cube (fixed column) + title box (fills rest of top)
+       - Row 2: description (left column) + image (right column)
+       Columns: left column fixed (cube + description), right column flexible (title + image)
+    */
     .layout {
-      position:relative;
-      width:100%;
-      height:100%;
       display:grid;
-      grid-template-columns: calc(42vw - var(--gap)/2) calc(54vw - var(--gap)/2);
+      grid-template-columns: 240px 1fr;
       grid-template-rows: auto 1fr;
       gap: var(--gap);
-      padding: var(--padding-y) var(--padding-x);
+      width:100%;
+      height:100%;
+      align-items:start;
     }
 
     .panel {
@@ -46,47 +50,82 @@
       background-color: var(--panel-solid);
       border:1px solid var(--border);
       border-radius: var(--corner-radius);
-      padding:20px;
+      padding:16px;
       box-shadow: 0 10px 36px rgba(0,0,0,0.36);
-      z-index:6;
       overflow:visible;
       position:relative;
     }
 
-    .title { grid-column:1; grid-row:1; border-top-right-radius:0; border-bottom-right-radius:0; }
-    .title h1 { font-size:30px; margin-bottom:8px; }
-    .title p { color:var(--muted); margin-top:6px; }
-
-    .description { grid-column:1; grid-row:2; border-top-right-radius:0; border-bottom-right-radius:0; }
-    .description p { color:var(--muted); line-height:1.45; }
-
-    .image {
-      grid-column:2; grid-row:1 / 3;
-      border-top-left-radius:0; border-bottom-left-radius:0;
-      display:flex; align-items:center; justify-content:center; text-align:center; color:var(--muted);
-      overflow:hidden; padding:0; min-height:120px; position:relative; background-clip:padding-box;
+    /* Cube cell: top-left column, top row */
+    .cube-cell {
+      grid-column: 1 / 2;
+      grid-row: 1 / 2;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px;
+      background: transparent;
+      box-shadow: none;
     }
-    .image img { display:block; width:100%; height:100%; object-fit:contain; border-radius:calc(var(--corner-radius)); pointer-events:none; }
 
-    /* center point calculations used by cube and hub */
-    .center-point-left { left: calc(var(--padding-x) + (42vw - var(--gap)/2)); }
-    .center-point-top  { top: calc(var(--padding-y) + 40vh + var(--gap)/2); }
+    /* Title occupies top row, right column */
+    .title {
+      grid-column: 2 / 3;
+      grid-row: 1 / 2;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      min-height: calc(var(--cube-size) + 12px);
+    }
+    .title h1 { font-size: 28px; margin-bottom: 8px; }
+    .title p { color: var(--muted); margin-top: 6px; }
 
-    /* cube-wrap placed above scoop so cube is visible on top */
+    /* Description occupies bottom-left (left column, second row) */
+    .description {
+      grid-column: 1 / 2;
+      grid-row: 2 / 3;
+      max-height: calc(100vh - 160px);
+      overflow:auto;
+    }
+    .description p { color: var(--muted); line-height: 1.45; }
+
+    /* Image occupies bottom-right (right column, second row) */
+    .image {
+      grid-column: 2 / 3;
+      grid-row: 2 / 3;
+      display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);
+      overflow:hidden;
+      padding:0;
+      position:relative;
+    }
+    .image img {
+      display:block;
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      border-radius: calc(var(--corner-radius));
+      pointer-events: none;
+      background-color: transparent;
+    }
+
+    /* Cube wrap inside its grid cell: relative so cube sits in top-left area */
     .cube-wrap {
-      position:absolute;
-      left: calc(var(--padding-x) + (42vw - var(--gap)/2));
-      top: calc(var(--padding-y) + 40vh + var(--gap)/2);
       width: var(--cube-size);
       height: var(--cube-size);
-      transform: translate(-50%,-50%);
-      z-index: 20; /* highest: cube above scoop and panels for visual prominence */
-      pointer-events:auto; /* allow pointer events on the cube */
+      display:block;
+      position:relative;
+      transform: none;
+      margin: 0;
+      z-index: 5;
+      touch-action:none;
+      user-select:none;
+      -webkit-user-select:none;
     }
-    .scene { width:100%; height:100%; perspective:var(--scene-perspective); position:relative; user-select:none; touch-action:none; }
-    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size)/ -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:20; pointer-events:auto; }
 
-    .face { position:absolute; left:0; top:0; width:100%; height:100%; border-radius:12px; background: var(--panel-grad); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; box-shadow:0 10px 36px rgba(0,0,0,0.6); backface-visibility:hidden; cursor:pointer; box-sizing:border-box; }
+    .scene { width:100%; height:100%; perspective:var(--scene-perspective); position:relative; pointer-events:auto; user-select:none; touch-action:none; }
+    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:5; }
+
+    .face { position:absolute; left:0; top:0; width:100%; height:100%; border-radius:12px; background: var(--panel-grad); border: 1px solid var(--border); display:flex; align-items:center; justify-content:center; box-shadow: 0 10px 36px rgba(0,0,0,0.6); backface-visibility:hidden; cursor:pointer; box-sizing:border-box; }
     .front { transform: rotateY(0deg) translateZ(calc(var(--cube-size)/2)); }
     .right { transform: rotateY(90deg) translateZ(calc(var(--cube-size)/2)); }
     .back  { transform: rotateY(180deg) translateZ(calc(var(--cube-size)/2)); }
@@ -94,72 +133,14 @@
     .top   { transform: rotateX(90deg) translateZ(calc(var(--cube-size)/2)); }
     .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
-    /*
-      SCOOP (opaque) — keep scoop visible but under the cube.
-      Set center-hub z-index lower than cube-wrap so cube renders on top.
-    */
-    .center-hub {
-      position:absolute;
-      left: calc(var(--padding-x) + (42vw - var(--gap)/2));
-      top: calc(var(--padding-y) + 40vh + var(--gap)/2);
-      width: calc(var(--scoop-radius) * 2);
-      height: calc(var(--scoop-radius) * 2);
-      transform: translate(-50%,-50%);
-      pointer-events:none;
-      z-index: 10; /* under cube-wrap (20) but above page background; panels are z-index:6 */
-      display:block;
-    }
-
-    .scoop-eraser{
-      position:absolute; left:0; top:0; right:0; bottom:0; border-radius:50%;
-      background:#071425; /* fully opaque to match page background */
-      box-shadow: 0 20px 60px rgba(0,0,0,0.45), inset 0 10px 30px rgba(0,0,0,0.22);
-      filter:none; transform:none; opacity:1; pointer-events:none;
-    }
-
-    /* soft gutters to avoid hairline seams */
-    .gutter { position:absolute; pointer-events:none; }
-    .gutter-vertical {
-      width: calc(var(--gap) * 1.4); height:100%;
-      left: calc(50% - (calc(var(--gap) * 1.4)/2)); top:0;
-      background: linear-gradient(90deg, rgba(7,20,37,0) 0%, rgba(7,20,37,0.6) 45%, rgba(7,20,37,0.62) 55%, rgba(7,20,37,0) 100%);
-      filter: blur(4px);
-      z-index:11; /* above scoop but below cube */
-    }
-    .gutter-h-top, .gutter-h-bottom {
-      height: calc(var(--gap) * 1.2);
-      width: calc(50% + var(--scoop-radius));
-      left: 50%;
-      background: linear-gradient(180deg, rgba(7,20,37,0) 0%, rgba(7,20,37,0.6) 40%, rgba(7,20,37,0.62) 60%, rgba(7,20,37,0) 100%);
-      filter: blur(4px);
-      z-index:11;
-    }
-    .gutter-h-top { top: calc(50% - var(--scoop-radius)); transform-origin:left top; }
-    .gutter-h-bottom { bottom: calc(50% - var(--scoop-radius)); transform-origin:left bottom; }
-
-    .accent-ring {
-      position:absolute;
-      left: calc(var(--padding-x) + (42vw - var(--gap)/2));
-      top: calc(var(--padding-y) + 40vh + var(--gap)/2);
-      width: calc(var(--scoop-radius) * 2);
-      height: calc(var(--scoop-radius) * 2);
-      transform: translate(-50%,-50%);
-      border-radius:50%;
-      pointer-events:none;
-      background: radial-gradient(circle at center, rgba(25,166,255,0.06), rgba(25,166,255,0.02) 60%, transparent 100%);
-      filter: blur(2px);
-      z-index:9;
-      opacity:0.98;
-    }
-
     @media (max-width:980px){
-      :root { --cube-size:160px; --scoop-radius:130px; --gap:12px; }
-      .layout { grid-template-columns:1fr; grid-template-rows:auto auto auto; gap:var(--gap); padding:var(--padding-y) 4vw; }
-      .title{ grid-column:1; grid-row:1; border-top-right-radius:var(--corner-radius); border-bottom-right-radius:var(--corner-radius); }
-      .description{ grid-column:1; grid-row:2; }
-      .image{ grid-column:1; grid-row:3; width:calc(100% - 4vw); height:36vh; }
-      .center-hub, .accent-ring { display:none; }
-      .cube-wrap { position:relative; left:auto; top:auto; transform:none; margin:14px auto; z-index:20; }
+      /* stack vertically on small screens: cube on top, then title, description, image */
+      .layout { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr 36vh; padding: 2vh 4vw; }
+      .cube-cell { grid-column:1; grid-row:1; justify-content:center; }
+      .title { grid-column:1; grid-row:2; min-height:auto; }
+      .description { grid-column:1; grid-row:3; max-height:none; }
+      .image { grid-column:1; grid-row:4; height:36vh; }
+      .cube-wrap { margin: 8px auto; }
     }
   </style>
 </head>
@@ -167,6 +148,22 @@
   <div class="viewport">
 
     <div class="layout" id="layout">
+
+      <div class="cube-cell">
+        <div class="cube-wrap" id="cubeWrap">
+          <div class="scene" id="scene">
+            <div class="cube" id="cube" role="application" aria-label="cube">
+              <div class="face front" data-slot="front"></div>
+              <div class="face right" data-slot="right"></div>
+              <div class="face back" data-slot="back"></div>
+              <div class="face left" data-slot="left"></div>
+              <div class="face top" data-slot="top"></div>
+              <div class="face bottom" data-slot="bottom"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="panel title" id="titlePanel">
         <h1 id="projTitle">Unfinished project</h1>
         <p id="projSubtitle"></p>
@@ -178,33 +175,12 @@
       </div>
 
       <div class="panel image" id="imagePanel">Preview area</div>
+
     </div>
-
-    <div class="accent-ring" id="accentRing" aria-hidden="true"></div>
-
-    <div class="center-hub" id="centerHub" aria-hidden="true">
-      <div class="scoop-eraser" id="scoop"></div>
-      <div class="gutter gutter-vertical" aria-hidden="true"></div>
-      <div class="gutter gutter-h-top" aria-hidden="true"></div>
-      <div class="gutter gutter-h-bottom" aria-hidden="true"></div>
-    </div>
-
-    <div class="cube-wrap" id="cubeWrap">
-      <div class="scene" id="scene">
-        <div class="cube" id="cube" role="application" aria-label="cube">
-          <div class="face front" data-slot="front"></div>
-          <div class="face right" data-slot="right"></div>
-          <div class="face back" data-slot="back"></div>
-          <div class="face left" data-slot="left"></div>
-          <div class="face top" data-slot="top"></div>
-          <div class="face bottom" data-slot="bottom"></div>
-        </div>
-      </div>
-    </div>
-
   </div>
 
   <script>
+    // Rotation and face logic (unchanged semantics)
     let projectsData = [];
     const scene = document.getElementById('scene');
     const cube = document.getElementById('cube');
@@ -341,6 +317,7 @@
       }
     }
 
+    // inertia loop
     let lastFrame = performance.now();
     function loop(now){
       const dt = (now - lastFrame)/1000;
@@ -355,6 +332,7 @@
     }
     requestAnimationFrame(loop);
 
+    // load projects.json
     async function loadProjects(){
       try{
         const r = await fetch('projects.json');
@@ -363,6 +341,7 @@
     }
     loadProjects().then(()=>{ refreshFaceContent(); updatePanelsFromVisibleFace(); });
 
+    // Apply initial rotation and reapply on resize so transforms remain correct relative to layout
     window.addEventListener('load', ()=>{ applyRotation(); setTimeout(applyRotation, 120); });
     window.addEventListener('resize', ()=>{ applyRotation(); });
   </script>
