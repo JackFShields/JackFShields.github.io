@@ -146,7 +146,7 @@
 
   <!-- // 7: Script: data and DOM refs -->
   <script>
-// 7.1 Dynamic project loading
+// 7.1 Dynamic project loading (no top-level await)
 let projectsData = [];
 let currentVisibleValue = 0;
 
@@ -154,27 +154,17 @@ async function loadProjects() {
   try {
     const response = await fetch('projects.json');
     projectsData = await response.json();
-    updatePanelsFromVisibleFace(); // Update after load
-  } catch(e) {
-    console.log('Projects.json not loaded:', e);
-  }
-}
-    async function loadProjects() {
-  try {
-    const response = await fetch('projects.json');
-    projectsData = await response.json();
-    updatePanelsFromVisibleFace();
-    refreshFaceContent(); // Add this
-    updateFaceImages();   // Add this
-  } catch(e) {
+  } catch (e) {
     console.log('Projects.json not loaded:', e);
   }
 }
 
-loadProjects();
-projectsData = await response.json();
-refreshFaceContent();   // ensures faces get handlers
-updatePanelsFromVisibleFace();
+// Kick off load and update UI once ready
+loadProjects()
+  .then(() => {
+    refreshFaceContent();          // faces + click handlers
+    updatePanelsFromVisibleFace(); // right-side info
+  });
     // 7.2 DOM refs
     const anchor = document.getElementById('anchor');
     const biteSVG = document.getElementById('biteSVG');
