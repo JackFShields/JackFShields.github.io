@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Portfolio Cube — Intersection-Centered Scoop</title>
+  <title>THE CUBE</title>
   <link rel="icon" href="https://raw.githubusercontent.com/JackFShields/JackFShields.github.io/refs/heads/main/cube.png" type="image/x-icon" />
 
   <style>
@@ -15,8 +15,8 @@
       --muted: rgba(190,215,240,0.7);
 
       /* Geometry (adjust these two to rescale together) */
-      --cube-size: 220px;       /* visual cube size (increase if "too small") */
-      --scoop-radius: 180px;    /* radius of the scoop eraser (should scale with cube) */
+      --cube-size: (220/1.5)px;       /* visual cube size (increase if "too small") */
+      --scoop-radius: (180/1.5)px;    /* radius of the scoop eraser (should scale with cube) */
 
       /* Layout tuning */
       --gap: 14px;              /* visible gap between panels */
@@ -216,7 +216,7 @@
     let rotY = 0, isDown = false, startX = 0, startRot = 0, startT = 0, angVel = 0;
     const SENS = 0.35, CLICK_MOVE_THRESHOLD = 6, CLICK_TIME_THRESHOLD = 300;
 
-    let faceIndices = { front:0, right:1, back:2, left:3, top:0, bottom:0 };
+    let faceIndices = { front:0, right:3, back:2, left:1, top:-1, bottom:-1 };
     let projectCounter = 0, lastBoundary = null, totalRotation = 0, prevRotation = 0;
 
     scene.addEventListener('pointerdown', e=>{
