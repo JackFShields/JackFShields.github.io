@@ -9,8 +9,8 @@
   <style>
     :root{
       --bg: #071425;
-      --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-      --panel-solid: rgba(10,18,28,0.82);
+      --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+      --panel-solid: rgba(10,18,28,0.92);
       --border: rgba(255,255,255,0.08);
       --text: #e6eef6;
       --muted: rgba(190,215,240,0.7);
@@ -46,15 +46,13 @@
     }
 
     .panel {
-      /* make panels visually opaque enough so underlying hub doesn't show through seams */
       background: var(--panel-grad);
-      /* An additional near-solid layer ensures no underlying dark rectangles are visible */
       background-color: var(--panel-solid);
       border:1px solid var(--border);
       border-radius: var(--corner-radius);
       padding:20px;
       box-shadow: 0 10px 36px rgba(0,0,0,0.36);
-      z-index:6; /* ensure panels render above hub by default */
+      z-index:6; /* panels above hub's gutters so they remain visually solid */
       overflow:visible;
       position:relative;
     }
@@ -82,10 +80,11 @@
       border-top-left-radius: 0;
       border-bottom-left-radius: 0;
       display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);
-      overflow:hidden; /* clip image and prevent hub artifacts from showing through */
+      overflow:hidden; /* clip image so underlying graphics don't show through */
       padding:0;
       min-height: 120px;
       position:relative;
+      background-clip: padding-box;
     }
 
     .image img {
@@ -114,7 +113,7 @@
       width: var(--cube-size);
       height: var(--cube-size);
       transform: translate(-50%,-50%); /* center the cube on the computed intersection */
-      z-index:9; /* above panels and cube interactions */
+      z-index:9; /* above panels for direct interactions */
       pointer-events:none;
     }
     .scene { width:100%; height:100%; perspective:var(--scene-perspective); position:relative; pointer-events:auto; user-select:none; touch-action:none; }
@@ -128,8 +127,11 @@
     .top   { transform: rotateX(90deg) translateZ(calc(var(--cube-size)/2)); }
     .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
-    /* Center hub (scoop eraser + gutters) positioned at the same computed intersection.
-       Important: place this UNDER the panels so its background rectangles won't paint over panels. */
+    /* Center hub (scoop eraser + feathered gutters).
+       We want the scoop visible around the cube, but avoid hard dark lines on panels:
+       - The scoop is translucent and slightly blurred.
+       - Gutters are feathered via radial-gradients and soft shadows rather than hard rectangles.
+    */
     .center-hub {
       position:absolute;
       left: calc(var(--padding-x) + (42vw - var(--gap)/2));
@@ -138,26 +140,53 @@
       height: calc(var(--scoop-radius) * 2);
       transform: translate(-50%,-50%);
       pointer-events:none;
-      z-index:2; /* underneath panels (panels z-index:6) */
+      z-index:8; /* just under cube-wrap but above panels so scoop is visible */
+      display:block;
     }
 
     .scoop-eraser{
-      position:absolute; inset:0; border-radius:50%;
-      background: var(--bg);
-      box-shadow: inset 0 10px 30px rgba(0,0,0,0.22);
-      z-index:1;
+      position:absolute;
+      left:0; top:0; right:0; bottom:0;
+      border-radius:50%;
+      /* translucent, slightly lighter than page bg so overlay is soft */
+      background: radial-gradient(circle at 40% 40%, rgba(7,20,37,0.96) 0%, rgba(7,20,37,0.88) 60%, rgba(7,20,37,0.74) 100%);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45), inset 0 10px 30px rgba(0,0,0,0.22);
+      filter: blur(1px); /* soften the edge so it doesn't form a hard seam */
+      transform: scale(1.02); /* tiny oversize helps avoid 1px seams on some renderers */
       pointer-events:none;
-      /* slightly feather edges so there are no hard seams */
-      filter: blur(0.25px);
+      mix-blend-mode: normal;
+      opacity:0.98;
     }
 
-    /* Gutters drawn after scoop so gaps visually cut panels but scoop remains continuous */
-    .gutter { position:absolute; background: var(--bg); z-index:1; pointer-events:none; }
-    .gutter-vertical { width: var(--gap); height: 100%; left: calc(50% - var(--gap)/2); top: 0; border-radius:2px; }
-    .gutter-h-top { height: var(--gap); width: calc(50% + var(--scoop-radius)); left: 50%; top: calc(50% - var(--scoop-radius)); border-radius:2px; }
-    .gutter-h-bottom { height: var(--gap); width: calc(50% + var(--scoop-radius)); left: 50%; bottom: calc(50% - var(--scoop-radius)); border-radius:2px; }
+    /* Feathered vertical gutter (soft shadow / gradient rather than opaque rectangle).
+       The result visually separates panels while avoiding crisp dark bars. */
+    .gutter-vertical {
+      position:absolute;
+      width: calc(var(--gap) * 1.6);
+      height: 100%;
+      left: calc(50% - (calc(var(--gap) * 1.6)/2));
+      top: 0;
+      pointer-events:none;
+      background: linear-gradient(90deg, rgba(7,20,37,0) 0%, rgba(7,20,37,0.6) 45%, rgba(7,20,37,0.62) 55%, rgba(7,20,37,0) 100%);
+      filter: blur(6px);
+      transform: translateZ(0);
+    }
 
-    /* Optional subtle accent ring placed under scoop */
+    /* Feathered horizontal gutters (top and bottom) */
+    .gutter-h-top, .gutter-h-bottom {
+      position:absolute;
+      height: calc(var(--gap) * 1.4);
+      width: calc(50% + var(--scoop-radius));
+      left: 50%;
+      pointer-events:none;
+      background: linear-gradient(180deg, rgba(7,20,37,0) 0%, rgba(7,20,37,0.6) 40%, rgba(7,20,37,0.62) 60%, rgba(7,20,37,0) 100%);
+      filter: blur(6px);
+      transform: translateZ(0);
+    }
+    .gutter-h-top { top: calc(50% - var(--scoop-radius)); transform-origin: left top; }
+    .gutter-h-bottom { bottom: calc(50% - var(--scoop-radius)); transform-origin: left bottom; }
+
+    /* Subtle accent ring under scoop for glow */
     .accent-ring {
       position:absolute;
       left: calc(var(--padding-x) + (42vw - var(--gap)/2));
@@ -168,12 +197,10 @@
       border-radius: 50%;
       pointer-events:none;
       background: radial-gradient(circle at center, rgba(25,166,255,0.06), rgba(25,166,255,0.02) 60%, transparent 100%);
-      filter: blur(2px);
-      z-index:3;
+      filter: blur(2.6px);
+      z-index:7;
+      opacity:0.98;
     }
-
-    /* Make sure panels are on top of background and hub */
-    .title, .description, .image { z-index:6; }
 
     @media (max-width:980px){
       /* On small screens keep a simpler layout and hide the hub to avoid clutter */
@@ -183,7 +210,7 @@
       .description{ grid-column:1; grid-row:2; }
       .image{ grid-column:1; grid-row:3; width: calc(100% - 4vw); height: 36vh; }
       .center-hub, .accent-ring { display:none; }
-      .cube-wrap { position:relative; left:auto; top:auto; transform:none; margin: 14px auto; }
+      .cube-wrap { position:relative; left:auto; top:auto; transform:none; margin: 14px auto; z-index:9; }
     }
   </style>
 </head>
@@ -207,12 +234,12 @@
     <!-- accent ring under scoop for subtle glow -->
     <div class="accent-ring" id="accentRing" aria-hidden="true"></div>
 
-    <!-- center hub at the intersection (scoop + gutters) - intentionally placed under panels -->
+    <!-- center hub at the intersection (scoop + feathered gutters) - visible but softened to avoid hard seams -->
     <div class="center-hub" id="centerHub" aria-hidden="true">
       <div class="scoop-eraser" id="scoop"></div>
-      <div class="gutter gutter-vertical" aria-hidden="true"></div>
-      <div class="gutter gutter-h-top" aria-hidden="true"></div>
-      <div class="gutter gutter-h-bottom" aria-hidden="true"></div>
+      <div class="gutter-vertical" aria-hidden="true"></div>
+      <div class="gutter-h-top" aria-hidden="true"></div>
+      <div class="gutter-h-bottom" aria-hidden="true"></div>
     </div>
 
     <!-- cube placed exactly at the intersection (shares same left/top calc) -->
