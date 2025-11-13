@@ -12,11 +12,21 @@
   {
     "value": 1,
     "project_name": "PolyWeave-mines",
-    "project_link": "jackfshields.github.io/polyweave-mines",
-    "github_link": "github.com/JackFShields/polyweave-mines",
+    "project_link": "jackfshields.github.io/PolyWeave-Mines",
+    "github_link": "github.com/JackFShields/PolyWeave-Mines",
     "description": "Minesweeper with customizable adjacency rules",
     "image_link": "https://raw.githubusercontent.com/JackFShields/PolyWeave-Mines/refs/heads/main/PolyWeave-Mines.png",
     "face_of_cube_image_link": "https://raw.githubusercontent.com/JackFShields/PolyWeave-Mines/refs/heads/main/flag.png",
-    "image_scale": "90%"
+    "image_scale": "150%"
+  },
+  {
+    "value": 30,
+    "project_name": "how did you get here?",
+    "project_link": "google.com",
+    "github_link": "google.com/doodle",
+    "description": "jfdklsgnfkjg",
+    "image_link": "d.com",
+    "face_of_cube_image_link": "goog.com",
+    "image_scale": "267%"
   }
 ]
