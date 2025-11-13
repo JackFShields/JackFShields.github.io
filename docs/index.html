@@ -171,7 +171,9 @@ async function loadProjects() {
 }
 
 loadProjects();
-
+projectsData = await response.json();
+refreshFaceContent();   // ensures faces get handlers
+updatePanelsFromVisibleFace();
     // 7.2 DOM refs
     const anchor = document.getElementById('anchor');
     const biteSVG = document.getElementById('biteSVG');
@@ -215,7 +217,7 @@ loadProjects();
     const CLICK_TIME_THRESHOLD = 300;
 
 // Start everything at 0
-let faceIndices = { front: 0, right: 1, back: 0, left: 0, top: 0, bottom: 0 };
+let faceIndices = { front: 0, right: 1, back: 2, left: 3, top: 99999, bottom: 99999 };
 let projectCounter = 0;
 let lastBoundary = null;
 
@@ -320,11 +322,11 @@ function refreshFaceContent(){
   slots.forEach(slot=>{
     const faceEl = document.querySelector(`.face.${slot}`);
     if(!faceEl) return;
-    // Clear text content entirely
-    faceEl.innerHTML = '';
+    faceEl.innerHTML = ''; // no numbers/labels
   });
-  updateFaceImages(); // still apply images
+  updateFaceImages(); // always refresh images + click handlers
 }
+
 // // 14.5: Update face images from JSON with click + scale
 function updateFaceImages(){
   const slots = ['front','right','back','left','top','bottom'];
