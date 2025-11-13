@@ -1,13 +1,11 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- Meta -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Portfolio Cube — Scooped layout</title>
+  <title>Portfolio Cube — Scooped layout (stable)</title>
   <link rel="icon" href="https://raw.githubusercontent.com/JackFShields/JackFShields.github.io/refs/heads/main/cube.png" type="image/x-icon" />
 
-  <!-- Styles -->
   <style>
     :root{
       --bg: #071425;
@@ -18,9 +16,9 @@
       --gap: 2vw;
 
       /* Geometry */
-      --cube-size: 280px;              /* scale cube here */
-      --scoop-radius: 225px;           /* matched to cube scaling */
-      --corner-radius: 14px;           /* panel outer corner rounding */
+      --cube-size: 280px;         /* scale cube */
+      --scoop-radius: 225px;      /* one radius for all panels (matches your scale) */
+      --corner-radius: 14px;      /* panel outer corner rounding */
       --scene-perspective: 1200px;
     }
 
@@ -37,44 +35,41 @@
       padding: 20px;
       box-shadow: 0 10px 36px rgba(0,0,0,0.36);
       overflow: visible;
-      z-index: 1;
+      z-index: 3; /* below cube, above background */
     }
 
-    /* Layout (left stack and right image) */
+    /* Aligned layout: inner corners touch the viewport center */
+    /* Viewport center is 50vw, 50vh. */
     .title {
-      left: 2vw;
-      top: 2vh;
       width: calc(42vw - var(--gap));
       height: 40vh;
+      right: 50vw;               /* inner right edge at center X */
+      bottom: 50vh;              /* inner bottom edge at center Y */
+      border-top-right-radius: 0; border-bottom-right-radius: 0;
     }
     .title h1 { font-size: 30px; margin-bottom: 8px; }
     .title p { color: var(--muted); margin-top: 6px; }
 
     .description {
-      left: 2vw;
-      top: calc(2vh + 40vh + var(--gap));
       width: calc(42vw - var(--gap));
-      height: calc(100vh - (40vh + var(--gap) + 4vh)); /* fill remaining space to bottom */
+      height: calc(100vh - (40vh + var(--gap) + 4vh)); /* fill to bottom */
+      right: 50vw;               /* inner right edge at center X */
+      top: 50vh;                 /* inner top edge at center Y */
+      border-bottom-right-radius: 0; border-top-right-radius: 0;
     }
     .description p { color: var(--muted); line-height: 1.45; }
 
     .image {
-      right: 2vw;
-      top: 2vh;
       width: 54vw;
       height: calc(96vh - 4vh);
+      left: 50vw;                /* inner left edge at center X */
+      top: calc(50vh - (96vh - 4vh)/2); /* vertical center coincident with other points */
       display:flex; align-items:center; justify-content:center; text-align:center; color:var(--muted);
+      border-top-left-radius: 0; border-bottom-left-radius: 0;
     }
 
-    /* Anchor (cube center) */
-    .anchor { position:absolute; left: 50%; top: 50%; width: 0; height: 0; transform: translate(-50%, -50%); pointer-events:none; opacity:0; z-index:2; }
-
-    /* Bite SVG shadow (subtle accent, not the scoop) */
-    .bite-svg { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; z-index:2; }
-    .bite-svg circle { fill: transparent; stroke: rgba(255,255,255,0.08); stroke-width: 0; } /* no visible border between gaps */
-
-    /* Cube */
-    .cube-wrap { position:absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: var(--cube-size); height: var(--cube-size); z-index: 5; pointer-events:none; }
+    /* Cube centered at viewport center */
+    .cube-wrap { position:absolute; left: 50vw; top: 50vh; transform: translate(-50%, -50%); width: var(--cube-size); height: var(--cube-size); z-index: 5; pointer-events:none; }
     .scene { width:100%; height:100%; perspective:var(--scene-perspective); position:relative; pointer-events:auto; user-select:none; touch-action:none; }
     .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:5; }
 
@@ -87,9 +82,26 @@
     .top   { transform: rotateX(90deg) translateZ(calc(var(--cube-size)/2)); }
     .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
-    /* Optional: faint accents near cube center */
+    /* Scoop eraser: one shared circular mask that visually carves scoops from all panels */
+    .scoop-eraser {
+      position:absolute;
+      left: 50vw;
+      top: 50vh;
+      width: calc(var(--scoop-radius) * 2);
+      height: calc(var(--scoop-radius) * 2);
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: var(--bg);        /* same as page background to "erase" panel corners */
+      z-index: 4;                   /* above panels, below cube */
+      box-shadow:
+        inset 0 12px 28px rgba(0,0,0,0.25),
+        0 0 0 0 rgba(0,0,0,0);      /* subtle inner shadow to soften intersection */
+      pointer-events:none;
+    }
+
+    /* Optional faint accent ring for aesthetics */
     .accent-ring {
-      position:absolute; left:50%; top:50%;
+      position:absolute; left:50vw; top:50vh;
       width: calc(var(--scoop-radius) * 2); height: calc(var(--scoop-radius) * 2);
       transform: translate(-50%, -50%);
       border-radius: 50%;
@@ -101,7 +113,15 @@
           rgba(25,166,255,0.02) 75%,
           transparent 100%);
       filter: blur(2px);
-      z-index: 3;
+      z-index: 3; /* below scoop eraser so it doesn't affect the carving */
+    }
+
+    @media (max-width: 980px) {
+      :root { --cube-size: 260px; --scoop-radius: 210px; }
+      /* Keep the same alignment rules; mobile will still meet at center */
+      .title { width: calc(100vw - 4vw); height: 22vh; right: 50vw; bottom: 50vh; }
+      .description { width: calc(100vw - 4vw); right: 50vw; top: 50vh; height: 30vh; }
+      .image { width: calc(100vw - 4vw); left: 50vw; height: 34vh; top: calc(50vh - 17vh); }
     }
   </style>
 </head>
@@ -121,28 +141,9 @@
 
     <div class="panel image" id="imagePanel">Preview area</div>
 
-    <!-- Center anchor (cube center reference) -->
-    <div class="anchor" id="anchor" aria-hidden="true"></div>
-
-    <!-- Subtle ring accent (optional) -->
+    <!-- Accent and scoop eraser -->
     <div class="accent-ring" aria-hidden="true"></div>
-
-    <!-- SVG (kept but invisible stroke to avoid stray borders) -->
-    <svg class="bite-svg" id="biteSVG" aria-hidden="true">
-      <defs>
-        <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur in="SourceAlpha" stdDeviation="6" result="blur"/>
-          <feOffset dx="0" dy="6" result="offsetBlur"/>
-          <feComposite in="offsetBlur" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="innerShadow"/>
-          <feColorMatrix in="innerShadow" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35" result="shadow"/>
-          <feMerge>
-            <feMergeNode in="shadow"/>
-            <feMergeNode in="SourceGraphic"/>
-          </feMerge>
-        </filter>
-      </defs>
-      <circle id="biteCircle" cx="0" cy="0" r="0" filter="url(#innerShadow)"></circle>
-    </svg>
+    <div class="scoop-eraser" aria-hidden="true"></div>
 
     <!-- Cube -->
     <div class="cube-wrap" id="cubeWrap">
@@ -160,16 +161,12 @@
 
   </div>
 
-  <!-- Script -->
   <script>
-    /* Data */
+    // Data
     let projectsData = [];
     let currentVisibleValue = 0;
 
-    /* DOM refs */
-    const anchor = document.getElementById('anchor');
-    const biteSVG = document.getElementById('biteSVG');
-    const biteCircle = document.getElementById('biteCircle');
+    // DOM refs
     const cubeWrap = document.getElementById('cubeWrap');
     const scene = document.getElementById('scene');
     const cube = document.getElementById('cube');
@@ -177,35 +174,23 @@
     const descPanel = document.getElementById('descPanel');
     const imagePanel = document.getElementById('imagePanel');
 
-    /* Layout helpers */
-    function cubeCenter(){
-      const r = cubeWrap.getBoundingClientRect();
-      return { x: r.left + r.width/2, y: r.top + r.height/2 };
-    }
-    function positionCubeWrap(){
-      const vp = document.getElementById('viewport').getBoundingClientRect();
-      // Center cube in viewport; you can change this positioning if needed
-      cubeWrap.style.left = '50%';
-      cubeWrap.style.top = '50%';
-      cubeWrap.style.transform = 'translate(-50%, -50%)';
-    }
-
-    /* Rotation state */
+    // Rotation state
     let totalRotation = 0;
-    let rotY = 0;
+    let rotY = 0; // Y-axis controls visible face selection
     let isDown = false;
     let startX = 0, startRot = 0, startT = 0;
     let angVel = 0;
+
     const SENS = 0.35;
     const CLICK_MOVE_THRESHOLD = 6;
     const CLICK_TIME_THRESHOLD = 300;
 
-    /* Face indices (seeded) */
+    // Faces indexing: seed front=0, right=1, back=2, left=3
     let faceIndices = { front: 0, right: 1, back: 2, left: 3, top: 0, bottom: 0 };
     let projectCounter = 0;
     let lastBoundary = null;
 
-    /* Pointer handlers on scene */
+    // Pointer handlers on scene (not faces)
     scene.addEventListener('pointerdown', e=>{
       isDown = true;
       startX = e.clientX;
@@ -245,7 +230,7 @@
       }
     });
 
-    /* Rotation application and boundary updates */
+    // Rotation application and boundary updates
     let prevRotation = 0;
     function applyRotation(){
       cube.style.transform = `translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(${rotY}deg)`;
@@ -279,7 +264,7 @@
       }
     }
 
-    /* Refresh faces: image-only + click-without-drag overlap */
+    // Refresh faces: image-only + click gestures
     function refreshFaceContent(){
       const slots = ['front','right','back','left','top','bottom'];
       slots.forEach(slot=>{
@@ -336,7 +321,7 @@
       });
     }
 
-    /* Panels update (reads image_scale from JSON) */
+    // Panels update (reads image_scale from JSON if present)
     function updatePanelsFromVisibleFace(){
       const slot = mostVisibleFace();
       const currentVisibleValue = faceIndices[slot] ?? 0;
@@ -360,7 +345,7 @@
       }
     }
 
-    /* Inertia loop */
+    // Inertia loop
     let lastFrame = performance.now();
     function loop(now){
       const dt = (now - lastFrame)/1000;
@@ -375,224 +360,13 @@
     }
     requestAnimationFrame(loop);
 
-    /* Scooped corners algorithm (no visible circle borders between gaps)
-       We construct a clip-path that follows the panel rectangle but replaces
-       the segment near the cube center with a circular arc of --scoop-radius.
-    */
-
-    function applyScoop(panelEl, mode){
-      // mode: 'title' (corner that faces cube), 'desc' (corner that faces cube), 'image' (left-center scoop)
-      const rect = panelEl.getBoundingClientRect();
-      const center = cubeCenter();
-      const R = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--scoop-radius')) || 225;
-
-      // Compute intersections of circle(center,R) with panel rectangle edges.
-      const edges = [
-        {name:'top',   x1:rect.left, y1:rect.top,    x2:rect.right, y2:rect.top},
-        {name:'right', x1:rect.right,y1:rect.top,    x2:rect.right, y2:rect.bottom},
-        {name:'bottom',x1:rect.left, y1:rect.bottom, x2:rect.right, y2:rect.bottom},
-        {name:'left',  x1:rect.left, y1:rect.top,    x2:rect.left,  y2:rect.bottom}
-      ];
-
-      function circleLineIntersections(x1,y1,x2,y2,cx,cy,r){
-        // Parametric line p = p0 + t*(p1-p0), t in [0,1]
-        const dx = x2-x1, dy=y2-y1;
-        const fx = x1 - cx, fy = y1 - cy;
-        const a = dx*dx + dy*dy;
-        const b = 2*(fx*dx + fy*dy);
-        const c = fx*fx + fy*fy - r*r;
-        const disc = b*b - 4*a*c;
-        if(disc < 0) return [];
-        const sdisc = Math.sqrt(disc);
-        const t1 = (-b - sdisc) / (2*a);
-        const t2 = (-b + sdisc) / (2*a);
-        const pts = [];
-        if(t1 >= 0 && t1 <= 1) pts.push({x:x1+dx*t1, y:y1+dy*t1, t:t1});
-        if(t2 >= 0 && t2 <= 1) pts.push({x:x1+dx*t2, y:y1+dy*t2, t:t2});
-        return pts;
-      }
-
-      // Gather all intersections
-      let hits = [];
-      edges.forEach(e=>{
-        const pts = circleLineIntersections(e.x1,e.y1,e.x2,e.y2, center.x, center.y, R).map(p=>({...p, edge:e.name}));
-        hits = hits.concat(pts);
-      });
-
-      // If fewer than 2 intersections, nothing to scoop
-      if(hits.length < 2){
-        panelEl.style.clipPath = `inset(0 round ${getComputedStyle(panelEl).borderRadius})`;
-        return;
-      }
-
-      // Choose the two intersections that lie on the "inner side" toward center,
-      // i.e., the pair that creates the arc replacing the corner nearest center.
-      // For title and desc, use the pair closest to the corner nearest center.
-      // For image, we scoop the left edge near the vertical center.
-
-      function nearestCorner(rect, center){
-        const corners = [
-          {name:'tl', x:rect.left, y:rect.top},
-          {name:'tr', x:rect.right, y:rect.top},
-          {name:'br', x:rect.right, y:rect.bottom},
-          {name:'bl', x:rect.left, y:rect.bottom}
-        ];
-        corners.forEach(c=> c.dist = Math.hypot(c.x - center.x, c.y - center.y));
-        corners.sort((a,b)=>a.dist - b.dist);
-        return corners[0];
-      }
-
-      const corner = nearestCorner(rect, center);
-      // Sort intersections by angle around center so we can draw arc between two points
-      hits.forEach(h=> h.angle = Math.atan2(h.y - center.y, h.x - center.x));
-      hits.sort((a,b)=> a.angle - b.angle);
-
-      // Pick the pair that brackets the corner angle
-      const cornerAngle = Math.atan2(corner.y - center.y, corner.x - center.x);
-      let p1 = hits[0], p2 = hits[1];
-      for(let i=0;i<hits.length;i++){
-        const a1 = hits[i].angle;
-        const a2 = hits[(i+1)%hits.length].angle;
-        // Normalize wrap
-        let A1 = a1, A2 = a2, CA = cornerAngle;
-        if(A2 < A1) A2 += Math.PI*2;
-        if(CA < A1) CA += Math.PI*2;
-        if(CA >= A1 && CA <= A2){
-          p1 = hits[i];
-          p2 = hits[(i+1)%hits.length];
-          break;
-        }
-      }
-
-      // Create a path: start at top-left, go along rectangle edges until p1,
-      // follow the arc from p1 to p2 (large-arc=0, sweep determined by order),
-      // then continue along rectangle to close.
-      // We'll walk clockwise around the rectangle and splice in the arc.
-
-      function pointOnEdgeOrder(pt){
-        // Map hit to an index along rectangle perimeter (top -> right -> bottom -> left)
-        const order = {top:0, right:1, bottom:2, left:3};
-        return order[pt.edge];
-      }
-
-      // Utility to clamp to corner radii—keep outer rounding consistent
-      const r = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--corner-radius')) || 14;
-      const x0 = rect.left, y0 = rect.top, x1 = rect.right, y1 = rect.bottom;
-
-      // Build rectangle path with rounded corners
-      const rectPath = [
-        `M ${x0+r} ${y0}`,
-        `H ${x1-r}`,
-        `A ${r} ${r} 0 0 1 ${x1} ${y0+r}`,
-        `V ${y1-r}`,
-        `A ${r} ${r} 0 0 1 ${x1-r} ${y1}`,
-        `H ${x0+r}`,
-        `A ${r} ${r} 0 0 1 ${x0} ${y1-r}`,
-        `V ${y0+r}`,
-        `A ${r} ${r} 0 0 1 ${x0+r} ${y0}`
-      ];
-
-      // Determine traversal segments to insert arc between p1 -> p2
-      // We will split the rectangle path at the intersections by projecting them to actual perimeter segments.
-      // To simplify, we will re-walk the rectangle edges and inject arc when crossing between p1 and p2.
-
-      function edgeSegment(edgeName){
-        if(edgeName==='top')    return {from:{x:x0,y:y0}, to:{x:x1,y:y0}, dir:'H'};
-        if(edgeName==='right')  return {from:{x:x1,y:y0}, to:{x:x1,y:y1}, dir:'V'};
-        if(edgeName==='bottom') return {from:{x:x1,y:y1}, to:{x:x0,y:y1}, dir:'H'};
-        if(edgeName==='left')   return {from:{x:x0,y:y1}, to:{x:x0,y:y0}, dir:'V'};
-      }
-
-      // Build path: start at top-left corner (with rounding), walk edges; when we reach p1, draw arc to p2, then continue.
-      let d = `M ${x0+r} ${y0} H ${p1.x} V ${p1.y} `;
-      // Arc from p1 to p2 around circle(center, R)
-      // Determine if arc sweep is clockwise from p1 to p2
-      let a1 = Math.atan2(p1.y - center.y, p1.x - center.x);
-      let a2 = Math.atan2(p2.y - center.y, p2.x - center.x);
-      let sweep = 0; // 0 -> CCW, 1 -> CW
-      // Choose sweep that passes through cornerAngle region
-      // Normalize angles
-      let A1 = a1, A2 = a2, CA = cornerAngle;
-      if(A2 < A1) A2 += Math.PI*2;
-      if(CA < A1) CA += Math.PI*2;
-      sweep = (CA > (A1 + A2)/2) ? 1 : 0;
-
-      const largeArc = 0; // small arc between nearby intersections
-      d += `A ${R} ${R} 0 ${largeArc} ${sweep} ${p2.x} ${p2.y} `;
-
-      // Continue along rectangle from p2 to close, approximated by moving to nearest perimeter corner and closing with rounded corners
-      // For robustness, we’ll draw lines from p2 to each remaining edge corner clockwise until we close.
-      // Top -> right -> bottom -> left
-      function corners(){
-        return [
-          {x:x1-r,y:y0, cmd:`H ${x1-r}`},
-          {x:x1,y:y0+r, cmd:`A ${r} ${r} 0 0 1 ${x1} ${y0+r}`},
-          {x:x1,y:y1-r, cmd:`V ${y1-r}`},
-          {x:x1-r,y:y1, cmd:`A ${r} ${r} 0 0 1 ${x1-r} ${y1}`},
-          {x:x0+r,y:y1, cmd:`H ${x0+r}`},
-          {x:x0,y:y1-r, cmd:`A ${r} ${r} 0 0 1 ${x0} ${y1-r}`},
-          {x:x0,y:y0+r, cmd:`V ${y0+r}`},
-          {x:x0+r,y:y0, cmd:`A ${r} ${r} 0 0 1 ${x0+r} ${y0}`}
-        ];
-      }
-      // From p2, head to nearest corner point along perimeter direction
-      d += `L ${p2.x} ${p2.y} `;
-      const pathTail = [
-        `H ${x1-r}`,
-        `A ${r} ${r} 0 0 1 ${x1} ${y0+r}`,
-        `V ${y1-r}`,
-        `A ${r} ${r} 0 0 1 ${x1-r} ${y1}`,
-        `H ${x0+r}`,
-        `A ${r} ${r} 0 0 1 ${x0} ${y1-r}`,
-        `V ${y0+r}`,
-        `A ${r} ${r} 0 0 1 ${x0+r} ${y0}`,
-        `Z`
-      ].join(' ');
-      d += pathTail;
-
-      // Apply clip-path via CSS path
-      const pxPath = `path("${d}")`;
-      panelEl.style.clipPath = pxPath;
-    }
-
-    /* Apply scoops with guidelines:
-       - Same radius for all three boxes (controlled by --scoop-radius).
-       - Corners of title and description touch cube center: we scoop the corner nearest center.
-       - Image box: scoop the point where its left edge’s midpoint aligns with the cube center (adjacent face center).
-    */
-    function applyAllScoops(){
-      // Ensure cubeWrap is positioned and we know center
-      positionCubeWrap();
-      const center = cubeCenter();
-
-      // Title and Description: scoop nearest corner to center
-      applyScoop(titlePanel, 'title');
-      applyScoop(descPanel, 'desc');
-
-      // Image: ensure the scoop aligns with the centerpoint of the adjacent face (left-middle)
-      // To emphasize alignment, slightly nudge the clip to target the left edge midpoint projected toward center.
-      applyScoop(imagePanel, 'image');
-    }
-
-    /* Layout init and wiring */
-    function layoutUpdate(){
-      positionCubeWrap();
-      // Update invisible SVG circle for potential shadow computations (stroke disabled)
-      const c = cubeCenter();
-      biteCircle.setAttribute('cx', c.x);
-      biteCircle.setAttribute('cy', c.y);
-      biteCircle.setAttribute('r', parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--scoop-radius')) || 225);
-      // Apply scoops
-      applyAllScoops();
-      // Apply rotation to sync state
-      applyRotation();
-    }
-
+    // Layout init and wiring
+    function layoutUpdate(){ applyRotation(); }
     let resizeTimer;
     window.addEventListener('resize', ()=>{ clearTimeout(resizeTimer); resizeTimer = setTimeout(layoutUpdate, 80); });
     window.addEventListener('load', ()=>{ layoutUpdate(); setTimeout(layoutUpdate, 120); });
 
-    /* Load projects.json and initialize UI */
+    // Load projects.json and initialize UI
     async function loadProjects() {
       try {
         const response = await fetch('projects.json');
