@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Portfolio Cube — Centered Scoop (Half Scale)</title>
+  <title>Portfolio Cube — Intersection-Centered Scoop</title>
   <link rel="icon" href="https://raw.githubusercontent.com/JackFShields/JackFShields.github.io/refs/heads/main/cube.png" type="image/x-icon" />
 
   <style>
@@ -14,10 +14,16 @@
       --text: #e6eef6;
       --muted: rgba(190,215,240,0.7);
 
-      /* Geometry controls (half scale) */
-      --cube-size: 140px;        /* half of 280px */
-      --scoop-radius: 112.5px;   /* half of 225px */
-      --gutter: 14px;            /* visible gap thickness between panels */
+      /* Geometry (adjust these two to rescale together) */
+      --cube-size: 220px;       /* visual cube size (increase if "too small") */
+      --scoop-radius: 180px;    /* radius of the scoop eraser (should scale with cube) */
+
+      /* Layout tuning */
+      --gap: 14px;              /* visible gap between panels */
+      --padding-x: 2vw;        /* page horizontal padding used by layout */
+      --padding-y: 2vh;        /* page vertical padding used by layout */
+
+      /* Panel rounding / depth */
       --corner-radius: 14px;
       --scene-perspective: 1200px;
     }
@@ -26,16 +32,16 @@
     html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;-webkit-font-smoothing:antialiased}
     .viewport{width:100vw;height:100vh;position:relative;overflow:hidden}
 
-    /* Grid layout for predictable alignment */
+    /* Two-column grid layout with explicit padding so we can compute the intersection point */
     .layout {
       position:relative;
       width:100%;
       height:100%;
       display:grid;
-      grid-template-columns: calc(42vw - var(--gutter)/2) calc(54vw - var(--gutter)/2);
+      grid-template-columns: calc(42vw - var(--gap)/2) calc(54vw - var(--gap)/2);
       grid-template-rows: auto 1fr;
-      gap: var(--gutter);
-      padding: 2vh 2vw;
+      gap: var(--gap);
+      padding: var(--padding-y) var(--padding-x);
     }
 
     .panel {
@@ -73,45 +79,25 @@
       display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);
     }
 
-    /* Center hub fixed to viewport center (scoop + gutters) */
-    .center-hub {
-      position:fixed;
-      left:50vw; top:50vh;
-      width: calc(var(--scoop-radius) * 2);
-      height: calc(var(--scoop-radius) * 2);
-      transform: translate(-50%,-50%);
-      pointer-events:none;
-      z-index:3; /* above panels but below cube */
-    }
+    /* Compute the intersection point (where the three boxes meet).
+       X_intersection = padding-left + left-column-width + gap/2
+       Y_intersection = padding-top + title-height + gap/2
+       We use the same CSS calc for cube-wrap and center-hub so they share the point.
+    */
 
-    /* Scoop eraser is a disk of page background; sits above panels to 'carve' them visually */
-    .scoop-eraser {
-      position:absolute; inset:0; border-radius:50%;
-      background: var(--bg);
-      box-shadow: inset 0 10px 30px rgba(0,0,0,0.22);
-      z-index:1;
+    /* Cube container placed at the intersection (not viewport center) */
+    .cube-wrap {
+      position:absolute;
+      left: calc(var(--padding-x) + (42vw - var(--gap)/2));
+      top: calc(var(--padding-y) + 40vh + var(--gap)/2);
+      width: var(--cube-size);
+      height: var(--cube-size);
+      transform: translate(-50%,-50%); /* center the cube on the computed intersection */
+      z-index:5; /* above panels and above the scoop/gutters if needed */
       pointer-events:none;
     }
-
-    /* Gutters drawn after the scoop so gaps appear continuous */
-    .gutter { position:absolute; background: var(--bg); z-index:2; pointer-events:none; }
-    .gutter-vertical { width: var(--gutter); height: 100%; left: calc(50% - var(--gutter)/2); top: 0; }
-    .gutter-h-top { height: var(--gutter); width: calc(50% + var(--scoop-radius)); left: 50%; top: calc(50% - var(--scoop-radius)); }
-    .gutter-h-bottom { height: var(--gutter); width: calc(50% + var(--scoop-radius)); left: 50%; bottom: calc(50% - var(--scoop-radius)); }
-
-    /* Accent ring under scoop (optional subtle glow) */
-    .accent-ring {
-      position:fixed; left:50vw; top:50vh; transform:translate(-50%,-50%);
-      width: calc(var(--scoop-radius)*2); height: calc(var(--scoop-radius)*2);
-      border-radius:50%; pointer-events:none; z-index:2;
-      background: radial-gradient(circle at center, rgba(25,166,255,0.06), rgba(25,166,255,0.02) 60%, transparent 100%);
-      filter: blur(2px);
-    }
-
-    /* Cube fixed to viewport center, sized from --cube-size */
-    .cube-wrap { position:fixed; left:50vw; top:50vh; transform: translate(-50%,-50%); width: var(--cube-size); height: var(--cube-size); z-index:4; pointer-events:none; }
     .scene { width:100%; height:100%; perspective:var(--scene-perspective); position:relative; pointer-events:auto; user-select:none; touch-action:none; }
-    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:4; }
+    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:5; }
 
     .face { position:absolute; left:0; top:0; width:100%; height:100%; border-radius:12px; background: var(--panel-grad); border: 1px solid var(--border); display:flex; align-items:center; justify-content:center; box-shadow: 0 10px 36px rgba(0,0,0,0.6); backface-visibility:hidden; cursor:pointer; box-sizing:border-box; }
     .front { transform: rotateY(0deg) translateZ(calc(var(--cube-size)/2)); }
@@ -121,14 +107,59 @@
     .top   { transform: rotateX(90deg) translateZ(calc(var(--cube-size)/2)); }
     .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
-    @media (max-width: 980px) {
-      :root { --cube-size: 120px; --scoop-radius: 96px; --gutter: 12px; }
-      .layout { grid-template-columns: 1fr; grid-template-rows: auto auto auto; gap: var(--gutter); padding: 2vh 4vw; }
-      .title { grid-column: 1; grid-row: 1; border-top-right-radius: var(--corner-radius); border-bottom-right-radius: var(--corner-radius); }
-      .description { grid-column: 1; grid-row: 2; }
-      .image { grid-column: 1; grid-row: 3; transform: none; width: calc(100% - 4vw); height: 36vh; }
-      .center-hub, .scoop-eraser, .gutter, .accent-ring { display: none; } /* simplify for narrow screens */
-      .cube-wrap { position: relative; left: auto; top: auto; transform: none; margin: 12px auto; }
+    /* Center hub (scoop eraser + gutters) positioned at the same computed intersection */
+    .center-hub {
+      position:absolute;
+      left: calc(var(--padding-x) + (42vw - var(--gap)/2));
+      top: calc(var(--padding-y) + 40vh + var(--gap)/2);
+      width: calc(var(--scoop-radius) * 2);
+      height: calc(var(--scoop-radius) * 2);
+      transform: translate(-50%,-50%);
+      pointer-events:none;
+      z-index:3; /* above panels but below cube by default */
+    }
+
+    .scoop-eraser{
+      position:absolute; inset:0; border-radius:50%;
+      background: var(--bg);
+      box-shadow: inset 0 10px 30px rgba(0,0,0,0.22);
+      z-index:1;
+      pointer-events:none;
+    }
+
+    /* Gutters drawn after scoop so gaps visually cut panels but scoop remains continuous */
+    .gutter { position:absolute; background: var(--bg); z-index:2; pointer-events:none; }
+    .gutter-vertical { width: var(--gap); height: 100%; left: calc(50% - var(--gap)/2); top: 0; }
+    .gutter-h-top { height: var(--gap); width: calc(50% + var(--scoop-radius)); left: 50%; top: calc(50% - var(--scoop-radius)); }
+    .gutter-h-bottom { height: var(--gap); width: calc(50% + var(--scoop-radius)); left: 50%; bottom: calc(50% - var(--scoop-radius)); }
+
+    /* Optional subtle accent ring placed under scoop */
+    .accent-ring {
+      position:absolute;
+      left: calc(var(--padding-x) + (42vw - var(--gap)/2));
+      top: calc(var(--padding-y) + 40vh + var(--gap)/2);
+      width: calc(var(--scoop-radius) * 2);
+      height: calc(var(--scoop-radius) * 2);
+      transform: translate(-50%,-50%);
+      border-radius: 50%;
+      pointer-events:none;
+      background: radial-gradient(circle at center, rgba(25,166,255,0.06), rgba(25,166,255,0.02) 60%, transparent 100%);
+      filter: blur(2px);
+      z-index:2;
+    }
+
+    /* Make sure panels are on top of background */
+    .title, .description, .image { z-index:1; }
+
+    @media (max-width:980px){
+      /* On small screens keep a simpler layout and hide the hub to avoid clutter */
+      :root { --cube-size: 160px; --scoop-radius: 130px; --gap: 12px; }
+      .layout { grid-template-columns: 1fr; grid-template-rows: auto auto auto; gap: var(--gap); padding: var(--padding-y) 4vw; }
+      .title{ grid-column:1; grid-row:1; border-top-right-radius: var(--corner-radius); border-bottom-right-radius: var(--corner-radius); }
+      .description{ grid-column:1; grid-row:2; }
+      .image{ grid-column:1; grid-row:3; width: calc(100% - 4vw); height: 36vh; }
+      .center-hub, .accent-ring { display:none; }
+      .cube-wrap { position:relative; left:auto; top:auto; transform:none; margin: 14px auto; }
     }
   </style>
 </head>
@@ -149,7 +180,10 @@
       <div class="panel image" id="imagePanel">Preview area</div>
     </div>
 
-    <!-- center hub fixed to viewport center -->
+    <!-- accent ring under scoop for subtle glow -->
+    <div class="accent-ring" id="accentRing" aria-hidden="true"></div>
+
+    <!-- center hub at the intersection (scoop + gutters) -->
     <div class="center-hub" id="centerHub" aria-hidden="true">
       <div class="scoop-eraser" id="scoop"></div>
       <div class="gutter gutter-vertical" aria-hidden="true"></div>
@@ -157,9 +191,7 @@
       <div class="gutter gutter-h-bottom" aria-hidden="true"></div>
     </div>
 
-    <div class="accent-ring" aria-hidden="true"></div>
-
-    <!-- cube fixed at center -->
+    <!-- cube placed exactly at the intersection (shares same left/top calc) -->
     <div class="cube-wrap" id="cubeWrap">
       <div class="scene" id="scene">
         <div class="cube" id="cube" role="application" aria-label="cube">
@@ -176,7 +208,7 @@
   </div>
 
   <script>
-    // Lightweight rotation and face logic
+    // Rotation and face logic (unchanged semantics)
     let projectsData = [];
     const scene = document.getElementById('scene');
     const cube = document.getElementById('cube');
@@ -187,7 +219,6 @@
     let faceIndices = { front:0, right:1, back:2, left:3, top:0, bottom:0 };
     let projectCounter = 0, lastBoundary = null, totalRotation = 0, prevRotation = 0;
 
-    // Pointer handlers on scene (drag updates live)
     scene.addEventListener('pointerdown', e=>{
       isDown = true;
       startX = e.clientX;
@@ -337,7 +368,7 @@
     }
     loadProjects().then(()=>{ refreshFaceContent(); updatePanelsFromVisibleFace(); });
 
-    // layout init: keep CSS-driven centering, reapply transforms on load/resize
+    // Apply initial rotation and reapply on resize so transforms remain correct relative to layout
     window.addEventListener('load', ()=>{ applyRotation(); setTimeout(applyRotation, 120); });
     window.addEventListener('resize', ()=>{ applyRotation(); });
   </script>
