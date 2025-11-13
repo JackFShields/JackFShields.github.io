@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Portfolio Cube</title>
+  <title>Portfolio Cube — Centered Scoop (Half Scale)</title>
   <link rel="icon" href="https://raw.githubusercontent.com/JackFShields/JackFShields.github.io/refs/heads/main/cube.png" type="image/x-icon" />
 
   <style>
@@ -14,10 +14,10 @@
       --text: #e6eef6;
       --muted: rgba(190,215,240,0.7);
 
-      /* geometry */
-      --cube-size: 280px;       /* change to scale cube */
-      --scoop-radius: 225px;    /* change to keep scoop matched to cube */
-      --gutter: 14px;           /* visible gap thickness between panels */
+      /* Geometry controls (half scale) */
+      --cube-size: 140px;        /* half of 280px */
+      --scoop-radius: 112.5px;   /* half of 225px */
+      --gutter: 14px;            /* visible gap thickness between panels */
       --corner-radius: 14px;
       --scene-perspective: 1200px;
     }
@@ -26,7 +26,7 @@
     html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;-webkit-font-smoothing:antialiased}
     .viewport{width:100vw;height:100vh;position:relative;overflow:hidden}
 
-    /* Simple two-column layout so left stack and right image align reliably */
+    /* Grid layout for predictable alignment */
     .layout {
       position:relative;
       width:100%;
@@ -38,18 +38,33 @@
       padding: 2vh 2vw;
     }
 
+    .panel {
+      background: var(--panel-grad);
+      border:1px solid var(--border);
+      border-radius: var(--corner-radius);
+      padding:20px;
+      box-shadow: 0 10px 36px rgba(0,0,0,0.36);
+      z-index:1;
+      overflow:visible;
+    }
+
     .title {
       grid-column: 1 / 2;
       grid-row: 1 / 2;
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
     }
+    .title h1 { font-size: 30px; margin-bottom: 8px; }
+    .title p { color: var(--muted); margin-top: 6px; }
+
     .description {
       grid-column: 1 / 2;
       grid-row: 2 / 3;
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
     }
+    .description p { color: var(--muted); line-height: 1.45; }
+
     .image {
       grid-column: 2 / 3;
       grid-row: 1 / 3;
@@ -58,16 +73,7 @@
       display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);
     }
 
-    .panel {
-      background: var(--panel-grad);
-      border:1px solid var(--border);
-      border-radius: var(--corner-radius);
-      padding:20px;
-      box-shadow: 0 10px 36px rgba(0,0,0,0.36);
-      z-index:1;
-    }
-
-    /* Center hub (fixed) keeps scoop and gutters exactly at viewport center */
+    /* Center hub fixed to viewport center (scoop + gutters) */
     .center-hub {
       position:fixed;
       left:50vw; top:50vh;
@@ -75,10 +81,10 @@
       height: calc(var(--scoop-radius) * 2);
       transform: translate(-50%,-50%);
       pointer-events:none;
-      z-index:3; /* above panels */
+      z-index:3; /* above panels but below cube */
     }
 
-    /* Scoop drawn first (below gutters) so it's continuous */
+    /* Scoop eraser is a disk of page background; sits above panels to 'carve' them visually */
     .scoop-eraser {
       position:absolute; inset:0; border-radius:50%;
       background: var(--bg);
@@ -87,33 +93,25 @@
       pointer-events:none;
     }
 
-    /* Gutters drawn after scoop, visually creating gaps */
-    .gutter {
-      position:absolute; background: var(--bg); z-index:2; pointer-events:none;
-    }
-    .gutter-vertical {
-      width: var(--gutter);
-      height: 100%;
-      left: calc(50% - var(--gutter)/2);
-      top: 0;
-    }
-    .gutter-h-top {
-      height: var(--gutter);
-      width: calc(50% + var(--scoop-radius));
-      left: 50%;
-      top: calc(50% - var(--scoop-radius));
-    }
-    .gutter-h-bottom {
-      height: var(--gutter);
-      width: calc(50% + var(--scoop-radius));
-      left: 50%;
-      bottom: calc(50% - var(--scoop-radius));
+    /* Gutters drawn after the scoop so gaps appear continuous */
+    .gutter { position:absolute; background: var(--bg); z-index:2; pointer-events:none; }
+    .gutter-vertical { width: var(--gutter); height: 100%; left: calc(50% - var(--gutter)/2); top: 0; }
+    .gutter-h-top { height: var(--gutter); width: calc(50% + var(--scoop-radius)); left: 50%; top: calc(50% - var(--scoop-radius)); }
+    .gutter-h-bottom { height: var(--gutter); width: calc(50% + var(--scoop-radius)); left: 50%; bottom: calc(50% - var(--scoop-radius)); }
+
+    /* Accent ring under scoop (optional subtle glow) */
+    .accent-ring {
+      position:fixed; left:50vw; top:50vh; transform:translate(-50%,-50%);
+      width: calc(var(--scoop-radius)*2); height: calc(var(--scoop-radius)*2);
+      border-radius:50%; pointer-events:none; z-index:2;
+      background: radial-gradient(circle at center, rgba(25,166,255,0.06), rgba(25,166,255,0.02) 60%, transparent 100%);
+      filter: blur(2px);
     }
 
-    /* Cube sits centered at viewport center (fixed) so hub and cube never drift */
+    /* Cube fixed to viewport center, sized from --cube-size */
     .cube-wrap { position:fixed; left:50vw; top:50vh; transform: translate(-50%,-50%); width: var(--cube-size); height: var(--cube-size); z-index:4; pointer-events:none; }
     .scene { width:100%; height:100%; perspective:var(--scene-perspective); position:relative; pointer-events:auto; user-select:none; touch-action:none; }
-    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size)/-2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:4; }
+    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:4; }
 
     .face { position:absolute; left:0; top:0; width:100%; height:100%; border-radius:12px; background: var(--panel-grad); border: 1px solid var(--border); display:flex; align-items:center; justify-content:center; box-shadow: 0 10px 36px rgba(0,0,0,0.6); backface-visibility:hidden; cursor:pointer; box-sizing:border-box; }
     .front { transform: rotateY(0deg) translateZ(calc(var(--cube-size)/2)); }
@@ -123,22 +121,14 @@
     .top   { transform: rotateX(90deg) translateZ(calc(var(--cube-size)/2)); }
     .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
-    /* subtle visual ring under scoop (optional) */
-    .accent-ring {
-      position:fixed; left:50vw; top:50vh; transform:translate(-50%,-50%);
-      width: calc(var(--scoop-radius)*2); height: calc(var(--scoop-radius)*2);
-      border-radius:50%; pointer-events:none; z-index:2;
-      background: radial-gradient(circle at center, rgba(25,166,255,0.06), rgba(25,166,255,0.02) 60%, transparent 100%); filter:blur(2px);
-    }
-
-    @media (max-width:980px){
-      :root{ --cube-size:260px; --scoop-radius:210px; --gutter:12px; }
-      .layout{ grid-template-columns: 1fr; grid-template-rows: auto auto auto; gap: var(--gutter); padding: 2vh 4vw;}
-      .title{ grid-column:1; grid-row:1; border-top-right-radius: var(--corner-radius); border-bottom-right-radius: var(--corner-radius); }
-      .description{ grid-column:1; grid-row:2; }
-      .image{ grid-column:1; grid-row:3; order:3; transform:none; left:auto; top:auto; width:calc(100% - 4vw); height:36vh; }
-      .center-hub{ display:none; } /* mobile: hide hub for simplicity */
-      .cube-wrap{ position:relative; left:auto; top:auto; transform:none; margin: 0 auto; display:block; }
+    @media (max-width: 980px) {
+      :root { --cube-size: 120px; --scoop-radius: 96px; --gutter: 12px; }
+      .layout { grid-template-columns: 1fr; grid-template-rows: auto auto auto; gap: var(--gutter); padding: 2vh 4vw; }
+      .title { grid-column: 1; grid-row: 1; border-top-right-radius: var(--corner-radius); border-bottom-right-radius: var(--corner-radius); }
+      .description { grid-column: 1; grid-row: 2; }
+      .image { grid-column: 1; grid-row: 3; transform: none; width: calc(100% - 4vw); height: 36vh; }
+      .center-hub, .scoop-eraser, .gutter, .accent-ring { display: none; } /* simplify for narrow screens */
+      .cube-wrap { position: relative; left: auto; top: auto; transform: none; margin: 12px auto; }
     }
   </style>
 </head>
@@ -186,7 +176,7 @@
   </div>
 
   <script>
-    /* Lightweight rotation / face logic (unchanged semantics) */
+    // Lightweight rotation and face logic
     let projectsData = [];
     const scene = document.getElementById('scene');
     const cube = document.getElementById('cube');
@@ -197,6 +187,7 @@
     let faceIndices = { front:0, right:1, back:2, left:3, top:0, bottom:0 };
     let projectCounter = 0, lastBoundary = null, totalRotation = 0, prevRotation = 0;
 
+    // Pointer handlers on scene (drag updates live)
     scene.addEventListener('pointerdown', e=>{
       isDown = true;
       startX = e.clientX;
@@ -230,7 +221,7 @@
           const p = projectsData.find(x=>x.value===idx);
           if(p && p.project_link){
             const href = p.project_link.startsWith('http') ? p.project_link : `https://${p.project_link}`;
-            window.open(href,'_blank');
+            window.open(href, '_blank');
           }
         }
       }
@@ -252,6 +243,7 @@
       if(norm>=225 && norm<315) return 'right';
       return 'front';
     }
+
     function handleThresholds(prevTotal,newTotal){
       if(lastBoundary===null) lastBoundary = Math.floor(totalRotation/90);
       const currentBoundary = Math.floor(newTotal/90);
@@ -274,6 +266,7 @@
       });
       updateFaceImages();
     }
+
     function updateFaceImages(){
       ['front','right','back','left','top','bottom'].forEach(slot=>{
         const el = document.querySelector(`.face.${slot}`);
@@ -344,7 +337,7 @@
     }
     loadProjects().then(()=>{ refreshFaceContent(); updatePanelsFromVisibleFace(); });
 
-    // layout init
+    // layout init: keep CSS-driven centering, reapply transforms on load/resize
     window.addEventListener('load', ()=>{ applyRotation(); setTimeout(applyRotation, 120); });
     window.addEventListener('resize', ()=>{ applyRotation(); });
   </script>
