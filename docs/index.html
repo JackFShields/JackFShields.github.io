@@ -23,6 +23,9 @@
       --viewport-padding-y: 2vh;
       --viewport-padding-x: 2vw;
 
+      /* top-row height = cube size + small gap; used to constrain image height */
+      --top-row-height: calc(var(--cube-size) + 12px);
+
       --corner-radius: 14px;
       --scene-perspective: 1200px;
     }
@@ -40,13 +43,13 @@
     /*
       Grid:
       - columns: left fixed 240px, right flexible
-      - rows: top row equal to cube height + small gap, bottom row fills remaining space
-      This ensures the lower row (description left, image right) expands to fill the page height.
+      - rows: top row height defined by --top-row-height, bottom row fills remaining space
+      This ensures the lower row (description left, image right) expands but we can compute available height.
     */
     .layout {
       display:grid;
       grid-template-columns: 240px 1fr;
-      grid-template-rows: calc(var(--cube-size) + 12px) 1fr;
+      grid-template-rows: var(--top-row-height) 1fr;
       gap: var(--gap);
       width:100%;
       height:100%;
@@ -83,7 +86,7 @@
       display:flex;
       flex-direction:column;
       justify-content:center;
-      min-height: calc(var(--cube-size));
+      min-height: var(--cube-size);
       padding:20px;
     }
     .title h1 { font-size: 28px; margin-bottom: 8px; }
@@ -93,7 +96,6 @@
     .description {
       grid-column: 1 / 2;
       grid-row: 2 / 3;
-      /* fill the entire bottom-left cell */
       height: 100%;
       overflow:auto;
       padding:18px;
@@ -109,16 +111,23 @@
       justify-content:center;
       text-align:center;
       color:var(--muted);
-      overflow:auto; /* allow scrolling if image is taller than available space */
+      overflow:auto; /* allow scrolling if needed on very small viewports */
       padding:12px;
       position:relative;
     }
 
-    /* Make the image scale to the available bottom-right cell without overflowing viewport */
+    /* Image sizing: never overflow viewport.
+       Max-height calculation:
+         viewport height
+         - vertical viewport padding (top + bottom)
+         - top row height (title + cube)
+         - gap and extra padding buffer (40px)
+       This keeps the image inside visible area even on short screens.
+    */
     .image img {
       display:block;
       max-width:100%;
-      max-height:100%;
+      max-height: calc(100vh - (var(--viewport-padding-y) * 2) - var(--top-row-height) - 40px);
       width:auto;
       height:auto;
       object-fit:contain;
@@ -159,6 +168,7 @@
       .title { grid-column:1; grid-row:2; min-height:auto; padding:14px; }
       .description { grid-column:1; grid-row:3; height:auto; max-height:36vh; overflow:auto; padding:12px; }
       .image { grid-column:1; grid-row:4; height:36vh; padding:8px; overflow:hidden; }
+      .image img { max-height:100%; }
       .cube-wrap { margin: 8px auto; }
     }
   </style>
@@ -323,9 +333,6 @@
         document.getElementById('projTitle').textContent = project.project_name;
         document.getElementById('projSubtitle').innerHTML = `<a href="${project.project_link.startsWith('http')?project.project_link:'https://'+project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>`;
         document.getElementById('projDesc').textContent = project.description;
-        const scale = project.image_scale || '100%';
-        const safeScale = (typeof scale === 'string' && (scale.endsWith('%') || scale.endsWith('px'))) ? scale : '100%';
-        // create img element but let CSS sizing (max-width/max-height) contain it
         document.getElementById('imagePanel').innerHTML = `<img src="${project.image_link}" alt="${project.project_name}">`;
         document.getElementById('imagePanel').style.borderLeft = '4px solid #19a6ff';
       } else {
