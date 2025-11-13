@@ -15,16 +15,13 @@
       --text: #e6eef6;
       --muted: rgba(190,215,240,0.7);
 
-      /* Geometry (adjust these two to rescale together) */
       --cube-size: 200px;
       --scoop-radius: 165px;
 
-      /* Layout tuning */
       --gap: 14px;
       --padding-x: 2vw;
       --padding-y: 2vh;
 
-      /* Panel rounding / depth */
       --corner-radius: 14px;
       --scene-perspective: 1200px;
     }
@@ -56,49 +53,26 @@
       position:relative;
     }
 
-    .title {
-      grid-column: 1 / 2;
-      grid-row: 1 / 2;
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    }
-    .title h1 { font-size: 30px; margin-bottom: 8px; }
-    .title p { color: var(--muted); margin-top: 6px; }
+    .title { grid-column:1; grid-row:1; border-top-right-radius:0; border-bottom-right-radius:0; }
+    .title h1 { font-size:30px; margin-bottom:8px; }
+    .title p { color:var(--muted); margin-top:6px; }
 
-    .description {
-      grid-column: 1 / 2;
-      grid-row: 2 / 3;
-      border-top-right-radius: 0;
-      border-bottom-right-radius: 0;
-    }
-    .description p { color: var(--muted); line-height: 1.45; }
+    .description { grid-column:1; grid-row:2; border-top-right-radius:0; border-bottom-right-radius:0; }
+    .description p { color:var(--muted); line-height:1.45; }
 
     .image {
-      grid-column: 2 / 3;
-      grid-row: 1 / 3;
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-      display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);
-      overflow:hidden;
-      padding:0;
-      min-height: 120px;
-      position:relative;
-      background-clip: padding-box;
+      grid-column:2; grid-row:1 / 3;
+      border-top-left-radius:0; border-bottom-left-radius:0;
+      display:flex; align-items:center; justify-content:center; text-align:center; color:var(--muted);
+      overflow:hidden; padding:0; min-height:120px; position:relative; background-clip:padding-box;
     }
+    .image img { display:block; width:100%; height:100%; object-fit:contain; border-radius:calc(var(--corner-radius)); pointer-events:none; }
 
-    .image img {
-      display:block;
-      width:100%;
-      height:100%;
-      object-fit:contain;
-      border-radius: calc(var(--corner-radius));
-      -webkit-user-drag: none;
-      user-drag: none;
-      pointer-events: none;
-      background-color: transparent;
-    }
+    /* center point calculations used by cube and hub */
+    .center-point-left { left: calc(var(--padding-x) + (42vw - var(--gap)/2)); }
+    .center-point-top  { top: calc(var(--padding-y) + 40vh + var(--gap)/2); }
 
-    /* Cube container placed at the intersection (not viewport center) */
+    /* cube-wrap placed above scoop so cube is visible on top */
     .cube-wrap {
       position:absolute;
       left: calc(var(--padding-x) + (42vw - var(--gap)/2));
@@ -106,13 +80,13 @@
       width: var(--cube-size);
       height: var(--cube-size);
       transform: translate(-50%,-50%);
-      z-index:9;
-      pointer-events:none;
+      z-index: 20; /* highest: cube above scoop and panels for visual prominence */
+      pointer-events:auto; /* allow pointer events on the cube */
     }
-    .scene { width:100%; height:100%; perspective:var(--scene-perspective); position:relative; pointer-events:auto; user-select:none; touch-action:none; }
-    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:9; }
+    .scene { width:100%; height:100%; perspective:var(--scene-perspective); position:relative; user-select:none; touch-action:none; }
+    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size)/ -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:20; pointer-events:auto; }
 
-    .face { position:absolute; left:0; top:0; width:100%; height:100%; border-radius:12px; background: var(--panel-grad); border: 1px solid var(--border); display:flex; align-items:center; justify-content:center; box-shadow: 0 10px 36px rgba(0,0,0,0.6); backface-visibility:hidden; cursor:pointer; box-sizing:border-box; }
+    .face { position:absolute; left:0; top:0; width:100%; height:100%; border-radius:12px; background: var(--panel-grad); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; box-shadow:0 10px 36px rgba(0,0,0,0.6); backface-visibility:hidden; cursor:pointer; box-sizing:border-box; }
     .front { transform: rotateY(0deg) translateZ(calc(var(--cube-size)/2)); }
     .right { transform: rotateY(90deg) translateZ(calc(var(--cube-size)/2)); }
     .back  { transform: rotateY(180deg) translateZ(calc(var(--cube-size)/2)); }
@@ -121,10 +95,8 @@
     .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
     /*
-      SCOOP (opaque) - positioned above panels so it fully covers underlying content when needed.
-      To make scoop opaque: use a solid background (no translucent gradients), opacity:1,
-      no blur, and z-index above panels. The gutters are softened to avoid hairline artifacts,
-      but the scoop itself is fully opaque.
+      SCOOP (opaque) — keep scoop visible but under the cube.
+      Set center-hub z-index lower than cube-wrap so cube renders on top.
     */
     .center-hub {
       position:absolute;
@@ -134,33 +106,25 @@
       height: calc(var(--scoop-radius) * 2);
       transform: translate(-50%,-50%);
       pointer-events:none;
-      z-index: 11; /* above panels (panels are 6) so scoop covers them */
+      z-index: 10; /* under cube-wrap (20) but above page background; panels are z-index:6 */
       display:block;
     }
 
     .scoop-eraser{
-      position:absolute;
-      left:0; top:0; right:0; bottom:0;
-      border-radius:50%;
-      /* fully opaque solid background matching page bg (no translucency) */
-      background: #071425;
+      position:absolute; left:0; top:0; right:0; bottom:0; border-radius:50%;
+      background:#071425; /* fully opaque to match page background */
       box-shadow: 0 20px 60px rgba(0,0,0,0.45), inset 0 10px 30px rgba(0,0,0,0.22);
-      filter: none;
-      transform: none;
-      mix-blend-mode: normal;
-      opacity: 1;
-      pointer-events:none;
+      filter:none; transform:none; opacity:1; pointer-events:none;
     }
 
-    /* Gutters are visual accents. keep them soft so edges don't produce crisp lines */
+    /* soft gutters to avoid hairline seams */
     .gutter { position:absolute; pointer-events:none; }
     .gutter-vertical {
-      width: calc(var(--gap) * 1.4);
-      height: 100%;
-      left: calc(50% - (calc(var(--gap) * 1.4)/2));
-      top: 0;
+      width: calc(var(--gap) * 1.4); height:100%;
+      left: calc(50% - (calc(var(--gap) * 1.4)/2)); top:0;
       background: linear-gradient(90deg, rgba(7,20,37,0) 0%, rgba(7,20,37,0.6) 45%, rgba(7,20,37,0.62) 55%, rgba(7,20,37,0) 100%);
       filter: blur(4px);
+      z-index:11; /* above scoop but below cube */
     }
     .gutter-h-top, .gutter-h-bottom {
       height: calc(var(--gap) * 1.2);
@@ -168,11 +132,11 @@
       left: 50%;
       background: linear-gradient(180deg, rgba(7,20,37,0) 0%, rgba(7,20,37,0.6) 40%, rgba(7,20,37,0.62) 60%, rgba(7,20,37,0) 100%);
       filter: blur(4px);
+      z-index:11;
     }
-    .gutter-h-top { top: calc(50% - var(--scoop-radius)); transform-origin: left top; }
-    .gutter-h-bottom { bottom: calc(50% - var(--scoop-radius)); transform-origin: left bottom; }
+    .gutter-h-top { top: calc(50% - var(--scoop-radius)); transform-origin:left top; }
+    .gutter-h-bottom { bottom: calc(50% - var(--scoop-radius)); transform-origin:left bottom; }
 
-    /* subtle accent ring under scoop */
     .accent-ring {
       position:absolute;
       left: calc(var(--padding-x) + (42vw - var(--gap)/2));
@@ -180,25 +144,22 @@
       width: calc(var(--scoop-radius) * 2);
       height: calc(var(--scoop-radius) * 2);
       transform: translate(-50%,-50%);
-      border-radius: 50%;
+      border-radius:50%;
       pointer-events:none;
       background: radial-gradient(circle at center, rgba(25,166,255,0.06), rgba(25,166,255,0.02) 60%, transparent 100%);
       filter: blur(2px);
-      z-index:10;
+      z-index:9;
       opacity:0.98;
     }
 
-    /* ensure panels still render above page background */
-    .title, .description, .image { z-index: 6; }
-
     @media (max-width:980px){
-      :root { --cube-size: 160px; --scoop-radius: 130px; --gap: 12px; }
-      .layout { grid-template-columns: 1fr; grid-template-rows: auto auto auto; gap: var(--gap); padding: var(--padding-y) 4vw; }
-      .title{ grid-column:1; grid-row:1; border-top-right-radius: var(--corner-radius); border-bottom-right-radius: var(--corner-radius); }
+      :root { --cube-size:160px; --scoop-radius:130px; --gap:12px; }
+      .layout { grid-template-columns:1fr; grid-template-rows:auto auto auto; gap:var(--gap); padding:var(--padding-y) 4vw; }
+      .title{ grid-column:1; grid-row:1; border-top-right-radius:var(--corner-radius); border-bottom-right-radius:var(--corner-radius); }
       .description{ grid-column:1; grid-row:2; }
-      .image{ grid-column:1; grid-row:3; width: calc(100% - 4vw); height: 36vh; }
+      .image{ grid-column:1; grid-row:3; width:calc(100% - 4vw); height:36vh; }
       .center-hub, .accent-ring { display:none; }
-      .cube-wrap { position:relative; left:auto; top:auto; transform:none; margin: 14px auto; z-index:9; }
+      .cube-wrap { position:relative; left:auto; top:auto; transform:none; margin:14px auto; z-index:20; }
     }
   </style>
 </head>
@@ -244,7 +205,6 @@
   </div>
 
   <script>
-    // Rotation and face logic (unchanged semantics)
     let projectsData = [];
     const scene = document.getElementById('scene');
     const cube = document.getElementById('cube');
@@ -381,7 +341,6 @@
       }
     }
 
-    // inertia loop
     let lastFrame = performance.now();
     function loop(now){
       const dt = (now - lastFrame)/1000;
@@ -396,7 +355,6 @@
     }
     requestAnimationFrame(loop);
 
-    // load projects.json
     async function loadProjects(){
       try{
         const r = await fetch('projects.json');
@@ -405,7 +363,6 @@
     }
     loadProjects().then(()=>{ refreshFaceContent(); updatePanelsFromVisibleFace(); });
 
-    // Apply initial rotation and reapply on resize so transforms remain correct relative to layout
     window.addEventListener('load', ()=>{ applyRotation(); setTimeout(applyRotation, 120); });
     window.addEventListener('resize', ()=>{ applyRotation(); });
   </script>
