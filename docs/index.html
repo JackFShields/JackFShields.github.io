@@ -1,13 +1,11 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- // 1: Meta and title -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Portfolio Cube — Infinite Mechanism (Sectioned)</title>
-  <link rel="icon" href="https://raw.githubusercontent.com/JackFShields/JackFShields.github.io/refs/heads/main/cube.png" type="image/x-icon">Copied!   
+  <title>Portfolio Cube — Infinite Mechanism</title>
+  <link rel="icon" href="https://raw.githubusercontent.com/JackFShields/JackFShields.github.io/refs/heads/main/cube.png" type="image/x-icon" />
 
-  <!-- // 2: Core styles -->
   <style>
     :root{
       --bg: #071425;
@@ -41,24 +39,14 @@
     .scene { width:100%; height:100%; perspective:1200px; position:relative; pointer-events:auto; user-select:none; touch-action:none; }
     .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(-140px) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:5; }
 
-    /* Faces (OneCompiler-style) */
-    .face { position:absolute; left:0; top:0; width:100%; height:100%; border-radius:12px; background: var(--panel-grad); border: 1px solid var(--border); display:flex; align-items:center; justify-content:center; flex-direction:column; box-shadow: 0 10px 36px rgba(0,0,0,0.6); backface-visibility:hidden; cursor:pointer; box-sizing:border-box; }
-    .face .accent { position:absolute; left:0; top:0; bottom:0; width:6px; border-top-left-radius:12px; border-bottom-left-radius:12px; }
-    .face h3 { font-size:22px; margin:0 0 6px 0; }
-    .face p { color:var(--muted); margin:0; font-size:13px; text-align:center; padding:0 10px; }
+    /* Faces */
+    .face { position:absolute; left:0; top:0; width:100%; height:100%; border-radius:12px; background: var(--panel-grad); border: 1px solid var(--border); display:flex; align-items:center; justify-content:center; box-shadow: 0 10px 36px rgba(0,0,0,0.6); backface-visibility:hidden; cursor:pointer; box-sizing:border-box; }
     .front { transform: rotateY(0deg) translateZ(calc(var(--cube-size)/2)); }
     .right { transform: rotateY(90deg) translateZ(calc(var(--cube-size)/2)); }
     .back  { transform: rotateY(180deg) translateZ(calc(var(--cube-size)/2)); }
     .left  { transform: rotateY(270deg) translateZ(calc(var(--cube-size)/2)); }
     .top   { transform: rotateX(90deg) translateZ(calc(var(--cube-size)/2)); }
     .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
-
-    /* Bottom bar (present but can be hidden) */
-    .projects { position:absolute; left:0; right:0; bottom:0; display:flex; gap:14px; padding:2vh 2vw; flex-wrap:wrap; justify-content:center; align-items:center; background: linear-gradient(to top, rgba(0,0,0,0.45), transparent); z-index:7; }
-    .proj-btn { width:140px; height:84px; background:var(--panel-grad); border:1px solid var(--border); border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition:transform .18s, box-shadow .18s; }
-    .proj-btn:hover { transform: translateY(-6px); box-shadow: 0 12px 30px rgba(0,0,0,0.45); }
-    .proj-btn strong { font-size:18px; }
-    .proj-btn span { font-size:12px; color:var(--muted); margin-top:6px; }
 
     @media (max-width: 980px) {
       :root { --cube-size: 260px; --bite-radius: 160px; }
@@ -74,22 +62,20 @@
 <body>
   <div class="viewport" id="viewport">
 
-    <!-- // 3: Panels -->
+    <!-- Panels -->
     <div class="panel title" id="titlePanel">
-      <h1 id="projTitle">Project 0</h1>
-      <p id="projSubtitle">Face: front</p>
-      <div style="margin-top:10px;color:var(--muted);font-size:13px">
-        <a href="https://jackfshields.github.io" style="color:inherit;text-decoration:underline">JackFShields.github.io</a>
-      </div>
+      <h1 id="projTitle">Unfinished project</h1>
+      <p id="projSubtitle"></p>
+      <div style="margin-top:10px;color:var(--muted);font-size:13px"></div>
     </div>
 
     <div class="panel description" id="descPanel">
-      <p id="projDesc">Infinite rotation is active. Faces update only when hidden. Clockwise increments: 0 → 1 → 2 → …</p>
+      <p id="projDesc"></p>
     </div>
 
     <div class="panel image" id="imagePanel">Preview area</div>
 
-    <!-- // 4: Anchor and bite SVG -->
+    <!-- Anchor and bite SVG -->
     <div class="anchor" id="anchor" aria-hidden="true"></div>
     <svg class="bite-svg" id="biteSVG" aria-hidden="true">
       <defs>
@@ -107,65 +93,31 @@
       <circle id="biteCircle" cx="0" cy="0" r="0" fill="#071425" stroke="rgba(255,255,255,0.08)" stroke-width="2" filter="url(#innerShadow)"></circle>
     </svg>
 
-    <!-- // 5: Cube DOM (OneCompiler) -->
+    <!-- Cube DOM -->
     <div class="cube-wrap" id="cubeWrap">
       <div class="scene" id="scene">
-        <div class="cube" id="cube" role="application" aria-label="onecompiler-cube">
-          <div class="face front" data-slot="front">
-            <div class="accent" style="background:#e74c3c"></div>
-            <h3>0</h3><p>front</p>
-          </div>
-          <div class="face right" data-slot="right">
-            <div class="accent" style="background:#27ae60"></div>
-            <h3>1</h3><p>right</p>
-          </div>
-          <div class="face back" data-slot="back">
-            <div class="accent" style="background:#9b59b6"></div>
-            <h3>0</h3><p>back</p>
-          </div>
-          <div class="face left" data-slot="left">
-            <div class="accent" style="background:#1abc9c"></div>
-            <h3>0</h3><p>left</p>
-          </div>
-          <div class="face top" data-slot="top">
-            <div class="accent" style="background:#f39c12"></div>
-            <h3>0</h3><p>top</p>
-          </div>
-          <div class="face bottom" data-slot="bottom">
-            <div class="accent" style="background:#34495e"></div>
-            <h3>0</h3><p>bottom</p>
-          </div>
+        <div class="cube" id="cube" role="application" aria-label="cube">
+          <div class="face front" data-slot="front"></div>
+          <div class="face right" data-slot="right"></div>
+          <div class="face back" data-slot="back"></div>
+          <div class="face left" data-slot="left"></div>
+          <div class="face top" data-slot="top"></div>
+          <div class="face bottom" data-slot="bottom"></div>
         </div>
       </div>
     </div>
 
-    <!-- // 6: Bottom bar (optional; visible, won’t break logic) -->
+    <!-- Bottom bar (optional, empty) -->
     <div class="projects" id="projectsBar"></div>
 
   </div>
 
-  <!-- // 7: Script: data and DOM refs -->
   <script>
-// 7.1 Dynamic project loading (no top-level await)
-let projectsData = [];
-let currentVisibleValue = 0;
+    // Data
+    let projectsData = [];
+    let currentVisibleValue = 0;
 
-async function loadProjects() {
-  try {
-    const response = await fetch('projects.json');
-    projectsData = await response.json();
-  } catch (e) {
-    console.log('Projects.json not loaded:', e);
-  }
-}
-
-// Kick off load and update UI once ready
-loadProjects()
-  .then(() => {
-    refreshFaceContent();          // faces + click handlers
-    updatePanelsFromVisibleFace(); // right-side info
-  });
-    // 7.2 DOM refs
+    // DOM refs
     const anchor = document.getElementById('anchor');
     const biteSVG = document.getElementById('biteSVG');
     const biteCircle = document.getElementById('biteCircle');
@@ -175,11 +127,8 @@ loadProjects()
     const titlePanel = document.getElementById('titlePanel');
     const descPanel = document.getElementById('descPanel');
     const imagePanel = document.getElementById('imagePanel');
-    const projectsBar = document.getElementById('projectsBar');
 
-// 7.3 (removed bottom bar - using infinite scroll instead)
-
-    // // 8: Layout and bite positioning
+    // Layout
     function computeAnchor(){
       const r = anchor.getBoundingClientRect();
       return { x: r.left + r.width/2, y: r.top + r.height/2, r: Math.min(r.width, r.height)/2 };
@@ -196,9 +145,9 @@ loadProjects()
       cubeWrap.style.transform = 'translate(-50%, -50%)';
     }
 
-    // // 9: Infinite rotation state (OneCompiler mechanism, rotated so CW increments and seed right=1)
-    let totalRotation = 0;    // unbounded degrees
-    let rotY = 0;             // visual degrees
+    // Rotation state
+    let totalRotation = 0;
+    let rotY = 0; // using Y for face selection
     let isDown = false;
     let startX = 0, startRot = 0, startT = 0;
     let angVel = 0;
@@ -207,39 +156,19 @@ loadProjects()
     const CLICK_MOVE_THRESHOLD = 6;
     const CLICK_TIME_THRESHOLD = 300;
 
-// Start everything at 0
-let faceIndices = { front: 0, right: 1, back: 2, left: 3, top: 0, bottom: 0 };
-let projectCounter = 0;
-let lastBoundary = null;
+    // Faces indexing: seed front=0, right=1, back=2, left=3
+    let faceIndices = { front: 0, right: 1, back: 2, left: 3, top: 0, bottom: 0 };
+    let projectCounter = 0;
+    let lastBoundary = null;
 
-// Add this function to properly seed the faces
-function initializeFaces() {
-  // Set faces based on current rotation (0 degrees = front visible)
-  // Going CW: front=0, right=1, back=2, left=3
-  faceIndices = { front: 0, right: 1, back: 2, left: 3, top: 0, bottom: 0 };
-}
-// Initialize faces with proper sequence
-function initializeFaceSequence() {
-  faceIndices = { 
-    front: 0, 
-    right: 1, 
-    back: 2, 
-    left: 3, 
-    top: 0, 
-    bottom: 0 
-  };
-  projectCounter = 0;
-}
-initializeFaceSequence();
-
-    // // 10: Pointer handlers (drag/click)
+    // Pointer handlers on scene (not faces)
     scene.addEventListener('pointerdown', e=>{
       isDown = true;
       startX = e.clientX;
       startRot = rotY;
       startT = performance.now();
       angVel = 0;
-      try{ scene.setPointerCapture(e.pointerId); }catch(e){}
+      try{ scene.setPointerCapture(e.pointerId); }catch(_){}
     });
     scene.addEventListener('pointermove', e=>{
       if(!isDown) return;
@@ -251,9 +180,9 @@ initializeFaceSequence();
       applyRotation();
     });
     scene.addEventListener('pointerup', e=>{
-      try{ scene.releasePointerCapture(e.pointerId); }catch(e){}
+      try{ scene.releasePointerCapture(e.pointerId); }catch(_){}
       const dt = performance.now() - startT;
-      const moved = Math.hypot(e.clientX - startX, e.clientY - startX);
+      const moved = Math.hypot(e.clientX - startX, 0); // horizontal drag only for rotY
       const isClick = moved <= CLICK_MOVE_THRESHOLD && dt <= CLICK_TIME_THRESHOLD;
       isDown = false;
       angVel = Math.max(-20, Math.min(20, angVel));
@@ -262,23 +191,26 @@ initializeFaceSequence();
         const face = el && el.closest && el.closest('.face');
         if(face){
           const slot = face.dataset.slot;
-          const n = faceIndices[slot] ?? 0;
-          const p = projects.length ? projects[n % projects.length] : null;
-          if(p && p.url) window.open(p.url, '_blank');
+          const idx = faceIndices[slot] ?? 0;
+          const project = projectsData.find(p => p.value === idx);
+          if(project && project.project_link){
+            const href = project.project_link.startsWith('http') ? project.project_link : `https://${project.project_link}`;
+            window.open(href, '_blank');
+          }
         }
       }
     });
 
-// // 11: Rotation application and updates
-let prevRotation = 0; // Add this line to track actual previous
-function applyRotation(){
-  cube.style.transform = `translateZ(-140px) rotateX(${rotX}deg) rotateY(${rotY}deg)`;
-  handleThresholds(prevRotation, totalRotation); // Use actual previous
-  prevRotation = totalRotation; // Save for next frame
-  updatePanelsFromVisibleFace();
-  refreshFaceContent();
-}
-    // // 12: Helpers
+    // Rotation application and boundary updates
+    let prevRotation = 0;
+    function applyRotation(){
+      cube.style.transform = `translateZ(-140px) rotateX(-10deg) rotateY(${rotY}deg)`;
+      handleThresholds(prevRotation, totalRotation);
+      prevRotation = totalRotation;
+      updatePanelsFromVisibleFace();
+      refreshFaceContent();
+    }
+
     function normalizeDeg(d){ let v = d % 360; if(v < 0) v += 360; return v; }
     function mostVisibleFace(){
       const norm = normalizeDeg(rotY);
@@ -288,14 +220,12 @@ function applyRotation(){
       return 'front';
     }
 
-    // // 13: Section-15 style boundary handler (rotated for CW increment, hidden-face only)
     function handleThresholds(prevTotal, newTotal){
       if(lastBoundary === null) lastBoundary = Math.floor(totalRotation / 90);
-
       const currentBoundary = Math.floor(newTotal / 90);
       if(currentBoundary !== lastBoundary){
-        // Flip so CW increments
-        const direction = currentBoundary > lastBoundary ? -1 : 1;
+        // CW increments when rotY increases (screen coords -> right drag increases rotY)
+        const direction = currentBoundary > lastBoundary ? 1 : -1;
         projectCounter = Math.max(0, projectCounter + direction);
         lastBoundary = currentBoundary;
 
@@ -306,128 +236,97 @@ function applyRotation(){
       }
     }
 
-// // 14: Face/DOM refresh (no numbers or labels)
-function refreshFaceContent(){
-  const slots = ['front','right','back','left','top','bottom'];
-  slots.forEach(slot=>{
-    const faceEl = document.querySelector(`.face.${slot}`);
-    if(!faceEl) return;
-    faceEl.innerHTML = ''; // no numbers/labels
-  });
-  updateFaceImages(); // always refresh images + click handlers
-}
-
-// // 14.5: Update face images from JSON with click that doesn't break drag
-function updateFaceImages(){
-  const slots = ['front','right','back','left','top','bottom'];
-
-  // Clean up any previous listeners to avoid duplicates
-  slots.forEach(slot => {
-    const faceEl = document.querySelector(`.face.${slot}`);
-    if(!faceEl) return;
-
-    const idx = faceIndices[slot] ?? 0;
-    const project = projectsData.find(p => p.value === idx);
-
-    // Always reset visuals first
-    faceEl.style.backgroundImage = '';
-    faceEl.style.cursor = 'default';
-    faceEl.classList.remove('clickable-face');
-
-    // Remove prior handlers if we stored them
-    if(faceEl._removeHandlers){
-      faceEl._removeHandlers();
-      faceEl._removeHandlers = null;
+    // Refresh faces: remove labels, apply images and click without breaking drag
+    function refreshFaceContent(){
+      const slots = ['front','right','back','left','top','bottom'];
+      slots.forEach(slot=>{
+        const faceEl = document.querySelector(`.face.${slot}`);
+        if(!faceEl) return;
+        faceEl.innerHTML = ''; // no numbers/labels
+      });
+      updateFaceImages();
     }
 
-    if(project && project.face_of_cube_image_link){
-      // Apply cube face image
-      faceEl.style.backgroundImage = `url(${project.face_of_cube_image_link})`;
-      faceEl.style.backgroundSize = 'cover';
-      faceEl.style.backgroundPosition = 'center';
+    function updateFaceImages(){
+      const slots = ['front','right','back','left','top','bottom'];
+      slots.forEach(slot => {
+        const faceEl = document.querySelector(`.face.${slot}`);
+        if(!faceEl) return;
 
-      // Make face clickable without breaking drag
-      faceEl.style.cursor = 'pointer';
-      faceEl.classList.add('clickable-face');
+        const idx = faceIndices[slot] ?? 0;
+        const project = projectsData.find(p => p.value === idx);
 
-      let startX = 0, startY = 0, moved = false;
-      const threshold = 6; // pixels before we consider it a drag
+        // Reset visuals and handlers
+        faceEl.style.backgroundImage = '';
+        faceEl.style.cursor = 'default';
+        if(faceEl._removeHandlers){ faceEl._removeHandlers(); faceEl._removeHandlers = null; }
 
-      const onPointerDown = (e) => {
-        moved = false;
-        startX = e.clientX;
-        startY = e.clientY;
-      };
-      const onPointerMove = (e) => {
-        if(Math.abs(e.clientX - startX) > threshold || Math.abs(e.clientY - startY) > threshold){
-          moved = true;
+        if(project && project.face_of_cube_image_link){
+          // Apply cube face image
+          faceEl.style.backgroundImage = `url(${project.face_of_cube_image_link})`;
+          faceEl.style.backgroundSize = 'cover';
+          faceEl.style.backgroundPosition = 'center';
+          faceEl.style.cursor = 'pointer';
+
+          // Click detection independent from drag on scene
+          let downX = 0, downY = 0, moved = false;
+          const threshold = 6;
+
+          const onPointerDown = (e) => {
+            moved = false;
+            downX = e.clientX;
+            downY = e.clientY;
+          };
+          const onPointerMove = (e) => {
+            if(Math.abs(e.clientX - downX) > threshold || Math.abs(e.clientY - downY) > threshold){
+              moved = true;
+            }
+          };
+          const onPointerUp = (e) => {
+            if(!moved){
+              const href = project.project_link.startsWith('http') ? project.project_link : `https://${project.project_link}`;
+              window.open(href, '_blank');
+            }
+          };
+
+          faceEl.addEventListener('pointerdown', onPointerDown, { passive: true });
+          faceEl.addEventListener('pointermove', onPointerMove, { passive: true });
+          faceEl.addEventListener('pointerup', onPointerUp, { passive: true });
+
+          faceEl._removeHandlers = () => {
+            faceEl.removeEventListener('pointerdown', onPointerDown);
+            faceEl.removeEventListener('pointermove', onPointerMove);
+            faceEl.removeEventListener('pointerup', onPointerUp);
+          };
         }
-      };
-      const onPointerUp = (e) => {
-        // If not dragged, treat as click
-        if(!moved){
-          // Open project link safely
-          window.open(`https://${project.project_link}`, '_blank');
-        }
-      };
-
-      faceEl.addEventListener('pointerdown', onPointerDown, { passive: true });
-      faceEl.addEventListener('pointermove', onPointerMove, { passive: true });
-      faceEl.addEventListener('pointerup', onPointerUp, { passive: true });
-
-      // Store a remover to avoid stacking listeners on refresh
-      faceEl._removeHandlers = () => {
-        faceEl.removeEventListener('pointerdown', onPointerDown);
-        faceEl.removeEventListener('pointermove', onPointerMove);
-        faceEl.removeEventListener('pointerup', onPointerUp);
-      };
-    }
-  });
-}
-// // 15: Panels update from visible face (dynamic JSON lookup, no "Project N")
-function updatePanelsFromVisibleFace(){
-  const slot = mostVisibleFace();
-  const currentVisibleValue = faceIndices[slot] ?? 0;
-
-  // Find project with matching value
-  const project = projectsData.find(p => p.value === currentVisibleValue);
-
-  if(project){
-    // Title
-    document.getElementById('projTitle').textContent = project.project_name;
-
-    // Clickable project link
-    document.getElementById('projSubtitle').innerHTML =
-      `<a href="https://${project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>`;
-
-    // Description
-    document.getElementById('projDesc').textContent = project.description;
-
-    // Image panel with adjustable scale from JSON
-    const scale = project.image_scale || '100%';
-    imagePanel.innerHTML =
-      `<img src="${project.image_link}" style="width:${scale};height:auto;object-fit:contain;">`;
-
-    imagePanel.style.borderLeft = '4px solid #19a6ff';
-  } else {
-    // Fallback for missing project
-    document.getElementById('projTitle').textContent = 'Unfinished project';
-    document.getElementById('projSubtitle').textContent = '';
-    document.getElementById('projDesc').textContent = '';
-    imagePanel.textContent = '';
-    imagePanel.style.borderLeft = '4px solid rgba(255,255,255,0.12)';
-  }
-}
-    // // 16: Bottom bar snap (kept minimal; won’t break mechanism)
-    function centerCubeOnIndex(idx){
-      const baseTarget = -idx * 90;
-      const current = rotY;
-      const k = Math.round((current - baseTarget)/360);
-      const target = baseTarget + 360*k;
-      animateRotationTo(target, 480);
+      });
     }
 
-    // // 17: Animation helpers
+    // Panels update (reads image_scale from JSON)
+    function updatePanelsFromVisibleFace(){
+      const slot = mostVisibleFace();
+      const currentVisibleValue = faceIndices[slot] ?? 0;
+      const project = projectsData.find(p => p.value === currentVisibleValue);
+
+      if(project){
+        document.getElementById('projTitle').textContent = project.project_name;
+        document.getElementById('projSubtitle').innerHTML =
+          `<a href="${project.project_link.startsWith('http') ? project.project_link : 'https://' + project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>`;
+        document.getElementById('projDesc').textContent = project.description;
+
+        const scale = project.image_scale || '100%';
+        imagePanel.innerHTML = `<img src="${project.image_link}" style="width:${scale};height:auto;object-fit:contain;">`;
+        imagePanel.style.borderLeft = '4px solid #19a6ff';
+      } else {
+        document.getElementById('projTitle').textContent = 'Unfinished project';
+        document.getElementById('projSubtitle').textContent = '';
+        document.getElementById('projDesc').textContent = '';
+        imagePanel.textContent = '';
+        imagePanel.style.borderLeft = '4px solid rgba(255,255,255,0.12)';
+      }
+    }
+
+    // Animation helpers
     function animateRotationTo(targetDeg, duration=420){
       const start = performance.now(), from = rotY;
       function step(ts){
@@ -440,7 +339,7 @@ function updatePanelsFromVisibleFace(){
       requestAnimationFrame(step);
     }
 
-    // // 18: Inertia loop (stepped boundary per frame)
+    // Inertia loop
     let lastFrame = performance.now();
     function loop(now){
       const dt = (now - lastFrame)/1000;
@@ -449,41 +348,31 @@ function updatePanelsFromVisibleFace(){
         rotY += angVel;
         angVel *= Math.pow(0.92, dt * 60);
         totalRotation = rotY;
-handleThresholds(prevRotation, totalRotation);
-prevRotation = totalRotation;
-        cube.style.transform = `translateZ(-140px) rotateX(-10deg) rotateY(${rotY}deg)`;
-        updatePanelsFromVisibleFace();
-        refreshFaceContent();
+        applyRotation();
       }
       requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);
 
-    // // 19: Layout init and wiring
+    // Layout init and wiring
     function layoutUpdate(){ positionBiteAndCube(); applyRotation(); }
     let resizeTimer;
     window.addEventListener('resize', ()=>{ clearTimeout(resizeTimer); resizeTimer = setTimeout(layoutUpdate, 80); });
     window.addEventListener('load', ()=>{ layoutUpdate(); setTimeout(layoutUpdate, 120); });
 
-    // // 20: Initial accents and face clicks (URLs open when mapped)
-    (function initAccents(){
-      const accents = ['#e74c3c','#27ae60','#9b59b6','#1abc9c','#f39c12','#34495e'];
-      const faces = document.querySelectorAll('.face');
-      faces.forEach((face,i)=>{ const a = face.querySelector('.accent'); if(a) a.style.background = accents[i%accents.length]; });
+    // Load projects.json and initialize UI
+    async function loadProjects() {
+      try {
+        const response = await fetch('projects.json');
+        projectsData = await response.json();
+      } catch (e) {
+        console.log('Projects.json not loaded:', e);
+      }
+    }
+    loadProjects().then(() => {
       refreshFaceContent();
       updatePanelsFromVisibleFace();
-    })();
-    Array.from(document.querySelectorAll('.face')).forEach(f=>{
-      f.addEventListener('click', ()=>{
-        const slot = f.dataset.slot;
-        const n = faceIndices[slot] ?? 0;
-        const p = projects[n];
-        if(p && p.url) window.open(p.url, '_blank');
-      });
     });
-    // Initialize faces properly
-initializeFaces();
-refreshFaceContent();
 
   </script>
 </body>
