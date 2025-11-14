@@ -23,7 +23,7 @@
       --viewport-padding-y: 2vh;
       --viewport-padding-x: 2vw;
 
-      /* top-row height = cube size + small gap; used to constrain image height */
+      /* top-row height = cube size + small gap; used to constrain iframe height */
       --top-row-height: calc(var(--cube-size) + 12px);
 
       --corner-radius: 14px;
@@ -44,7 +44,6 @@
       Grid:
       - columns: left fixed 240px, right flexible
       - rows: top row height defined by --top-row-height, bottom row fills remaining space
-      This ensures the lower row (description left, image right) expands but we can compute available height.
     */
     .layout {
       display:grid;
@@ -102,7 +101,7 @@
     }
     .description p { color: var(--muted); line-height: 1.45; }
 
-    /* Image occupies bottom-right (right column, second row) */
+    /* Image (now iframe) occupies bottom-right (right column, second row) */
     .image {
       grid-column: 2 / 3;
       grid-row: 2 / 3;
@@ -111,32 +110,31 @@
       justify-content:center;
       text-align:center;
       color:var(--muted);
-      overflow:auto; /* allow scrolling if needed on very small viewports */
+      overflow:auto; /* allow scrolling if iframe content is larger */
       padding:12px;
       position:relative;
     }
 
-    /* Image sizing: never overflow viewport.
-       Max-height calculation:
-         viewport height
-         - vertical viewport padding (top + bottom)
-         - top row height (title + cube)
-         - gap and extra padding buffer (40px)
-       This keeps the image inside visible area even on short screens.
-    */
-    .image img {
+    /* iframe sizing: contained to available area, won't overflow viewport */
+    .image iframe {
       display:block;
+      width:100%;
+      height:100%;
       max-width:100%;
       max-height: calc(100vh - (var(--viewport-padding-y) * 2) - var(--top-row-height) - 40px);
-      width:auto;
-      height:auto;
-      object-fit:contain;
+      border:0;
       border-radius: calc(var(--corner-radius));
-      pointer-events: none;
-      background-color: transparent;
+      background: #071425;
     }
 
-    /* Cube wrap inside its grid cell: fixed size equals --cube-size */
+    /* Fallback text when no iframe_link is present */
+    .image .fallback {
+      color:var(--muted);
+      padding:12px;
+      text-align:center;
+    }
+
+    /* Cube wrap inside its grid cell */
     .cube-wrap {
       width: var(--cube-size);
       height: var(--cube-size);
@@ -168,7 +166,7 @@
       .title { grid-column:1; grid-row:2; min-height:auto; padding:14px; }
       .description { grid-column:1; grid-row:3; height:auto; max-height:36vh; overflow:auto; padding:12px; }
       .image { grid-column:1; grid-row:4; height:36vh; padding:8px; overflow:hidden; }
-      .image img { max-height:100%; }
+      .image iframe { max-height:100%; }
       .cube-wrap { margin: 8px auto; }
     }
   </style>
@@ -203,7 +201,9 @@
         <p id="projDesc"></p>
       </div>
 
-      <div class="panel image" id="imagePanel">Preview area</div>
+      <div class="panel image" id="imagePanel">
+        <div class="fallback">Preview will appear here</div>
+      </div>
 
     </div>
   </div>
@@ -333,13 +333,29 @@
         document.getElementById('projTitle').textContent = project.project_name;
         document.getElementById('projSubtitle').innerHTML = `<a href="${project.project_link.startsWith('http')?project.project_link:'https://'+project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>`;
         document.getElementById('projDesc').textContent = project.description;
-        document.getElementById('imagePanel').innerHTML = `<img src="${project.image_link}" alt="${project.project_name}">`;
-        document.getElementById('imagePanel').style.borderLeft = '4px solid #19a6ff';
+
+        // NEW: use iframe_link instead of image_link; embed into the image panel
+        const iframeUrl = project.iframe_link;
+        const imagePanel = document.getElementById('imagePanel');
+        imagePanel.innerHTML = ''; // clear previous
+        if(iframeUrl){
+          // create iframe (directly set src since these are your own sites)
+          const ifr = document.createElement('iframe');
+          ifr.src = iframeUrl;
+          // sandbox can be adjusted; for same-origin trusted sites you may remove sandbox attr
+          ifr.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms');
+          ifr.setAttribute('title', project.project_name || 'preview');
+          imagePanel.appendChild(ifr);
+          imagePanel.style.borderLeft = '4px solid #19a6ff';
+        } else {
+          imagePanel.innerHTML = '<div class="fallback">No iframe_link provided for this project</div>';
+          imagePanel.style.borderLeft = '4px solid rgba(255,255,255,0.12)';
+        }
       } else {
         document.getElementById('projTitle').textContent = 'Unfinished project';
         document.getElementById('projSubtitle').textContent = '';
         document.getElementById('projDesc').textContent = '';
-        document.getElementById('imagePanel').textContent = 'Preview area';
+        document.getElementById('imagePanel').innerHTML = '<div class="fallback">Preview will appear here</div>';
         document.getElementById('imagePanel').style.borderLeft = '4px solid rgba(255,255,255,0.12)';
       }
     }
@@ -359,7 +375,7 @@
     }
     requestAnimationFrame(loop);
 
-    // load projects.json
+    // load projects.json (unchanged)
     async function loadProjects(){
       try{
         const r = await fetch('projects.json');
