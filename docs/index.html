@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>THE CUBE</title>
+  <link rel="icon" href="https://raw.githubusercontent.com/JackFShields/JackFShields.github.io/refs/heads/main/cube.png" type="image/x-icon" />
+
   <style>
     :root{
       --bg: #071425;
@@ -18,7 +20,7 @@
       --viewport-padding-y: 2vh;
       --viewport-padding-x: 2vw;
 
-      /* keep top row tall enough for cube + title; bottom row consumes the rest */
+      /* top row remains tall so iframe can use bottom area */
       --top-row-height: calc(var(--cube-size) + 16px);
 
       --corner-radius: 14px;
@@ -31,7 +33,6 @@
     .viewport{
       width:100vw;height:100vh;position:relative;overflow:hidden;
       padding: var(--viewport-padding-y) var(--viewport-padding-x);
-      display:block;
     }
 
     /* Grid: left fixed, right flexible; top row fixed, bottom row fills */
@@ -67,7 +68,7 @@
       background: transparent;
     }
 
-    /* Constrain cube-wrap to top row so it won't overflow into bottom area */
+    /* Keep cube confined to the top row so it doesn't overlap bottom content */
     .cube-wrap {
       width: var(--cube-size);
       height: var(--cube-size);
@@ -113,31 +114,29 @@
       overflow:auto;
       padding:18px;
     }
+    .description p { color: var(--muted); line-height:1.45; }
 
-    /* IMAGE PANEL — now a stacking surface for multiple absolute iframes */
+    /* IMAGE PANEL: single persistent iframe that fills the available bottom-right area */
     .image {
       grid-column: 2 / 3;
       grid-row: 2 / 3;
-      display:block;
-      padding:0;
-      position:relative;
+      display:flex;
+      flex-direction:column;
+      align-items:stretch;
+      justify-content:flex-start;
       overflow:hidden;
-      border-radius: var(--corner-radius);
+      padding:0; /* remove padding so iframe touches edges */
+      position:relative;
     }
 
-    /* stacked iframe defaults; individual iframes will get z-index = project.value + 1 */
-    .project-iframe {
-      position:absolute;
-      inset:0;
+    .image iframe {
       width:100%;
       height:100%;
       border:0;
-      display:none;           /* hidden by default; shown when active */
+      border-radius: calc(var(--corner-radius));
       background: #071425;
-    }
-
-    .project-iframe.active {
       display:block;
+      flex:1 1 auto;
     }
 
     .image .fallback { color:var(--muted); padding:12px; text-align:center; }
@@ -148,7 +147,7 @@
       .title { grid-column:1; grid-row:2; min-height:auto; padding:12px; }
       .description { grid-column:1; grid-row:3; height:auto; max-height:36vh; overflow:auto; padding:12px; }
       .image { grid-column:1; grid-row:4; height:36vh; padding:0; overflow:hidden; }
-      .project-iframe { height:100%; }
+      .image iframe { height:100%; }
       .cube-wrap { margin:8px auto; max-height:none; }
     }
   </style>
@@ -189,7 +188,7 @@
   </div>
 
   <script>
-    // --- unchanged cube rotation / face logic ---
+    // Rotation / cube behavior (unchanged semantics)
     let projectsData = [];
     const scene = document.getElementById('scene');
     const cube = document.getElementById('cube');
@@ -198,6 +197,7 @@
     let rotY = 0, isDown = false, startX = 0, startRot = 0, startT = 0, angVel = 0;
     const SENS = 0.35, CLICK_MOVE_THRESHOLD = 6, CLICK_TIME_THRESHOLD = 300;
 
+    // face -> assigned project value mapping
     let faceIndices = { front:0, right:3, back:2, left:1, top:-1, bottom:-1 };
     let projectCounter = 0, lastBoundary = null, totalRotation = 0, prevRotation = 0;
 
@@ -240,7 +240,7 @@
       prevRotation = totalRotation;
       updatePanelsFromVisibleFace();
       refreshFaceContent();
-      switchIframeToVisibleFace();
+      switchIframeToVisibleFace(); // ensure iframe swaps when face changes
     }
 
     function normalizeDeg(d){ let v = d % 360; if(v<0) v+=360; return v; }
@@ -283,7 +283,7 @@
         const project = projectsData.find(p=>p.value===idx);
         el.style.backgroundImage = '';
         el.style.cursor = 'default';
-        if(el._removeHandlers){ el._removeHandlers(); el._removeHandlers = null; }
+        if(el._removeHandlers){ el._removeHandlers(); el._removeHandlers=null; }
         if(project && project.face_of_cube_image_link){
           el.style.backgroundImage = `url(${project.face_of_cube_image_link})`;
           el.style.backgroundSize = 'cover';
@@ -305,11 +305,13 @@
       const slot = mostVisibleFace();
       const currentVisibleValue = faceIndices[slot] ?? 0;
 
+      // try to match project by value
       let project = projectsData.find(p=>p.value===currentVisibleValue);
+
+      // fallback to projectCounter selection, then first entry
       if(!project && projectsData.length > 0){
-        project = projectsData[Math.abs(projectCounter) % projectsData.length];
+        project = projectsData[Math.abs(projectCounter) % projectsData.length] || projectsData[0];
       }
-      if(!project && projectsData.length > 0) project = projectsData[0];
 
       if(project){
         document.getElementById('projTitle').textContent = project.project_name || 'Unnamed project';
@@ -322,73 +324,76 @@
       }
     }
 
-    // --- Stacked iframes implementation ---
-    // Create one iframe per project and stack them absolutely. Show/hide by toggling .active class.
-    let createdIframes = {}; // keyed by project.value
-    function createAllIframes(){
-      // clear panel then build
-      imagePanel.innerHTML = '';
-      imagePanel.appendChild(document.createElement('div')).className = 'image-buffer'; // small buffer placeholder
-      if(!Array.isArray(projectsData) || projectsData.length === 0){
-        imagePanel.innerHTML = '<div class="fallback">Preview will appear here</div>';
-        return;
-      }
+    // ----- single persistent iframe logic (restored) -----
+    let persistentIframe = null;
+    let lastLoadedProjectValue = null;
 
-      projectsData.forEach(p=>{
-        const val = (typeof p.value === 'number') ? p.value : Number(p.value) || 0;
-        // skip duplicates: prefer first encountered
-        if(createdIframes[val]) return;
-        const ifr = document.createElement('iframe');
-        ifr.className = 'project-iframe';
-        // z-index follows your suggestion (value + 1)
-        ifr.style.zIndex = (val + 1).toString();
-        // keep src assigned so we don't re-create during switches
-        const src = p.iframe_link || p.image_link || '';
-        ifr.src = src;
-        ifr.setAttribute('title', p.project_name || `project-${val}`);
-        // sandbox can be adjusted for same-origin trusted sites; keep permissive for internal previews
-        ifr.setAttribute('sandbox','allow-same-origin allow-scripts allow-forms');
-        imagePanel.appendChild(ifr);
-        createdIframes[val] = ifr;
-      });
+    function makeAbsoluteUrl(raw){
+      if(!raw || typeof raw !== 'string') return null;
+      const trimmed = raw.trim();
+      if(trimmed === '') return null;
+      // if it already starts with http(s), use it as-is (preserves path)
+      if(/^https?:\/\//i.test(trimmed)) return trimmed;
+      // otherwise prepend https:// and preserve any path or query after the domain
+      return 'https://' + trimmed;
     }
 
-    // Show the iframe for the project matched to the visible face; hide others.
-    function switchIframeToVisibleFace(){
-      if(!Array.isArray(projectsData) || projectsData.length === 0) return;
-      const slot = mostVisibleFace();
-      const faceValue = faceIndices[slot] ?? 0;
+    function ensurePersistentIframe(){
+      if(persistentIframe && imagePanel.contains(persistentIframe)) return persistentIframe;
+      imagePanel.innerHTML = ''; // clear fallback
+      persistentIframe = document.createElement('iframe');
+      persistentIframe.setAttribute('title','project-preview');
+      // keep sandbox conservative but permissive for trusted same-origin sites; adjust as needed
+      persistentIframe.setAttribute('sandbox','allow-same-origin allow-scripts allow-forms');
+      persistentIframe.style.border = '0';
+      persistentIframe.style.width = '100%';
+      persistentIframe.style.height = '100%';
+      persistentIframe.style.display = 'block';
+      persistentIframe.style.borderRadius = 'var(--corner-radius)';
+      imagePanel.appendChild(persistentIframe);
+      return persistentIframe;
+    }
 
-      // find project by faceValue
-      let project = projectsData.find(p=>p.value === faceValue);
-      if(!project){
-        // fallback to projectCounter selection
+    function switchIframeToVisibleFace(){
+      if(projectsData.length === 0) return;
+      const slot = mostVisibleFace();
+      const currentVisibleValue = faceIndices[slot] ?? 0;
+
+      // prefer project matched by face value
+      let project = projectsData.find(p=>p.value === currentVisibleValue);
+
+      // fallback to projectCounter selection or first entry
+      if(!project && projectsData.length > 0){
         project = projectsData[Math.abs(projectCounter) % projectsData.length] || projectsData[0];
       }
       if(!project) return;
-      const val = (typeof project.value === 'number') ? project.value : Number(project.value) || 0;
 
-      // ensure iframes created
-      createAllIframes();
+      // build absolute URL preserving any path/query; fall back to image_link if iframe_link missing
+      const raw = project.iframe_link || project.image_link || '';
+      const url = makeAbsoluteUrl(raw);
 
-      // hide all iframes, then show the one matching val (if exists)
-      Object.keys(createdIframes).forEach(k=>{
-        const node = createdIframes[k];
-        if(!node) return;
-        if(Number(k) === Number(val)){
-          node.classList.add('active');
-          node.style.display = 'block';
-        } else {
-          node.classList.remove('active');
-          node.style.display = 'none';
+      if(!url){
+        // remove iframe if present
+        if(persistentIframe && imagePanel.contains(persistentIframe)){
+          imagePanel.removeChild(persistentIframe);
+          persistentIframe = null;
         }
-      });
+        imagePanel.innerHTML = '<div class="fallback">No iframe_link provided for this project</div>';
+        lastLoadedProjectValue = null;
+        return;
+      }
 
-      // keep a small left border on the panel for visual accent
-      imagePanel.style.borderLeft = '4px solid #19a6ff';
+      // Force update when project changes
+      if(lastLoadedProjectValue !== project.value || !persistentIframe){
+        const ifr = ensurePersistentIframe();
+        // set src after a tiny delay to avoid jank during quick rotations
+        setTimeout(()=>{ ifr.src = url; }, 40);
+        lastLoadedProjectValue = project.value;
+        imagePanel.style.borderLeft = '4px solid #19a6ff';
+      }
     }
 
-    // --- animation loop & inertia (unchanged semantics) ---
+    // ----- animation loop / inertia (unchanged) -----
     let lastFrame = performance.now();
     function loop(now){
       const dt = (now - lastFrame)/1000;
@@ -403,27 +408,18 @@
     }
     requestAnimationFrame(loop);
 
-    // --- projects.json loading (build iframes after load) ---
+    // ----- load projects.json (unchanged) -----
     async function loadProjects(){
       try{
         const r = await fetch('projects.json');
         projectsData = await r.json();
-      }catch(e){
-        console.log('projects.json not loaded', e);
-        projectsData = [];
-      }
+      }catch(e){ console.log('projects.json not loaded', e); projectsData = []; }
     }
 
-    // init: load projects, create iframes, render
-    loadProjects().then(()=>{
-      // build stacked iframes once
-      createAllIframes();
-      refreshFaceContent();
-      updatePanelsFromVisibleFace();
-      switchIframeToVisibleFace();
-    });
+    // init
+    loadProjects().then(()=>{ refreshFaceContent(); updatePanelsFromVisibleFace(); switchIframeToVisibleFace(); });
 
-    // ensure rotation & iframe switching happen on events
+    // ensure rotation & iframe switching on load/resize
     window.addEventListener('load', ()=>{ applyRotation(); setTimeout(()=>{ applyRotation(); switchIframeToVisibleFace(); }, 120); });
     window.addEventListener('resize', ()=>{ applyRotation(); switchIframeToVisibleFace(); });
   </script>
