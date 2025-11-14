@@ -19,7 +19,10 @@
       --gap: 14px;
       --viewport-padding-y: 2vh;
       --viewport-padding-x: 2vw;
-      --top-row-height: calc(var(--cube-size) + 12px);
+
+      /* make top row small so iframe area is large */
+      --top-row-height: 80px;
+
       --corner-radius: 14px;
       --scene-perspective: 1200px;
     }
@@ -27,14 +30,11 @@
     *{box-sizing:border-box;margin:0;padding:0}
     html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;-webkit-font-smoothing:antialiased}
     .viewport{
-      width:100vw;
-      height:100vh;
-      position:relative;
-      overflow:hidden;
+      width:100vw;height:100vh;position:relative;overflow:hidden;
       padding: var(--viewport-padding-y) var(--viewport-padding-x);
     }
 
-    /* Grid: left fixed, right flexible; top row fixed to cube size, bottom row fills */
+    /* Grid: left fixed for cube/description, right flexible; top row small, bottom row expands */
     .layout {
       display:grid;
       grid-template-columns: 240px 1fr;
@@ -56,42 +56,36 @@
       position:relative;
     }
 
+    /* Cube cell: top-left */
     .cube-cell {
       grid-column: 1 / 2;
       grid-row: 1 / 2;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:8px;
-      background: transparent;
-      box-shadow: none;
+      display:flex;align-items:center;justify-content:center;padding:8px;background:transparent;box-shadow:none;
     }
 
+    /* Title: top-right */
     .title {
       grid-column: 2 / 3;
       grid-row: 1 / 2;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      min-height: var(--cube-size);
-      padding:20px;
+      display:flex;flex-direction:column;justify-content:center;min-height:var(--top-row-height);padding:8px 20px;
     }
-    .title h1 { font-size: 28px; margin-bottom: 8px; }
-    .title p { color: var(--muted); margin-top: 6px; }
+    .title h1 { font-size: 20px; margin-bottom:6px; }
+    .title p { color: var(--muted); margin-top:4px; font-size:13px; }
 
+    /* Description: bottom-left, fills the left column completely */
     .description {
       grid-column: 1 / 2;
       grid-row: 2 / 3;
-      height: 100%;
+      height:100%;
       overflow:auto;
       padding:18px;
     }
-    .description p { color: var(--muted); line-height: 1.45; }
+    .description p { color: var(--muted); line-height:1.45; }
 
     /*
-      Image panel (now an iframe container):
-      - Make the panel itself a flex container and remove inner padding so the iframe can stretch to the bottom.
-      - The iframe is set to flex:1 / height:100% so it fills the grid cell entirely.
+      Image panel (now iframe container):
+      - make the panel itself a flex container with no inner padding so iframe can stretch to bottom.
+      - iframe uses height:100% so it fills the cell.
     */
     .image {
       grid-column: 2 / 3;
@@ -103,18 +97,19 @@
       text-align:center;
       color:var(--muted);
       overflow:hidden;
-      padding:0;            /* remove padding so iframe reaches the panel edges */
+      padding:0; /* remove panel padding so iframe reaches edges */
       position:relative;
+      border-radius:var(--corner-radius);
     }
 
     .image iframe {
-      display:block;
       width:100%;
       height:100%;
       border:0;
       border-radius: calc(var(--corner-radius));
       background: #071425;
-      flex: 1 1 auto;      /* ensure it stretches to fill the cell */
+      display:block;
+      flex:1 1 auto;
     }
 
     .image .fallback {
@@ -128,9 +123,9 @@
       height: var(--cube-size);
       display:block;
       position:relative;
-      transform: none;
-      margin: 0;
-      z-index: 5;
+      transform:none;
+      margin:0;
+      z-index:5;
       touch-action:none;
       user-select:none;
       -webkit-user-select:none;
@@ -148,13 +143,13 @@
     .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
     @media (max-width:980px){
-      .layout { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr 36vh; padding: 2vh 4vw; }
+      .layout { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr 36vh; padding:2vh 4vw; }
       .cube-cell { grid-column:1; grid-row:1; justify-content:center; padding:8px; }
-      .title { grid-column:1; grid-row:2; min-height:auto; padding:14px; }
+      .title { grid-column:1; grid-row:2; min-height:auto; padding:8px 14px; }
       .description { grid-column:1; grid-row:3; height:auto; max-height:36vh; overflow:auto; padding:12px; }
       .image { grid-column:1; grid-row:4; height:36vh; padding:8px; overflow:hidden; }
       .image iframe { height:100%; }
-      .cube-wrap { margin: 8px auto; }
+      .cube-wrap { margin:8px auto; }
     }
   </style>
 </head>
@@ -180,7 +175,6 @@
       <div class="panel title" id="titlePanel">
         <h1 id="projTitle">Unfinished project</h1>
         <p id="projSubtitle"></p>
-        <div style="margin-top:10px;color:var(--muted);font-size:13px"></div>
       </div>
 
       <div class="panel description" id="descPanel">
@@ -195,7 +189,7 @@
   </div>
 
   <script>
-    // Rotation and face logic (semantics unchanged, only small robustness changes)
+    // rotation / cube behavior (semantics unchanged)
     let projectsData = [];
     const scene = document.getElementById('scene');
     const cube = document.getElementById('cube');
@@ -203,20 +197,12 @@
     let rotY = 0, isDown = false, startX = 0, startRot = 0, startT = 0, angVel = 0;
     const SENS = 0.35, CLICK_MOVE_THRESHOLD = 6, CLICK_TIME_THRESHOLD = 300;
 
-    // face -> assigned project value mapping (you previously used these values)
+    // face -> assigned project value mapping (unchanged)
     let faceIndices = { front:0, right:3, back:2, left:1, top:-1, bottom:-1 };
-
-    // counter that advances when user crosses 90-degree boundaries
-    let projectCounter = 0;
-    let lastBoundary = null;
-    let totalRotation = 0, prevRotation = 0;
+    let projectCounter = 0, lastBoundary = null, totalRotation = 0, prevRotation = 0;
 
     scene.addEventListener('pointerdown', e=>{
-      isDown = true;
-      startX = e.clientX;
-      startRot = rotY;
-      startT = performance.now();
-      angVel = 0;
+      isDown = true; startX = e.clientX; startRot = rotY; startT = performance.now(); angVel = 0;
       try{ scene.setPointerCapture(e.pointerId); }catch(_){}
     });
     scene.addEventListener('pointermove', e=>{
@@ -224,17 +210,14 @@
       const dx = e.clientX - startX;
       const target = startRot + dx * SENS;
       angVel = target - rotY;
-      rotY = target;
-      totalRotation = rotY;
-      applyRotation();
+      rotY = target; totalRotation = rotY; applyRotation();
     });
     scene.addEventListener('pointerup', e=>{
       try{ scene.releasePointerCapture(e.pointerId); }catch(_){}
       const dt = performance.now() - startT;
       const moved = Math.abs(e.clientX - startX);
       const isClick = moved <= CLICK_MOVE_THRESHOLD && dt <= CLICK_TIME_THRESHOLD;
-      isDown = false;
-      angVel = Math.max(-20, Math.min(20, angVel));
+      isDown = false; angVel = Math.max(-20, Math.min(20, angVel));
       if(isClick){
         const el = document.elementFromPoint(e.clientX, e.clientY);
         const face = el && el.closest && el.closest('.face');
@@ -251,15 +234,13 @@
     });
 
     function applyRotation(){
-      // initialize lastBoundary on first run so crossings are detected correctly
-      if(lastBoundary === null){
-        lastBoundary = Math.floor(rotY / 90);
-      }
+      if(lastBoundary === null) lastBoundary = Math.floor(rotY / 90);
       cube.style.transform = `translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(${rotY}deg)`;
       handleThresholds(prevRotation, totalRotation);
       prevRotation = totalRotation;
       updatePanelsFromVisibleFace();
       refreshFaceContent();
+      lazyLoadVisibleIframe(); // switch iframe when visible face changes
     }
 
     function normalizeDeg(d){ let v = d % 360; if(v<0) v+=360; return v; }
@@ -271,9 +252,7 @@
       return 'front';
     }
 
-    // detect when rotation crosses a 90-degree boundary and advance projectCounter
     function handleThresholds(prevTotal,newTotal){
-      // ensure lastBoundary is initialized (safety)
       if(lastBoundary === null) lastBoundary = Math.floor(newTotal/90);
       const currentBoundary = Math.floor(newTotal/90);
       if(currentBoundary !== lastBoundary){
@@ -283,7 +262,6 @@
         const visibleFace = mostVisibleFace();
         const hiddenMap = { front:'back', left:'right', back:'front', right:'left' };
         const hiddenFace = hiddenMap[visibleFace];
-        // update the hidden face to point at the new projectCounter value
         faceIndices[hiddenFace] = projectCounter;
       }
     }
@@ -305,7 +283,7 @@
         const project = projectsData.find(p=>p.value===idx);
         el.style.backgroundImage = '';
         el.style.cursor = 'default';
-        if(el._removeHandlers){ el._removeHandlers(); el._removeHandlers=null; }
+        if(el._removeHandlers){ el._removeHandlers(); el._removeHandlers = null; }
         if(project && project.face_of_cube_image_link){
           el.style.backgroundImage = `url(${project.face_of_cube_image_link})`;
           el.style.backgroundSize = 'cover';
@@ -323,6 +301,7 @@
       });
     }
 
+    // Map the visible face to a project and update the top panels; iframe switching handled separately
     function updatePanelsFromVisibleFace(){
       const slot = mostVisibleFace();
       const currentVisibleValue = faceIndices[slot] ?? 0;
@@ -330,46 +309,83 @@
       // primary: find project by matching value
       let project = projectsData.find(p=>p.value===currentVisibleValue);
 
-      // fallback: if not found, pick a project by projectCounter (which advances when boundaries are crossed)
+      // fallback: projectCounter based selection
       if(!project && projectsData.length > 0){
         const idx = Math.abs(projectCounter) % projectsData.length;
         project = projectsData[idx];
       }
-
-      // final fallback: first entry if still null
       if(!project && projectsData.length > 0) project = projectsData[0];
 
       if(project){
         document.getElementById('projTitle').textContent = project.project_name || 'Unnamed project';
         document.getElementById('projSubtitle').innerHTML = project.project_link ? `<a href="${project.project_link.startsWith('http')?project.project_link:'https://'+project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>` : '';
         document.getElementById('projDesc').textContent = project.description || '';
-
-        // NEW: use iframe_link instead of image_link; embed into the image panel and ensure full-height
-        const iframeUrl = project.iframe_link;
-        const imagePanel = document.getElementById('imagePanel');
-        imagePanel.innerHTML = ''; // clear previous
-        if(iframeUrl){
-          const ifr = document.createElement('iframe');
-          ifr.src = iframeUrl;
-          // Sandbox attribute can be adjusted for trusted same-origin sites
-          ifr.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms');
-          ifr.setAttribute('title', project.project_name || 'preview');
-          imagePanel.appendChild(ifr);
-          imagePanel.style.borderLeft = '4px solid #19a6ff';
-        } else {
-          imagePanel.innerHTML = '<div class="fallback">No iframe_link provided for this project</div>';
-          imagePanel.style.borderLeft = '4px solid rgba(255,255,255,0.12)';
-        }
+        // note: iframe changed in lazyLoadVisibleIframe()
       } else {
         document.getElementById('projTitle').textContent = 'Unfinished project';
         document.getElementById('projSubtitle').textContent = '';
         document.getElementById('projDesc').textContent = '';
-        document.getElementById('imagePanel').innerHTML = '<div class="fallback">Preview will appear here</div>';
-        document.getElementById('imagePanel').style.borderLeft = '4px solid rgba(255,255,255,0.12)';
       }
     }
 
-    // inertia loop
+    // ----- iframe switching logic -----
+    // Keep one iframe DOM node in the image panel and swap its src when the visible face's project changes.
+    const imagePanel = document.getElementById('imagePanel');
+    let persistentIframe = null;
+    let lastLoadedProjectValue = null;
+
+    function ensurePersistentIframe(){
+      if(persistentIframe && imagePanel.contains(persistentIframe)) return persistentIframe;
+      imagePanel.innerHTML = ''; // clear fallback
+      persistentIframe = document.createElement('iframe');
+      persistentIframe.setAttribute('title','project-preview');
+      // sandbox can be adjusted for trusted same-origin sites; using allow-same-origin allow-scripts allow-forms here
+      persistentIframe.setAttribute('sandbox','allow-same-origin allow-scripts allow-forms');
+      persistentIframe.style.border = '0';
+      persistentIframe.style.width = '100%';
+      persistentIframe.style.height = '100%';
+      persistentIframe.style.display = 'block';
+      persistentIframe.style.borderRadius = 'var(--corner-radius)';
+      imagePanel.appendChild(persistentIframe);
+      return persistentIframe;
+    }
+
+    function lazyLoadVisibleIframe(){
+      if(projectsData.length === 0) return;
+      const slot = mostVisibleFace();
+      const currentVisibleValue = faceIndices[slot] ?? 0;
+      // primary match
+      let project = projectsData.find(p=>p.value===currentVisibleValue);
+      // fallback to projectCounter or first entry
+      if(!project && projectsData.length > 0){
+        project = projectsData[Math.abs(projectCounter) % projectsData.length] || projectsData[0];
+      }
+      if(!project) return;
+
+      const iframeUrl = project.iframe_link || project.image_link || null;
+      if(!iframeUrl){
+        // remove iframe if present and show fallback
+        if(persistentIframe && imagePanel.contains(persistentIframe)){
+          imagePanel.removeChild(persistentIframe);
+          persistentIframe = null;
+        }
+        imagePanel.innerHTML = '<div class="fallback">No iframe_link provided for this project</div>';
+        lastLoadedProjectValue = null;
+        return;
+      }
+
+      // if project value already loaded, do nothing
+      if(lastLoadedProjectValue === project.value) return;
+
+      // ensure persistent iframe exists and set src (replaces previous site)
+      const ifr = ensurePersistentIframe();
+      // set src after a tiny delay to avoid jank during rapid rotations
+      setTimeout(()=>{ ifr.src = iframeUrl; }, 60);
+      lastLoadedProjectValue = project.value;
+      imagePanel.style.borderLeft = '4px solid #19a6ff';
+    }
+
+    // ----- animation loop / inertia -----
     let lastFrame = performance.now();
     function loop(now){
       const dt = (now - lastFrame)/1000;
@@ -384,20 +400,20 @@
     }
     requestAnimationFrame(loop);
 
-    // load projects.json (unchanged)
+    // ----- projects.json loading -----
     async function loadProjects(){
       try{
         const r = await fetch('projects.json');
         projectsData = await r.json();
-      }catch(e){ console.log('projects.json not loaded', e); }
+      }catch(e){ console.log('projects.json not loaded', e); projectsData = []; }
     }
 
-    // initialize and render when projects are loaded
-    loadProjects().then(()=>{ refreshFaceContent(); updatePanelsFromVisibleFace(); });
+    // initialize
+    loadProjects().then(()=>{ refreshFaceContent(); updatePanelsFromVisibleFace(); lazyLoadVisibleIframe(); });
 
-    // Apply initial rotation and reapply on resize so transforms remain correct relative to layout
-    window.addEventListener('load', ()=>{ applyRotation(); setTimeout(applyRotation, 120); });
-    window.addEventListener('resize', ()=>{ applyRotation(); });
+    // ensure rotation applied on load/resize
+    window.addEventListener('load', ()=>{ applyRotation(); setTimeout(()=>{ applyRotation(); lazyLoadVisibleIframe(); }, 120); });
+    window.addEventListener('resize', ()=>{ applyRotation(); lazyLoadVisibleIframe(); });
   </script>
 </body>
 </html>
