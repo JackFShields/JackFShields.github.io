@@ -15,17 +15,11 @@
       --text: #e6eef6;
       --muted: rgba(190,215,240,0.7);
 
-      /* cube visual size */
       --cube-size: 200px;
-
-      /* layout tuning */
       --gap: 14px;
       --viewport-padding-y: 2vh;
       --viewport-padding-x: 2vw;
-
-      /* top-row height = cube size + small gap; used to constrain iframe height */
       --top-row-height: calc(var(--cube-size) + 12px);
-
       --corner-radius: 14px;
       --scene-perspective: 1200px;
     }
@@ -40,11 +34,7 @@
       padding: var(--viewport-padding-y) var(--viewport-padding-x);
     }
 
-    /*
-      Grid:
-      - columns: left fixed 240px, right flexible
-      - rows: top row height defined by --top-row-height, bottom row fills remaining space
-    */
+    /* Grid: left fixed, right flexible; top row fixed to cube size, bottom row fills */
     .layout {
       display:grid;
       grid-template-columns: 240px 1fr;
@@ -66,7 +56,6 @@
       position:relative;
     }
 
-    /* Cube cell: top-left column, top row */
     .cube-cell {
       grid-column: 1 / 2;
       grid-row: 1 / 2;
@@ -78,7 +67,6 @@
       box-shadow: none;
     }
 
-    /* Title occupies top row, right column */
     .title {
       grid-column: 2 / 3;
       grid-row: 1 / 2;
@@ -91,7 +79,6 @@
     .title h1 { font-size: 28px; margin-bottom: 8px; }
     .title p { color: var(--muted); margin-top: 6px; }
 
-    /* Description occupies bottom-left (left column, second row) */
     .description {
       grid-column: 1 / 2;
       grid-row: 2 / 3;
@@ -101,40 +88,37 @@
     }
     .description p { color: var(--muted); line-height: 1.45; }
 
-    /* Image (now iframe) occupies bottom-right (right column, second row) */
+    /* Image panel is now a full-height flex container so iframe can stretch */
     .image {
       grid-column: 2 / 3;
       grid-row: 2 / 3;
       display:flex;
-      align-items:center;
-      justify-content:center;
+      flex-direction:column;
+      align-items:stretch;
+      justify-content:flex-start;
       text-align:center;
       color:var(--muted);
-      overflow:auto; /* allow scrolling if iframe content is larger */
-      padding:12px;
+      overflow:hidden;
+      padding:0;
       position:relative;
     }
 
-    /* iframe sizing: contained to available area, won't overflow viewport */
+    /* iframe fills the entire .image cell (no overflow) */
     .image iframe {
       display:block;
       width:100%;
       height:100%;
-      max-width:100%;
-      max-height: calc(100vh - (var(--viewport-padding-y) * 2) - var(--top-row-height) - 40px);
       border:0;
       border-radius: calc(var(--corner-radius));
       background: #071425;
     }
 
-    /* Fallback text when no iframe_link is present */
     .image .fallback {
       color:var(--muted);
       padding:12px;
       text-align:center;
     }
 
-    /* Cube wrap inside its grid cell */
     .cube-wrap {
       width: var(--cube-size);
       height: var(--cube-size);
@@ -160,13 +144,12 @@
     .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
     @media (max-width:980px){
-      /* stack vertically on small screens */
       .layout { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr 36vh; padding: 2vh 4vw; }
       .cube-cell { grid-column:1; grid-row:1; justify-content:center; padding:8px; }
       .title { grid-column:1; grid-row:2; min-height:auto; padding:14px; }
       .description { grid-column:1; grid-row:3; height:auto; max-height:36vh; overflow:auto; padding:12px; }
       .image { grid-column:1; grid-row:4; height:36vh; padding:8px; overflow:hidden; }
-      .image iframe { max-height:100%; }
+      .image iframe { height:100%; }
       .cube-wrap { margin: 8px auto; }
     }
   </style>
@@ -328,21 +311,31 @@
     function updatePanelsFromVisibleFace(){
       const slot = mostVisibleFace();
       const currentVisibleValue = faceIndices[slot] ?? 0;
-      const project = projectsData.find(p=>p.value===currentVisibleValue);
+
+      // find project by matching value, but fallback gracefully
+      let project = projectsData.find(p=>p.value===currentVisibleValue);
+      if(!project){
+        // prefer one based on projectCounter if available, else first entry
+        if(projectsData.length > 0){
+          project = projectsData[ projectCounter % projectsData.length ] || projectsData[0];
+        } else {
+          project = null;
+        }
+      }
+
       if(project){
-        document.getElementById('projTitle').textContent = project.project_name;
-        document.getElementById('projSubtitle').innerHTML = `<a href="${project.project_link.startsWith('http')?project.project_link:'https://'+project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>`;
-        document.getElementById('projDesc').textContent = project.description;
+        document.getElementById('projTitle').textContent = project.project_name || 'Unnamed project';
+        document.getElementById('projSubtitle').innerHTML = project.project_link ? `<a href="${project.project_link.startsWith('http')?project.project_link:'https://'+project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>` : '';
+        document.getElementById('projDesc').textContent = project.description || '';
 
         // NEW: use iframe_link instead of image_link; embed into the image panel
         const iframeUrl = project.iframe_link;
         const imagePanel = document.getElementById('imagePanel');
         imagePanel.innerHTML = ''; // clear previous
         if(iframeUrl){
-          // create iframe (directly set src since these are your own sites)
           const ifr = document.createElement('iframe');
           ifr.src = iframeUrl;
-          // sandbox can be adjusted; for same-origin trusted sites you may remove sandbox attr
+          // sandbox attribute can be adjusted for trusted same-origin sites
           ifr.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms');
           ifr.setAttribute('title', project.project_name || 'preview');
           imagePanel.appendChild(ifr);
@@ -375,7 +368,6 @@
     }
     requestAnimationFrame(loop);
 
-    // load projects.json (unchanged)
     async function loadProjects(){
       try{
         const r = await fetch('projects.json');
