@@ -88,7 +88,11 @@
     }
     .description p { color: var(--muted); line-height: 1.45; }
 
-    /* Image panel is now a full-height flex container so iframe can stretch */
+    /*
+      Image panel (now an iframe container):
+      - Make the panel itself a flex container and remove inner padding so the iframe can stretch to the bottom.
+      - The iframe is set to flex:1 / height:100% so it fills the grid cell entirely.
+    */
     .image {
       grid-column: 2 / 3;
       grid-row: 2 / 3;
@@ -99,11 +103,10 @@
       text-align:center;
       color:var(--muted);
       overflow:hidden;
-      padding:0;
+      padding:0;            /* remove padding so iframe reaches the panel edges */
       position:relative;
     }
 
-    /* iframe fills the entire .image cell (no overflow) */
     .image iframe {
       display:block;
       width:100%;
@@ -111,6 +114,7 @@
       border:0;
       border-radius: calc(var(--corner-radius));
       background: #071425;
+      flex: 1 1 auto;      /* ensure it stretches to fill the cell */
     }
 
     .image .fallback {
@@ -156,7 +160,6 @@
 </head>
 <body>
   <div class="viewport">
-
     <div class="layout" id="layout">
 
       <div class="cube-cell">
@@ -192,7 +195,7 @@
   </div>
 
   <script>
-    // Rotation and face logic (unchanged semantics)
+    // Rotation and face logic (semantics unchanged, only small robustness changes)
     let projectsData = [];
     const scene = document.getElementById('scene');
     const cube = document.getElementById('cube');
@@ -200,8 +203,13 @@
     let rotY = 0, isDown = false, startX = 0, startRot = 0, startT = 0, angVel = 0;
     const SENS = 0.35, CLICK_MOVE_THRESHOLD = 6, CLICK_TIME_THRESHOLD = 300;
 
+    // face -> assigned project value mapping (you previously used these values)
     let faceIndices = { front:0, right:3, back:2, left:1, top:-1, bottom:-1 };
-    let projectCounter = 0, lastBoundary = null, totalRotation = 0, prevRotation = 0;
+
+    // counter that advances when user crosses 90-degree boundaries
+    let projectCounter = 0;
+    let lastBoundary = null;
+    let totalRotation = 0, prevRotation = 0;
 
     scene.addEventListener('pointerdown', e=>{
       isDown = true;
@@ -243,6 +251,10 @@
     });
 
     function applyRotation(){
+      // initialize lastBoundary on first run so crossings are detected correctly
+      if(lastBoundary === null){
+        lastBoundary = Math.floor(rotY / 90);
+      }
       cube.style.transform = `translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(${rotY}deg)`;
       handleThresholds(prevRotation, totalRotation);
       prevRotation = totalRotation;
@@ -259,8 +271,10 @@
       return 'front';
     }
 
+    // detect when rotation crosses a 90-degree boundary and advance projectCounter
     function handleThresholds(prevTotal,newTotal){
-      if(lastBoundary===null) lastBoundary = Math.floor(totalRotation/90);
+      // ensure lastBoundary is initialized (safety)
+      if(lastBoundary === null) lastBoundary = Math.floor(newTotal/90);
       const currentBoundary = Math.floor(newTotal/90);
       if(currentBoundary !== lastBoundary){
         const direction = currentBoundary > lastBoundary ? 1 : -1;
@@ -269,6 +283,7 @@
         const visibleFace = mostVisibleFace();
         const hiddenMap = { front:'back', left:'right', back:'front', right:'left' };
         const hiddenFace = hiddenMap[visibleFace];
+        // update the hidden face to point at the new projectCounter value
         faceIndices[hiddenFace] = projectCounter;
       }
     }
@@ -312,30 +327,31 @@
       const slot = mostVisibleFace();
       const currentVisibleValue = faceIndices[slot] ?? 0;
 
-      // find project by matching value, but fallback gracefully
+      // primary: find project by matching value
       let project = projectsData.find(p=>p.value===currentVisibleValue);
-      if(!project){
-        // prefer one based on projectCounter if available, else first entry
-        if(projectsData.length > 0){
-          project = projectsData[ projectCounter % projectsData.length ] || projectsData[0];
-        } else {
-          project = null;
-        }
+
+      // fallback: if not found, pick a project by projectCounter (which advances when boundaries are crossed)
+      if(!project && projectsData.length > 0){
+        const idx = Math.abs(projectCounter) % projectsData.length;
+        project = projectsData[idx];
       }
+
+      // final fallback: first entry if still null
+      if(!project && projectsData.length > 0) project = projectsData[0];
 
       if(project){
         document.getElementById('projTitle').textContent = project.project_name || 'Unnamed project';
         document.getElementById('projSubtitle').innerHTML = project.project_link ? `<a href="${project.project_link.startsWith('http')?project.project_link:'https://'+project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>` : '';
         document.getElementById('projDesc').textContent = project.description || '';
 
-        // NEW: use iframe_link instead of image_link; embed into the image panel
+        // NEW: use iframe_link instead of image_link; embed into the image panel and ensure full-height
         const iframeUrl = project.iframe_link;
         const imagePanel = document.getElementById('imagePanel');
         imagePanel.innerHTML = ''; // clear previous
         if(iframeUrl){
           const ifr = document.createElement('iframe');
           ifr.src = iframeUrl;
-          // sandbox attribute can be adjusted for trusted same-origin sites
+          // Sandbox attribute can be adjusted for trusted same-origin sites
           ifr.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms');
           ifr.setAttribute('title', project.project_name || 'preview');
           imagePanel.appendChild(ifr);
@@ -368,12 +384,15 @@
     }
     requestAnimationFrame(loop);
 
+    // load projects.json (unchanged)
     async function loadProjects(){
       try{
         const r = await fetch('projects.json');
         projectsData = await r.json();
       }catch(e){ console.log('projects.json not loaded', e); }
     }
+
+    // initialize and render when projects are loaded
     loadProjects().then(()=>{ refreshFaceContent(); updatePanelsFromVisibleFace(); });
 
     // Apply initial rotation and reapply on resize so transforms remain correct relative to layout
