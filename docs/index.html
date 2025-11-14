@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>THE CUBE</title>
   <link rel="icon" href="https://raw.githubusercontent.com/JackFShields/JackFShields.github.io/refs/heads/main/cube.png" type="image/x-icon" />
-
   <style>
     :root{
       --bg: #071425;
@@ -27,11 +26,22 @@
       --scene-perspective: 1200px;
     }
 
-    *{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%}
-    body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;-webkit-font-smoothing:antialiased}
+    /* ensure full-height chain */
+    html, body { height: 100%; margin: 0; }
+    * { box-sizing: border-box; }
+
+    body{
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      -webkit-font-smoothing:antialiased;
+    }
+
     .viewport{
-      width:100vw;height:100vh;position:relative;overflow:hidden;
+      width:100vw;
+      height:100vh;
+      position:relative;
+      overflow:hidden;
       padding: var(--viewport-padding-y) var(--viewport-padding-x);
     }
 
@@ -116,33 +126,36 @@
     }
     .description p { color: var(--muted); line-height:1.45; }
 
-    /* IMAGE PANEL: single persistent iframe that fills the available bottom-right area.
-       NOTE: important change: remove the .panel padding for the image panel so iframe can touch edges. */
-    .panel.image { padding: 0; } /* override panel padding only for the image panel */
+    /* IMAGE PANEL: force edge-to-edge iframe inside the panel */
+    .panel.image {
+      padding: 0;              /* remove panel padding so iframe can touch edges */
+      overflow: hidden;
+    }
 
     .image {
       grid-column: 2 / 3;
       grid-row: 2 / 3;
-      display:flex;
-      flex-direction:column;
-      align-items:stretch;
-      justify-content:flex-start;
-      overflow:hidden;
-      padding:0;
-      position:relative;
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      border-radius: var(--corner-radius);
+      background: transparent;
     }
 
+    /* absolutely cover the entire panel cell */
     .image iframe {
-      width:100%;
-      height:100%;
-      border:0;
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
       border-radius: calc(var(--corner-radius));
-      background: #071425;
       display:block;
-      flex:1 1 auto;
+      background: #071425;
     }
 
-    .image .fallback { color:var(--muted); padding:12px; text-align:center; }
+    .image .fallback { color:var(--muted); padding:12px; text-align:center; position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; }
 
     @media (max-width:980px){
       .layout { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr 36vh; padding:2vh 4vw; }
@@ -151,7 +164,7 @@
       .description { grid-column:1; grid-row:3; height:auto; max-height:36vh; overflow:auto; padding:12px; }
       .panel.image { padding: 0; }
       .image { grid-column:1; grid-row:4; height:36vh; padding:0; overflow:hidden; }
-      .image iframe { height:100%; }
+      .image iframe { position:absolute; inset:0; height:100%; width:100%; }
       .cube-wrap { margin:8px auto; max-height:none; }
     }
   </style>
@@ -185,7 +198,9 @@
       </div>
 
       <div class="panel image" id="imagePanel">
-        <div class="fallback">Preview will appear here</div>
+        <div class="image" id="imageContainer">
+          <div class="fallback">Preview will appear here</div>
+        </div>
       </div>
 
     </div>
@@ -197,6 +212,7 @@
     const scene = document.getElementById('scene');
     const cube = document.getElementById('cube');
     const imagePanel = document.getElementById('imagePanel');
+    const imageContainer = document.getElementById('imageContainer');
 
     let rotY = 0, isDown = false, startX = 0, startRot = 0, startT = 0, angVel = 0;
     const SENS = 0.35, CLICK_MOVE_THRESHOLD = 6, CLICK_TIME_THRESHOLD = 300;
@@ -244,7 +260,7 @@
       prevRotation = totalRotation;
       updatePanelsFromVisibleFace();
       refreshFaceContent();
-      switchIframeToVisibleFace(); // ensure iframe swaps when face changes
+      switchIframeToVisibleFace();
     }
 
     function normalizeDeg(d){ let v = d % 360; if(v<0) v+=360; return v; }
@@ -340,21 +356,21 @@
     }
 
     function ensurePersistentIframe(){
-      if(persistentIframe && imagePanel.contains(persistentIframe)) return persistentIframe;
-      imagePanel.innerHTML = ''; // clear fallback
+      if(persistentIframe && imageContainer.contains(persistentIframe)) return persistentIframe;
+      imageContainer.innerHTML = ''; // clear fallback
       persistentIframe = document.createElement('iframe');
       persistentIframe.setAttribute('title','project-preview');
+      // sandbox can be adjusted for trusted same-origin sites
       persistentIframe.setAttribute('sandbox','allow-same-origin allow-scripts allow-forms');
       persistentIframe.style.border = '0';
       persistentIframe.style.width = '100%';
       persistentIframe.style.height = '100%';
       persistentIframe.style.display = 'block';
       persistentIframe.style.borderRadius = 'var(--corner-radius)';
-      imagePanel.appendChild(persistentIframe);
+      imageContainer.appendChild(persistentIframe);
       return persistentIframe;
     }
 
-    // New: compare absolute URL (not project.value) so src updates reliably
     function switchIframeToVisibleFace(){
       if(projectsData.length === 0) return;
       const slot = mostVisibleFace();
@@ -373,25 +389,24 @@
       const raw = project.iframe_link || project.image_link || '';
       const url = makeAbsoluteUrl(raw);
       if(!url){
-        if(persistentIframe && imagePanel.contains(persistentIframe)){
-          imagePanel.removeChild(persistentIframe);
+        if(persistentIframe && imageContainer.contains(persistentIframe)){
+          imageContainer.removeChild(persistentIframe);
           persistentIframe = null;
         }
-        imagePanel.innerHTML = '<div class="fallback">No iframe_link provided for this project</div>';
+        imageContainer.innerHTML = '<div class="fallback">No iframe_link provided for this project</div>';
         return;
       }
 
       const ifr = ensurePersistentIframe();
-      // Update src only if it differs from current iframe.src (handles relative/absolute differences)
-      const currentSrc = ifr.src || '';
-      // Normalize both for comparison by creating anchor element
+      // normalize both for reliable comparison and update src only when changed
       function normalize(u){
         try{ const a=document.createElement('a'); a.href = u; return a.href.replace(/\/$/, ''); }catch(e){ return u; }
       }
+      const currentSrc = ifr.src || '';
       const nCur = normalize(currentSrc);
       const nNew = normalize(url);
       if(nCur !== nNew){
-        // set src after small timeout to avoid jank during quick rotations
+        // small delay reduces jank during quick rotations
         setTimeout(()=>{ ifr.src = url; }, 40);
       }
       imagePanel.style.borderLeft = '4px solid #19a6ff';
