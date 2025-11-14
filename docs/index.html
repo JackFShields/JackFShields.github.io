@@ -68,7 +68,7 @@
       background: transparent;
     }
 
-    /* Keep cube confined to the top row so it doesn't overlap bottom content */
+    /* Keep cube confined to the top row */
     .cube-wrap {
       width: var(--cube-size);
       height: var(--cube-size);
@@ -116,7 +116,10 @@
     }
     .description p { color: var(--muted); line-height:1.45; }
 
-    /* IMAGE PANEL: single persistent iframe that fills the available bottom-right area */
+    /* IMAGE PANEL: single persistent iframe that fills the available bottom-right area.
+       NOTE: important change: remove the .panel padding for the image panel so iframe can touch edges. */
+    .panel.image { padding: 0; } /* override panel padding only for the image panel */
+
     .image {
       grid-column: 2 / 3;
       grid-row: 2 / 3;
@@ -125,7 +128,7 @@
       align-items:stretch;
       justify-content:flex-start;
       overflow:hidden;
-      padding:0; /* remove padding so iframe touches edges */
+      padding:0;
       position:relative;
     }
 
@@ -146,6 +149,7 @@
       .cube-cell { grid-column:1; grid-row:1; justify-content:center; padding:8px; }
       .title { grid-column:1; grid-row:2; min-height:auto; padding:12px; }
       .description { grid-column:1; grid-row:3; height:auto; max-height:36vh; overflow:auto; padding:12px; }
+      .panel.image { padding: 0; }
       .image { grid-column:1; grid-row:4; height:36vh; padding:0; overflow:hidden; }
       .image iframe { height:100%; }
       .cube-wrap { margin:8px auto; max-height:none; }
@@ -326,15 +330,12 @@
 
     // ----- single persistent iframe logic (restored) -----
     let persistentIframe = null;
-    let lastLoadedProjectValue = null;
 
     function makeAbsoluteUrl(raw){
       if(!raw || typeof raw !== 'string') return null;
       const trimmed = raw.trim();
       if(trimmed === '') return null;
-      // if it already starts with http(s), use it as-is (preserves path)
       if(/^https?:\/\//i.test(trimmed)) return trimmed;
-      // otherwise prepend https:// and preserve any path or query after the domain
       return 'https://' + trimmed;
     }
 
@@ -343,7 +344,6 @@
       imagePanel.innerHTML = ''; // clear fallback
       persistentIframe = document.createElement('iframe');
       persistentIframe.setAttribute('title','project-preview');
-      // keep sandbox conservative but permissive for trusted same-origin sites; adjust as needed
       persistentIframe.setAttribute('sandbox','allow-same-origin allow-scripts allow-forms');
       persistentIframe.style.border = '0';
       persistentIframe.style.width = '100%';
@@ -354,6 +354,7 @@
       return persistentIframe;
     }
 
+    // New: compare absolute URL (not project.value) so src updates reliably
     function switchIframeToVisibleFace(){
       if(projectsData.length === 0) return;
       const slot = mostVisibleFace();
@@ -368,29 +369,32 @@
       }
       if(!project) return;
 
-      // build absolute URL preserving any path/query; fall back to image_link if iframe_link missing
+      // build absolute URL preserving any path/query; fallback to image_link if iframe_link missing
       const raw = project.iframe_link || project.image_link || '';
       const url = makeAbsoluteUrl(raw);
-
       if(!url){
-        // remove iframe if present
         if(persistentIframe && imagePanel.contains(persistentIframe)){
           imagePanel.removeChild(persistentIframe);
           persistentIframe = null;
         }
         imagePanel.innerHTML = '<div class="fallback">No iframe_link provided for this project</div>';
-        lastLoadedProjectValue = null;
         return;
       }
 
-      // Force update when project changes
-      if(lastLoadedProjectValue !== project.value || !persistentIframe){
-        const ifr = ensurePersistentIframe();
-        // set src after a tiny delay to avoid jank during quick rotations
-        setTimeout(()=>{ ifr.src = url; }, 40);
-        lastLoadedProjectValue = project.value;
-        imagePanel.style.borderLeft = '4px solid #19a6ff';
+      const ifr = ensurePersistentIframe();
+      // Update src only if it differs from current iframe.src (handles relative/absolute differences)
+      const currentSrc = ifr.src || '';
+      // Normalize both for comparison by creating anchor element
+      function normalize(u){
+        try{ const a=document.createElement('a'); a.href = u; return a.href.replace(/\/$/, ''); }catch(e){ return u; }
       }
+      const nCur = normalize(currentSrc);
+      const nNew = normalize(url);
+      if(nCur !== nNew){
+        // set src after small timeout to avoid jank during quick rotations
+        setTimeout(()=>{ ifr.src = url; }, 40);
+      }
+      imagePanel.style.borderLeft = '4px solid #19a6ff';
     }
 
     // ----- animation loop / inertia (unchanged) -----
