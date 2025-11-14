@@ -16,15 +16,15 @@
 
       --cube-size: 200px;
       --gap: 14px;
-      --col-gap: 80px;
-      --left-col-width: 240px;
+      --col-gap: 120px;        /* increased horizontal gap between left (cube/desc) and right (iframe/title) */
+      --left-col-width: 240px; /* restored original left column width */
       --viewport-padding-y: 2vh;
       --viewport-padding-x: 2vw;
       --top-row-height: calc(var(--cube-size) + 16px);
       --corner-radius: 14px;
       --scene-perspective: 1200px;
 
-      /* default iframe visual zoom (1 = native size). Use <1 to zoom out. */
+      /* default iframe visual zoom (1 = native size). Use <1 to zoom out if needed. */
       --iframe-visual-scale: 0.88;
     }
 
@@ -46,6 +46,7 @@
       padding: var(--viewport-padding-y) var(--viewport-padding-x);
     }
 
+    /* Grid: left restored to 240px, right flexible; larger column gap */
     .layout {
       display:grid;
       grid-template-columns: var(--left-col-width) 1fr;
@@ -103,7 +104,7 @@
     .top   { transform: rotateX(90deg) translateZ(calc(var(--cube-size)/2)); }
     .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
-    /* Title */
+    /* Title (top-right) */
     .title {
       grid-column: 2 / 3;
       grid-row: 1 / 2;
@@ -116,7 +117,7 @@
     .title h1 { font-size: 20px; margin-bottom:6px; }
     .title p { color: var(--muted); margin-top:4px; font-size:13px; }
 
-    /* Description (restored) */
+    /* Description (restored original) */
     .description {
       grid-column: 1 / 2;
       grid-row: 2 / 3;
@@ -140,13 +141,12 @@
       background: transparent;
     }
 
-    /* Wrapper + scaled area (used for cross-origin scaling fallback) */
     .iframe-zoom-wrap {
       position:absolute;
       inset:0;
       overflow:hidden;
       pointer-events:auto;
-      display:block;
+      display:none;
     }
     .iframe-scale {
       position:absolute;
@@ -159,7 +159,6 @@
       will-change: transform;
     }
 
-    /* persistent iframe inside the imageContainer (in same-origin injection case we still use this iframe) */
     .image iframe {
       position: absolute;
       inset: 0;
@@ -217,10 +216,8 @@
 
       <div class="panel image" id="imagePanel">
         <div class="image" id="imageContainer">
-          <!-- fallback shown until iframe created -->
           <div class="fallback">Preview will appear here</div>
-          <!-- wrapper for cross-origin visual scaling (kept empty until needed) -->
-          <div id="iframeZoomWrap" class="iframe-zoom-wrap" style="display:none"></div>
+          <div id="iframeZoomWrap" class="iframe-zoom-wrap"></div>
         </div>
       </div>
 
@@ -228,7 +225,7 @@
   </div>
 
   <script>
-    // ---------- Cube / rotation logic (unchanged semantics) ----------
+    // rotation / cube logic (unchanged semantics)
     let projectsData = [];
     const scene = document.getElementById('scene');
     const cube = document.getElementById('cube');
@@ -376,8 +373,6 @@
 
     function ensurePersistentIframe(){
       if(persistentIframe && imageContainer.contains(persistentIframe)) return persistentIframe;
-      // clear image area (but keep iframeZoomWrap element present if used)
-      // preserve iframeZoomWrap inside imageContainer if present
       const wrap = iframeZoomWrap;
       imageContainer.innerHTML = '';
       imageContainer.appendChild(wrap);
@@ -389,35 +384,26 @@
       persistentIframe.style.height = '100%';
       persistentIframe.style.display = 'block';
       persistentIframe.style.borderRadius = 'var(--corner-radius)';
-      // place iframe directly in imageContainer for same-origin injection path
       imageContainer.appendChild(persistentIframe);
       return persistentIframe;
     }
 
-    // Attempt to inject CSS into the iframe document to scale content (best quality).
-    // Returns true if injection succeeded, false otherwise.
     async function setIframeZoomInject(iframeEl, scale = 0.88){
       try{
-        // wait until iframe document is accessible
         const win = iframeEl.contentWindow;
         if(!win) throw new Error('no contentWindow');
         const doc = iframeEl.contentDocument || win.document;
         if(!doc) throw new Error('no document');
-
-        // create or update style element
         let style = doc.getElementById('iframe-zoom-style');
         if(!style){
           style = doc.createElement('style');
           style.id = 'iframe-zoom-style';
-          // ensure there is a head; if missing, attempt to create one
           if(!doc.head){
             const head = doc.createElement('head');
             if(doc.documentElement) doc.documentElement.insertBefore(head, doc.body || null);
           }
           doc.head.appendChild(style);
         }
-        // inject rules that scale the root while preserving layout
-        // width/height adjustments compensate for the scaled-down visual size
         style.textContent = `
           html, body {
             transform-origin: 0 0 !important;
@@ -426,30 +412,24 @@
             height: calc(100% / ${scale}) !important;
             overflow: visible !important;
           }
-          /* fix fixed-position elements if necessary */
           * { -webkit-font-smoothing: antialiased; }
         `;
         return true;
       }catch(e){
-        // injection failed (likely cross-origin)
         return false;
       }
     }
 
-    // Wrapper-based visual scaling: builds a wrapper with .iframe-scale containing the iframe.
-    // Works cross-origin. Slight blur possible.
     function ensureWrapperScaleExists(scale){
       usingWrapperScale = true;
       iframeZoomWrap.style.display = 'block';
-      iframeZoomWrap.innerHTML = ''; // clear any previous content
+      iframeZoomWrap.innerHTML = '';
       const scaleEl = document.createElement('div');
       scaleEl.className = 'iframe-scale';
       scaleEl.style.setProperty('--iframe-visual-scale', String(scale));
-      // create the iframe sized to unscaled content dims so the scaled view fits the container
       const ifr = document.createElement('iframe');
       ifr.setAttribute('title', 'project-preview');
       ifr.setAttribute('sandbox','allow-same-origin allow-scripts allow-forms');
-      // set src later; style the iframe to be 1/scale sized so scaled result fills container
       ifr.style.border = '0';
       ifr.style.width = `calc(100% / ${scale})`;
       ifr.style.height = `calc(100% / ${scale})`;
@@ -459,14 +439,12 @@
       return ifr;
     }
 
-    // If wrapper is active, remove it and restore plain iframe container
     function removeWrapperScale(){
       usingWrapperScale = false;
       iframeZoomWrap.style.display = 'none';
       iframeZoomWrap.innerHTML = '';
     }
 
-    // Switch iframe depending on visible face. Prefer injection approach for same-origin.
     async function switchIframeToVisibleFace(){
       if(projectsData.length === 0) return;
       const slot = mostVisibleFace();
@@ -490,15 +468,12 @@
         return;
       }
 
-      // Preferred path: create persistent iframe and try injection scaling
       const ifr = ensurePersistentIframe();
 
-      // If wrapper scaling was in use previously, remove it; persistent iframe will be used
       if(usingWrapperScale){
         removeWrapperScale();
       }
 
-      // If src already matches normalized url, no action (but compare normalized)
       function normalizeHref(u){
         try{ const a = document.createElement('a'); a.href = u; return a.href.replace(/\/$/, ''); }catch(e){ return u; }
       }
@@ -506,15 +481,11 @@
       const nCur = normalizeHref(currentSrc);
       const nNew = normalizeHref(url);
       if(nCur === nNew){
-        // still attempt injection (in case cross-origin changed)
         const injected = await setIframeZoomInject(ifr, parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--iframe-visual-scale')) || 0.88);
         if(!injected){
-          // injection failed; fallback to wrapper scaling
-          // move iframe into wrapper so we can scale visually
           const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--iframe-visual-scale')) || 0.88;
           const wrapperIframe = ensureWrapperScaleExists(scale);
           wrapperIframe.src = url;
-          // remove persistent iframe if present
           if(persistentIframe && imageContainer.contains(persistentIframe)){
             imageContainer.removeChild(persistentIframe);
             persistentIframe = null;
@@ -523,10 +494,8 @@
         return;
       }
 
-      // set src then attempt injection when load completes
       let loadHandled = false;
       ifr.src = url;
-      // small delay to allow setting src before attaching load listener in some browsers
       setTimeout(()=>{
         if(loadHandled) return;
         const onLoad = async ()=>{
@@ -534,26 +503,18 @@
           const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--iframe-visual-scale')) || 0.88;
           const injected = await setIframeZoomInject(ifr, scale);
           if(!injected){
-            // injection failed -> switch to wrapper visual scaling approach
-            // create wrapper iframe and point it at url
             const wrapperIframe = ensureWrapperScaleExists(scale);
             wrapperIframe.src = url;
-            // remove persistent iframe (we keep it for same-origin future use)
             if(persistentIframe && imageContainer.contains(persistentIframe)){
               imageContainer.removeChild(persistentIframe);
               persistentIframe = null;
             }
           } else {
-            // injection succeeded; ensure wrapper is removed if it existed
             removeWrapperScale();
           }
         };
-        // if iframe already loaded, try inject immediately
-        try{
-          ifr.removeEventListener('load', onLoad);
-        }catch(e){}
+        try{ ifr.removeEventListener('load', onLoad); }catch(e){}
         ifr.addEventListener('load', onLoad, {once:true});
-        // set a timeout fallback: if load doesn't fire (rare), after 800ms try injection attempt
         setTimeout(async ()=>{
           if(loadHandled) return;
           try{
@@ -576,7 +537,6 @@
       imagePanel.style.borderLeft = '4px solid #19a6ff';
     }
 
-    // ---------- animation loop & projects loading ----------
     let lastFrame = performance.now();
     function loop(now){
       const dt = (now - lastFrame)/1000;
@@ -598,18 +558,15 @@
       }catch(e){ console.log('projects.json not loaded', e); projectsData = []; }
     }
 
-    // initialization
     loadProjects().then(()=>{ refreshFaceContent(); updatePanelsFromVisibleFace(); switchIframeToVisibleFace(); });
 
     window.addEventListener('load', ()=>{ applyRotation(); setTimeout(()=>{ applyRotation(); switchIframeToVisibleFace(); }, 120); });
     window.addEventListener('resize', ()=>{ applyRotation(); switchIframeToVisibleFace(); });
 
-    // Optional API: change visual scale from other controls
-    // Example: setVisualScale(0.9);
+    // API to adjust visual scale at runtime
     window.setVisualScale = function(scale){
       if(!scale || isNaN(scale)) return;
       document.documentElement.style.setProperty('--iframe-visual-scale', String(scale));
-      // If wrapper scaling is active, update it
       if(usingWrapperScale && iframeZoomWrap.firstElementChild){
         const scaleEl = iframeZoomWrap.firstElementChild;
         scaleEl.style.setProperty('--iframe-visual-scale', String(scale));
@@ -619,7 +576,6 @@
           innerIframe.style.height = `calc(100% / ${scale})`;
         }
       } else {
-        // If using injected scaling, reinject (best-effort) into persistent iframe
         if(persistentIframe){
           setIframeZoomInject(persistentIframe, scale);
         }
