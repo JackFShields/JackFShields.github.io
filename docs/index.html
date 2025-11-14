@@ -4,8 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>THE CUBE</title>
-  <link rel="icon" href="https://raw.githubusercontent.com/JackFShields/JackFShields.github.io/refs/heads/main/cube.png" type="image/x-icon" />
-
   <style>
     :root{
       --bg: #071425;
@@ -20,7 +18,7 @@
       --viewport-padding-y: 2vh;
       --viewport-padding-x: 2vw;
 
-      /* keep top row tall enough for cube + title but allow iframe to use bottom */
+      /* keep top row tall enough for cube + title; bottom row consumes the rest */
       --top-row-height: calc(var(--cube-size) + 16px);
 
       --corner-radius: 14px;
@@ -28,14 +26,15 @@
     }
 
     *{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;-webkit-font-smoothing:antialiased}
+    html,body{height:100%}
+    body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;-webkit-font-smoothing:antialiased}
     .viewport{
       width:100vw;height:100vh;position:relative;overflow:hidden;
       padding: var(--viewport-padding-y) var(--viewport-padding-x);
       display:block;
     }
 
-    /* Grid: left fixed, right flexible; top row fixed to --top-row-height, bottom row fills remaining space */
+    /* Grid: left fixed, right flexible; top row fixed, bottom row fills */
     .layout {
       display:grid;
       grid-template-columns: 240px 1fr;
@@ -57,30 +56,27 @@
       position:relative;
     }
 
-    /* Cube cell: top-left column, top row */
+    /* Cube cell (top-left) */
     .cube-cell {
       grid-column: 1 / 2;
       grid-row: 1 / 2;
       display:flex;
       align-items:center;
-      justify-content:flex-start; /* keep cube flush to top-left of its cell */
+      justify-content:flex-start;
       padding:8px;
       background: transparent;
-      box-shadow: none;
     }
 
-    /* Constrain the cube-wrap so it cannot overlap the lower row.
-       This keeps the cube fully inside the top row (it will scale/clip if there isn't room). */
+    /* Constrain cube-wrap to top row so it won't overflow into bottom area */
     .cube-wrap {
       width: var(--cube-size);
       height: var(--cube-size);
-      max-height: calc(var(--top-row-height) - 8px); /* keep inside top row */
-      overflow: hidden; /* prevent visual overflow into description */
-      display:block;
+      max-height: calc(var(--top-row-height) - 8px);
+      overflow: hidden;
       position:relative;
-      transform: none;
-      margin: 0;
-      z-index: 5;
+      transform:none;
+      margin:0;
+      z-index:5;
       touch-action:none;
       user-select:none;
       -webkit-user-select:none;
@@ -88,7 +84,6 @@
 
     .scene { width:100%; height:100%; perspective:var(--scene-perspective); position:relative; pointer-events:auto; user-select:none; touch-action:none; }
     .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:5; }
-
     .face { position:absolute; left:0; top:0; width:100%; height:100%; border-radius:12px; background: var(--panel-grad); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; box-shadow:0 10px 36px rgba(0,0,0,0.6); backface-visibility:hidden; cursor:pointer; box-sizing:border-box; }
     .front { transform: rotateY(0deg) translateZ(calc(var(--cube-size)/2)); }
     .right { transform: rotateY(90deg) translateZ(calc(var(--cube-size)/2)); }
@@ -97,7 +92,7 @@
     .top   { transform: rotateX(90deg) translateZ(calc(var(--cube-size)/2)); }
     .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
 
-    /* Title occupies top row, right column (unchanged height) */
+    /* Title (top-right) */
     .title {
       grid-column: 2 / 3;
       grid-row: 1 / 2;
@@ -110,7 +105,7 @@
     .title h1 { font-size: 20px; margin-bottom:6px; }
     .title p { color: var(--muted); margin-top:4px; font-size:13px; }
 
-    /* Description occupies bottom-left (fills left column) */
+    /* Description bottom-left */
     .description {
       grid-column: 1 / 2;
       grid-row: 2 / 3;
@@ -118,33 +113,31 @@
       overflow:auto;
       padding:18px;
     }
-    .description p { color: var(--muted); line-height:1.45; }
 
-    /*
-      Iframe panel:
-      - Occupies the full lower-right cell and uses the whole vertical space there.
-      - No change to the top row height, iframe grows into the bottom area only.
-    */
+    /* IMAGE PANEL — now a stacking surface for multiple absolute iframes */
     .image {
       grid-column: 2 / 3;
       grid-row: 2 / 3;
-      display:flex;
-      flex-direction:column;
-      align-items:stretch;
-      justify-content:flex-start;
-      overflow:hidden;
-      padding:0; /* remove padding so iframe touches edges */
+      display:block;
+      padding:0;
       position:relative;
+      overflow:hidden;
+      border-radius: var(--corner-radius);
     }
 
-    .image iframe {
+    /* stacked iframe defaults; individual iframes will get z-index = project.value + 1 */
+    .project-iframe {
+      position:absolute;
+      inset:0;
       width:100%;
       height:100%;
       border:0;
-      border-radius: calc(var(--corner-radius));
+      display:none;           /* hidden by default; shown when active */
       background: #071425;
+    }
+
+    .project-iframe.active {
       display:block;
-      flex: 1 1 auto;
     }
 
     .image .fallback { color:var(--muted); padding:12px; text-align:center; }
@@ -154,9 +147,9 @@
       .cube-cell { grid-column:1; grid-row:1; justify-content:center; padding:8px; }
       .title { grid-column:1; grid-row:2; min-height:auto; padding:12px; }
       .description { grid-column:1; grid-row:3; height:auto; max-height:36vh; overflow:auto; padding:12px; }
-      .image { grid-column:1; grid-row:4; height:36vh; padding:8px; overflow:hidden; }
-      .image iframe { height:100%; }
-      .cube-wrap { margin:8px auto; max-height: none; }
+      .image { grid-column:1; grid-row:4; height:36vh; padding:0; overflow:hidden; }
+      .project-iframe { height:100%; }
+      .cube-wrap { margin:8px auto; max-height:none; }
     }
   </style>
 </head>
@@ -196,7 +189,7 @@
   </div>
 
   <script>
-    // rotation / cube behavior (semantics unchanged)
+    // --- unchanged cube rotation / face logic ---
     let projectsData = [];
     const scene = document.getElementById('scene');
     const cube = document.getElementById('cube');
@@ -205,9 +198,7 @@
     let rotY = 0, isDown = false, startX = 0, startRot = 0, startT = 0, angVel = 0;
     const SENS = 0.35, CLICK_MOVE_THRESHOLD = 6, CLICK_TIME_THRESHOLD = 300;
 
-    // face -> assigned project value mapping
     let faceIndices = { front:0, right:3, back:2, left:1, top:-1, bottom:-1 };
-
     let projectCounter = 0, lastBoundary = null, totalRotation = 0, prevRotation = 0;
 
     scene.addEventListener('pointerdown', e=>{
@@ -249,7 +240,7 @@
       prevRotation = totalRotation;
       updatePanelsFromVisibleFace();
       refreshFaceContent();
-      lazyLoadVisibleIframe(); // ensure iframe switches when face changes
+      switchIframeToVisibleFace();
     }
 
     function normalizeDeg(d){ let v = d % 360; if(v<0) v+=360; return v; }
@@ -292,7 +283,7 @@
         const project = projectsData.find(p=>p.value===idx);
         el.style.backgroundImage = '';
         el.style.cursor = 'default';
-        if(el._removeHandlers){ el._removeHandlers(); el._removeHandlers=null; }
+        if(el._removeHandlers){ el._removeHandlers(); el._removeHandlers = null; }
         if(project && project.face_of_cube_image_link){
           el.style.backgroundImage = `url(${project.face_of_cube_image_link})`;
           el.style.backgroundSize = 'cover';
@@ -314,10 +305,7 @@
       const slot = mostVisibleFace();
       const currentVisibleValue = faceIndices[slot] ?? 0;
 
-      // primary: find project by matching value
       let project = projectsData.find(p=>p.value===currentVisibleValue);
-
-      // fallback to projectCounter selection
       if(!project && projectsData.length > 0){
         project = projectsData[Math.abs(projectCounter) % projectsData.length];
       }
@@ -334,62 +322,73 @@
       }
     }
 
-    // ----- iframe switching -----
-    let persistentIframe = null;
-    let lastLoadedProjectValue = null;
-
-    function ensurePersistentIframe(){
-      if(persistentIframe && imagePanel.contains(persistentIframe)) return persistentIframe;
+    // --- Stacked iframes implementation ---
+    // Create one iframe per project and stack them absolutely. Show/hide by toggling .active class.
+    let createdIframes = {}; // keyed by project.value
+    function createAllIframes(){
+      // clear panel then build
       imagePanel.innerHTML = '';
-      persistentIframe = document.createElement('iframe');
-      persistentIframe.setAttribute('title','project-preview');
-      persistentIframe.setAttribute('sandbox','allow-same-origin allow-scripts allow-forms');
-      persistentIframe.style.border = '0';
-      persistentIframe.style.width = '100%';
-      persistentIframe.style.height = '100%';
-      persistentIframe.style.display = 'block';
-      persistentIframe.style.borderRadius = 'var(--corner-radius)';
-      imagePanel.appendChild(persistentIframe);
-      return persistentIframe;
-    }
-
-    function lazyLoadVisibleIframe(){
-      if(projectsData.length === 0) return;
-      const slot = mostVisibleFace();
-      const faceValue = faceIndices[slot] ?? 0;
-
-      // try to find project by faceValue first
-      let project = projectsData.find(p=>p.value===faceValue);
-
-      // fallback: use projectCounter selection or first entry
-      if(!project && projectsData.length > 0){
-        project = projectsData[Math.abs(projectCounter) % projectsData.length] || projectsData[0];
-      }
-      if(!project) return;
-
-      // prefer iframe_link, fallback to image_link
-      const iframeUrl = project.iframe_link || project.image_link || null;
-      if(!iframeUrl){
-        if(persistentIframe && imagePanel.contains(persistentIframe)){
-          imagePanel.removeChild(persistentIframe);
-          persistentIframe = null;
-        }
-        imagePanel.innerHTML = '<div class="fallback">No iframe_link provided for this project</div>';
-        lastLoadedProjectValue = null;
+      imagePanel.appendChild(document.createElement('div')).className = 'image-buffer'; // small buffer placeholder
+      if(!Array.isArray(projectsData) || projectsData.length === 0){
+        imagePanel.innerHTML = '<div class="fallback">Preview will appear here</div>';
         return;
       }
 
-      // Force reload if project value changed (so it definitely switches)
-      if(lastLoadedProjectValue !== project.value){
-        const ifr = ensurePersistentIframe();
-        // update src - small timeout reduces jank when rotating quickly
-        setTimeout(()=>{ ifr.src = iframeUrl; }, 40);
-        lastLoadedProjectValue = project.value;
-        imagePanel.style.borderLeft = '4px solid #19a6ff';
-      }
+      projectsData.forEach(p=>{
+        const val = (typeof p.value === 'number') ? p.value : Number(p.value) || 0;
+        // skip duplicates: prefer first encountered
+        if(createdIframes[val]) return;
+        const ifr = document.createElement('iframe');
+        ifr.className = 'project-iframe';
+        // z-index follows your suggestion (value + 1)
+        ifr.style.zIndex = (val + 1).toString();
+        // keep src assigned so we don't re-create during switches
+        const src = p.iframe_link || p.image_link || '';
+        ifr.src = src;
+        ifr.setAttribute('title', p.project_name || `project-${val}`);
+        // sandbox can be adjusted for same-origin trusted sites; keep permissive for internal previews
+        ifr.setAttribute('sandbox','allow-same-origin allow-scripts allow-forms');
+        imagePanel.appendChild(ifr);
+        createdIframes[val] = ifr;
+      });
     }
 
-    // ----- animation loop / inertia -----
+    // Show the iframe for the project matched to the visible face; hide others.
+    function switchIframeToVisibleFace(){
+      if(!Array.isArray(projectsData) || projectsData.length === 0) return;
+      const slot = mostVisibleFace();
+      const faceValue = faceIndices[slot] ?? 0;
+
+      // find project by faceValue
+      let project = projectsData.find(p=>p.value === faceValue);
+      if(!project){
+        // fallback to projectCounter selection
+        project = projectsData[Math.abs(projectCounter) % projectsData.length] || projectsData[0];
+      }
+      if(!project) return;
+      const val = (typeof project.value === 'number') ? project.value : Number(project.value) || 0;
+
+      // ensure iframes created
+      createAllIframes();
+
+      // hide all iframes, then show the one matching val (if exists)
+      Object.keys(createdIframes).forEach(k=>{
+        const node = createdIframes[k];
+        if(!node) return;
+        if(Number(k) === Number(val)){
+          node.classList.add('active');
+          node.style.display = 'block';
+        } else {
+          node.classList.remove('active');
+          node.style.display = 'none';
+        }
+      });
+
+      // keep a small left border on the panel for visual accent
+      imagePanel.style.borderLeft = '4px solid #19a6ff';
+    }
+
+    // --- animation loop & inertia (unchanged semantics) ---
     let lastFrame = performance.now();
     function loop(now){
       const dt = (now - lastFrame)/1000;
@@ -404,19 +403,29 @@
     }
     requestAnimationFrame(loop);
 
-    // ----- load projects.json -----
+    // --- projects.json loading (build iframes after load) ---
     async function loadProjects(){
       try{
         const r = await fetch('projects.json');
         projectsData = await r.json();
-      }catch(e){ console.log('projects.json not loaded', e); projectsData = []; }
+      }catch(e){
+        console.log('projects.json not loaded', e);
+        projectsData = [];
+      }
     }
 
-    // init
-    loadProjects().then(()=>{ refreshFaceContent(); updatePanelsFromVisibleFace(); lazyLoadVisibleIframe(); });
+    // init: load projects, create iframes, render
+    loadProjects().then(()=>{
+      // build stacked iframes once
+      createAllIframes();
+      refreshFaceContent();
+      updatePanelsFromVisibleFace();
+      switchIframeToVisibleFace();
+    });
 
-    window.addEventListener('load', ()=>{ applyRotation(); setTimeout(()=>{ applyRotation(); lazyLoadVisibleIframe(); }, 120); });
-    window.addEventListener('resize', ()=>{ applyRotation(); lazyLoadVisibleIframe(); });
+    // ensure rotation & iframe switching happen on events
+    window.addEventListener('load', ()=>{ applyRotation(); setTimeout(()=>{ applyRotation(); switchIframeToVisibleFace(); }, 120); });
+    window.addEventListener('resize', ()=>{ applyRotation(); switchIframeToVisibleFace(); });
   </script>
 </body>
 </html>
