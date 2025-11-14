@@ -4,189 +4,41 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>THE CUBE</title>
-  <link rel="icon" href="https://raw.githubusercontent.com/JackFShields/JackFShields.github.io/refs/heads/main/cube.png" type="image/x-icon" />
   <style>
     :root{
-      --bg: #071425;
-      --panel-grad: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
-      --panel-solid: rgba(10,18,28,0.92);
-      --border: rgba(255,255,255,0.08);
-      --text: #e6eef6;
-      --muted: rgba(190,215,240,0.7);
-
-      --cube-size: 200px;
-      --gap: 14px;
-      --col-gap: 220px;        /* INCREASED horizontal gap (was 120px) */
-      --left-col-width: 240px;
-      --viewport-padding-y: 2vh;
-      --viewport-padding-x: 2vw;
-      --top-row-height: calc(var(--cube-size) + 16px);
-      --corner-radius: 14px;
-      --scene-perspective: 1200px;
-
-      /* base visual scale applied to iframe content (1 = native). We'll multiply by an automatic factor. */
-      --iframe-base-scale: 0.82;
-      --iframe-auto-factor: 1; /* updated by JS to compensate proportions */
-      --iframe-visual-scale: calc(var(--iframe-base-scale) * var(--iframe-auto-factor));
+      --bg:#071425; --panel-grad:linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.01));
+      --panel-solid:rgba(10,18,28,0.92); --border:rgba(255,255,255,0.08);
+      --text:#e6eef6; --muted:rgba(190,215,240,0.7);
+      --cube-size:200px; --gap:14px; --col-gap:220px; --left-col-width:240px;
+      --viewport-padding-y:2vh; --viewport-padding-x:2vw; --top-row-height:calc(var(--cube-size) + 16px);
+      --corner-radius:14px; --scene-perspective:1200px;
+      --iframe-base-scale:0.82; --iframe-auto-factor:1; --iframe-visual-scale:calc(var(--iframe-base-scale) * var(--iframe-auto-factor));
     }
-
-    html, body { height:100%; margin:0; }
-    * { box-sizing: border-box; }
-
-    body{
-      background:var(--bg);
-      color:var(--text);
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      -webkit-font-smoothing:antialiased;
-    }
-
-    .viewport{
-      width:100vw;
-      height:100vh;
-      position:relative;
-      overflow:hidden;
-      padding: var(--viewport-padding-y) var(--viewport-padding-x);
-    }
-
-    .layout {
-      display:grid;
-      grid-template-columns: var(--left-col-width) 1fr;
-      grid-template-rows: var(--top-row-height) 1fr;
-      column-gap: var(--col-gap);
-      row-gap: var(--gap);
-      width:100%;
-      height:100%;
-      align-items:start;
-    }
-
-    .panel {
-      background: var(--panel-grad);
-      background-color: var(--panel-solid);
-      border:1px solid var(--border);
-      border-radius: var(--corner-radius);
-      padding:16px;
-      box-shadow: 0 10px 36px rgba(0,0,0,0.36);
-      overflow:visible;
-      position:relative;
-    }
-
-    .cube-cell {
-      grid-column: 1 / 2;
-      grid-row: 1 / 2;
-      display:flex;
-      align-items:center;
-      justify-content:flex-start;
-      padding:8px;
-      background: transparent;
-    }
-
-    .cube-wrap {
-      width: var(--cube-size);
-      height: var(--cube-size);
-      max-height: calc(var(--top-row-height) - 8px);
-      overflow: hidden;
-      position:relative;
-      transform:none;
-      margin:0;
-      z-index:5;
-      touch-action:none;
-      user-select:none;
-      -webkit-user-select:none;
-    }
-
-    .scene { width:100%; height:100%; perspective:var(--scene-perspective); position:relative; pointer-events:auto; user-select:none; touch-action:none; }
-    .cube { width:100%; height:100%; position:relative; transform-style:preserve-3d; transform: translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(0deg); transition: transform .08s linear; z-index:5; }
-    .face { position:absolute; left:0; top:0; width:100%; height:100%; border-radius:12px; background: var(--panel-grad); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; box-shadow:0 10px 36px rgba(0,0,0,0.6); backface-visibility:hidden; cursor:pointer; box-sizing:border-box; }
-    .front { transform: rotateY(0deg) translateZ(calc(var(--cube-size)/2)); }
-    .right { transform: rotateY(90deg) translateZ(calc(var(--cube-size)/2)); }
-    .back  { transform: rotateY(180deg) translateZ(calc(var(--cube-size)/2)); }
-    .left  { transform: rotateY(270deg) translateZ(calc(var(--cube-size)/2)); }
-    .top   { transform: rotateX(90deg) translateZ(calc(var(--cube-size)/2)); }
-    .bottom{ transform: rotateX(-90deg) translateZ(calc(var(--cube-size)/2)); }
-
-    .title {
-      grid-column: 2 / 3;
-      grid-row: 1 / 2;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      min-height: var(--top-row-height);
-      padding: 14px 20px;
-    }
-    .title h1 { font-size: 20px; margin-bottom:6px; }
-    .title p { color: var(--muted); margin-top:4px; font-size:13px; }
-
-    .description {
-      grid-column: 1 / 2;
-      grid-row: 2 / 3;
-      height:100%;
-      overflow:auto;
-      padding:18px;
-    }
-    .description p { color: var(--muted); line-height:1.45; }
-
-    .panel.image { padding: 0; overflow: hidden; }
-
-    .image {
-      grid-column: 2 / 3;
-      grid-row: 2 / 3;
-      position: relative;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      border-radius: var(--corner-radius);
-      background: transparent;
-    }
-
-    .iframe-zoom-wrap {
-      position:absolute;
-      inset:0;
-      overflow:hidden;
-      pointer-events:auto;
-      display:none;
-    }
-    .iframe-scale {
-      position:absolute;
-      left:0;
-      top:0;
-      transform-origin: 0 0;
-      transform: scale(var(--iframe-visual-scale));
-      width: calc(100% / var(--iframe-visual-scale));
-      height: calc(100% / var(--iframe-visual-scale));
-      will-change: transform;
-    }
-
-    .image iframe {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      border: 0;
-      border-radius: calc(var(--corner-radius));
-      display:block;
-      background: #071425;
-    }
-
-    .image .fallback { color:var(--muted); padding:12px; text-align:center; position: absolute; inset: 0; display:flex; align-items:center; justify-content:center; }
-
-    @media (max-width:980px){
-      .layout { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr 36vh; column-gap: 16px; row-gap: 12px; padding:2vh 4vw; }
-      .cube-cell { grid-column:1; grid-row:1; justify-content:center; padding:8px; }
-      .title { grid-column:1; grid-row:2; min-height:auto; padding:12px; }
-      .description { grid-column:1; grid-row:3; height:auto; max-height:36vh; overflow:auto; padding:12px; }
-      .panel.image { padding: 0; }
-      .image { grid-column:1; grid-row:4; height:36vh; padding:0; overflow:hidden; }
-      .iframe-zoom-wrap { inset:0; position:absolute; }
-      .iframe-scale { width:100%; height:100%; transform: scale(var(--iframe-visual-scale)); }
-      .image iframe { position: absolute; inset:0; height:100%; width:100%; }
-      .cube-wrap { margin:8px auto; max-height:none; }
-    }
+    html,body{height:100%;margin:0} *{box-sizing:border-box}
+    body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
+    .viewport{width:100vw;height:100vh;padding:var(--viewport-padding-y) var(--viewport-padding-x)}
+    .layout{display:grid;grid-template-columns:var(--left-col-width) 1fr;grid-template-rows:var(--top-row-height) 1fr;column-gap:var(--col-gap);row-gap:var(--gap);width:100%;height:100%;align-items:start}
+    .panel{background:var(--panel-grad);background-color:var(--panel-solid);border:1px solid var(--border);border-radius:var(--corner-radius);padding:16px;box-shadow:0 10px 36px rgba(0,0,0,0.36);position:relative;overflow:visible}
+    .cube-cell{grid-column:1/2;grid-row:1/2;display:flex;align-items:center;justify-content:flex-start;padding:8px;background:transparent}
+    .cube-wrap{width:var(--cube-size);height:var(--cube-size);max-height:calc(var(--top-row-height)-8px);overflow:hidden;position:relative;margin:0;z-index:5;user-select:none;touch-action:none}
+    .scene{width:100%;height:100%;perspective:var(--scene-perspective)}
+    .cube{width:100%;height:100%;transform-style:preserve-3d;transform:translateZ(calc(var(--cube-size)/-2)) rotateX(-10deg) rotateY(0deg);transition:transform .08s linear}
+    .face{position:absolute;left:0;top:0;width:100%;height:100%;border-radius:12px;background:var(--panel-grad);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;box-shadow:0 10px 36px rgba(0,0,0,0.6);backface-visibility:hidden;cursor:pointer}
+    .front{transform:rotateY(0deg) translateZ(calc(var(--cube-size)/2))}.right{transform:rotateY(90deg) translateZ(calc(var(--cube-size)/2))}.back{transform:rotateY(180deg) translateZ(calc(var(--cube-size)/2))}.left{transform:rotateY(270deg) translateZ(calc(var(--cube-size)/2))}.top{transform:rotateX(90deg) translateZ(calc(var(--cube-size)/2))}.bottom{transform:rotateX(-90deg) translateZ(calc(var(--cube-size)/2))}
+    .title{grid-column:2/3;grid-row:1/2;display:flex;flex-direction:column;justify-content:center;min-height:var(--top-row-height);padding:14px 20px}
+    .description{grid-column:1/2;grid-row:2/3;height:100%;overflow:auto;padding:18px}
+    .panel.image{padding:0;overflow:hidden}
+    .image{grid-column:2/3;grid-row:2/3;position:relative;width:100%;height:100%;overflow:hidden;border-radius:var(--corner-radius);background:transparent}
+    .iframe-zoom-wrap{position:absolute;inset:0;overflow:hidden;display:none}
+    .iframe-scale{position:absolute;left:0;top:0;transform-origin:0 0;transform:scale(var(--iframe-visual-scale));width:calc(100%/var(--iframe-visual-scale));height:calc(100%/var(--iframe-visual-scale));will-change:transform}
+    .image iframe{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:calc(var(--corner-radius));display:block;background:#071425}
+    .image .fallback{color:var(--muted);position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+    @media(max-width:980px){.layout{grid-template-columns:1fr;grid-template-rows:auto auto 1fr 36vh;column-gap:16px;row-gap:12px;padding:2vh 4vw}.cube-cell{grid-column:1;grid-row:1;justify-content:center}.title{grid-column:1;grid-row:2}.description{grid-column:1;grid-row:3;max-height:36vh}.image{grid-column:1;grid-row:4;height:36vh}.iframe-zoom-wrap{inset:0}.iframe-scale{width:100%;height:100%;transform:scale(var(--iframe-visual-scale))}}
   </style>
 </head>
 <body>
   <div class="viewport">
     <div class="layout" id="layout">
-
       <div class="cube-cell">
         <div class="cube-wrap" id="cubeWrap">
           <div class="scene" id="scene">
@@ -217,31 +69,30 @@
           <div id="iframeZoomWrap" class="iframe-zoom-wrap"></div>
         </div>
       </div>
-
     </div>
   </div>
 
   <script>
-    // cube / rotation (unchanged)
+    // --- core rotation/cube logic (kept same) ---
     let projectsData = [];
     const scene = document.getElementById('scene');
     const cube = document.getElementById('cube');
-    const imagePanel = document.getElementById('imagePanel');
     const imageContainer = document.getElementById('imageContainer');
     const iframeZoomWrap = document.getElementById('iframeZoomWrap');
+    const imagePanel = document.getElementById('imagePanel');
 
     let rotY=0, isDown=false, startX=0, startRot=0, startT=0, angVel=0;
-    const SENS = 0.35, CLICK_MOVE_THRESHOLD = 6, CLICK_TIME_THRESHOLD = 300;
-    let faceIndices = { front:0, right:3, back:2, left:1, top:-1, bottom:-1 };
+    const SENS=0.35, CLICK_MOVE_THRESHOLD=6, CLICK_TIME_THRESHOLD=300;
+    let faceIndices={front:0,right:3,back:2,left:1,top:-1,bottom:-1};
     let projectCounter=0, lastBoundary=null, totalRotation=0, prevRotation=0;
 
-    scene.addEventListener('pointerdown', e=>{ isDown=true; startX=e.clientX; startRot=rotY; startT=performance.now(); angVel=0; try{ scene.setPointerCapture(e.pointerId); }catch(_){} });
-    scene.addEventListener('pointermove', e=>{ if(!isDown) return; const dx = e.clientX - startX; const target = startRot + dx * SENS; angVel = target - rotY; rotY = target; totalRotation = rotY; applyRotation(); });
-    scene.addEventListener('pointerup', e=>{ try{ scene.releasePointerCapture(e.pointerId); }catch(_){} const dt = performance.now()-startT; const moved = Math.abs(e.clientX-startX); const isClick = moved <= CLICK_MOVE_THRESHOLD && dt <= CLICK_TIME_THRESHOLD; isDown=false; angVel = Math.max(-20, Math.min(20, angVel)); if(isClick){ const el = document.elementFromPoint(e.clientX,e.clientY); const face = el && el.closest && el.closest('.face'); if(face){ const slot = face.dataset.slot; const idx = faceIndices[slot] ?? 0; const p = projectsData.find(x=>x.value===idx); if(p && p.project_link){ const href = p.project_link.startsWith('http') ? p.project_link : `https://${p.project_link}`; window.open(href,'_blank'); } } } });
+    scene.addEventListener('pointerdown', e=>{ isDown=true; startX=e.clientX; startRot=rotY; startT=performance.now(); angVel=0; try{ scene.setPointerCapture(e.pointerId);}catch(_){} });
+    scene.addEventListener('pointermove', e=>{ if(!isDown) return; const dx=e.clientX-startX; const target=startRot + dx * SENS; angVel = target - rotY; rotY = target; totalRotation = rotY; applyRotation(); });
+    scene.addEventListener('pointerup', e=>{ try{ scene.releasePointerCapture(e.pointerId);}catch(_){} const dt=performance.now()-startT; const moved=Math.abs(e.clientX-startX); const isClick = moved<=CLICK_MOVE_THRESHOLD && dt<=CLICK_TIME_THRESHOLD; isDown=false; angVel = Math.max(-20, Math.min(20, angVel)); if(isClick){ const el=document.elementFromPoint(e.clientX,e.clientY); const face = el && el.closest && el.closest('.face'); if(face){ const slot=face.dataset.slot; const idx = faceIndices[slot] ?? 0; const p = projectsData.find(x=>x.value===idx); if(p && p.project_link){ const href = p.project_link.startsWith('http')?p.project_link:`https://${p.project_link}`; window.open(href,'_blank'); } } }});
 
     function applyRotation(){
-      if(lastBoundary === null) lastBoundary = Math.floor(rotY / 90);
-      cube.style.transform = `translateZ(calc(var(--cube-size) / -2)) rotateX(-10deg) rotateY(${rotY}deg)`;
+      if(lastBoundary===null) lastBoundary = Math.floor(rotY/90);
+      cube.style.transform = `translateZ(calc(var(--cube-size)/-2)) rotateX(-10deg) rotateY(${rotY}deg)`;
       handleThresholds(prevRotation, totalRotation);
       prevRotation = totalRotation;
       updatePanelsFromVisibleFace();
@@ -250,120 +101,154 @@
     }
     function normalizeDeg(d){ let v=d%360; if(v<0) v+=360; return v; }
     function mostVisibleFace(){ const norm = normalizeDeg(rotY); if(norm>=45 && norm<135) return 'left'; if(norm>=135 && norm<225) return 'back'; if(norm>=225 && norm<315) return 'right'; return 'front'; }
-    function handleThresholds(prevTotal,newTotal){ if(lastBoundary===null) lastBoundary=Math.floor(newTotal/90); const currentBoundary=Math.floor(newTotal/90); if(currentBoundary!==lastBoundary){ const direction = currentBoundary>lastBoundary?1:-1; projectCounter = Math.max(0, projectCounter + direction); lastBoundary=currentBoundary; const visibleFace = mostVisibleFace(); const hiddenMap = { front:'back', left:'right', back:'front', right:'left' }; const hiddenFace = hiddenMap[visibleFace]; faceIndices[hiddenFace] = projectCounter; } }
+    function handleThresholds(prevTotal,newTotal){ if(lastBoundary===null) lastBoundary=Math.floor(newTotal/90); const currentBoundary=Math.floor(newTotal/90); if(currentBoundary!==lastBoundary){ const direction = currentBoundary>lastBoundary?1:-1; projectCounter = Math.max(0, projectCounter + direction); lastBoundary=currentBoundary; const visibleFace=mostVisibleFace(); const hiddenMap={front:'back',left:'right',back:'front',right:'left'}; const hiddenFace = hiddenMap[visibleFace]; faceIndices[hiddenFace] = projectCounter; } }
+
     function refreshFaceContent(){ ['front','right','back','left','top','bottom'].forEach(slot=>{ const el=document.querySelector(`.face.${slot}`); if(!el) return; el.innerHTML=''; }); updateFaceImages(); }
-    function updateFaceImages(){ ['front','right','back','left','top','bottom'].forEach(slot=>{ const el=document.querySelector(`.face.${slot}`); if(!el) return; const idx = faceIndices[slot] ?? 0; const project = projectsData.find(p=>p.value===idx); el.style.backgroundImage=''; el.style.cursor='default'; if(el._removeHandlers){ el._removeHandlers(); el._removeHandlers=null; } if(project && project.face_of_cube_image_link){ el.style.backgroundImage = `url(${project.face_of_cube_image_link})`; el.style.backgroundSize='cover'; el.style.backgroundPosition='center'; el.style.cursor='pointer'; let downX=0, downY=0, moved=false, threshold=6; const onDown = e=>{ moved=false; downX=e.clientX; downY=e.clientY; }; const onMove = e=>{ if(Math.abs(e.clientX-downX)>threshold||Math.abs(e.clientY-downY)>threshold) moved=true; }; const onUp = e=>{ if(!moved){ const href = project.project_link.startsWith('http')?project.project_link:`https://${project.project_link}`; window.open(href,'_blank'); } }; el.addEventListener('pointerdown', onDown, {passive:true}); el.addEventListener('pointermove', onMove, {passive:true}); el.addEventListener('pointerup', onUp, {passive:true}); el._removeHandlers = ()=>{ el.removeEventListener('pointerdown', onDown); el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerup', onUp); }; } }); }
+    function updateFaceImages(){ ['front','right','back','left','top','bottom'].forEach(slot=>{ const el=document.querySelector(`.face.${slot}`); if(!el) return; const idx = faceIndices[slot] ?? 0; const project = projectsData.find(p=>p.value===idx); el.style.backgroundImage=''; el.style.cursor='default'; if(el._removeHandlers){ el._removeHandlers(); el._removeHandlers=null; } if(project && project.face_of_cube_image_link){ el.style.backgroundImage = `url(${project.face_of_cube_image_link})`; el.style.backgroundSize='cover'; el.style.backgroundPosition='center'; el.style.cursor='pointer'; let downX=0, downY=0, moved=false, threshold=6; const onDown=e=>{moved=false;downX=e.clientX;downY=e.clientY}; const onMove=e=>{ if(Math.abs(e.clientX-downX)>threshold||Math.abs(e.clientY-downY)>threshold) moved=true }; const onUp=e=>{ if(!moved){ const href = project.project_link.startsWith('http')?project.project_link:`https://${project.project_link}`; window.open(href,'_blank'); } }; el.addEventListener('pointerdown', onDown, {passive:true}); el.addEventListener('pointermove', onMove, {passive:true}); el.addEventListener('pointerup', onUp, {passive:true}); el._removeHandlers = ()=>{ el.removeEventListener('pointerdown', onDown); el.removeEventListener('pointermove', onMove); el.removeEventListener('pointerup', onUp); }; } }); }
 
-    function updatePanelsFromVisibleFace(){ const slot = mostVisibleFace(); const currentVisibleValue = faceIndices[slot] ?? 0; let project = projectsData.find(p=>p.value===currentVisibleValue); if(!project && projectsData.length>0){ project = projectsData[Math.abs(projectCounter) % projectsData.length] || projectsData[0]; } if(project){ document.getElementById('projTitle').textContent = project.project_name || 'Unnamed project'; document.getElementById('projSubtitle').innerHTML = project.project_link ? `<a href="${project.project_link.startsWith('http')?project.project_link:'https://'+project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>` : ''; document.getElementById('projDesc').textContent = project.description || ''; } else { document.getElementById('projTitle').textContent = 'Unfinished project'; document.getElementById('projSubtitle').textContent = ''; document.getElementById('projDesc').textContent = ''; } }
+    function updatePanelsFromVisibleFace(){ const slot = mostVisibleFace(); const currentVisibleValue = faceIndices[slot] ?? 0; let project = projectsData.find(p=>p.value===currentVisibleValue); if(!project && projectsData.length>0) project = projectsData[Math.abs(projectCounter)%projectsData.length] || projectsData[0]; if(project){ document.getElementById('projTitle').textContent = project.project_name || 'Unnamed project'; document.getElementById('projSubtitle').innerHTML = project.project_link ? `<a href="${project.project_link.startsWith('http')?project.project_link:'https://'+project.project_link}" target="_blank" style="color:inherit;text-decoration:underline">${project.project_link}</a>` : ''; document.getElementById('projDesc').textContent = project.description || ''; } else { document.getElementById('projTitle').textContent='Unfinished project'; document.getElementById('projSubtitle').textContent=''; document.getElementById('projDesc').textContent=''; } }
 
-    // persistent iframe + scaling fallback
-    let persistentIframe = null;
-    let usingWrapperScale = false;
+    // --- persistent iframe + same-origin injection with viewport/meta + zoom fallback to wrapper-scale ---
+    let persistentIframe=null; let usingWrapperScale=false;
 
-    function makeAbsoluteUrl(raw){ if(!raw || typeof raw !== 'string') return null; const trimmed = raw.trim(); if(trimmed==='') return null; if(/^https?:\/\//i.test(trimmed)) return trimmed; return 'https://' + trimmed; }
+    function makeAbsoluteUrl(raw){ if(!raw || typeof raw !== 'string') return null; const t=raw.trim(); if(t==='') return null; if(/^https?:\/\//i.test(t)) return t; return 'https://' + t; }
 
     function ensurePersistentIframe(){ if(persistentIframe && imageContainer.contains(persistentIframe)) return persistentIframe; const wrap = iframeZoomWrap; imageContainer.innerHTML=''; imageContainer.appendChild(wrap); persistentIframe = document.createElement('iframe'); persistentIframe.setAttribute('title','project-preview'); persistentIframe.setAttribute('sandbox','allow-same-origin allow-scripts allow-forms'); persistentIframe.style.border='0'; persistentIframe.style.width='100%'; persistentIframe.style.height='100%'; persistentIframe.style.display='block'; persistentIframe.style.borderRadius='var(--corner-radius)'; imageContainer.appendChild(persistentIframe); return persistentIframe; }
 
-    async function setIframeZoomInject(iframeEl, scale = 0.82){ try{ const win = iframeEl.contentWindow; if(!win) throw new Error('no contentWindow'); const doc = iframeEl.contentDocument || win.document; if(!doc) throw new Error('no document'); let style = doc.getElementById('iframe-zoom-style'); if(!style){ style = doc.createElement('style'); style.id = 'iframe-zoom-style'; if(!doc.head){ const head = doc.createElement('head'); if(doc.documentElement) doc.documentElement.insertBefore(head, doc.body || null); } doc.head.appendChild(style); } style.textContent = ` html, body { transform-origin: 0 0 !important; transform: scale(${scale}) !important; width: calc(100% / ${scale}) !important; height: calc(100% / ${scale}) !important; overflow: visible !important; } * { -webkit-font-smoothing: antialiased; } `; return true; }catch(e){ return false; } }
-
-    function ensureWrapperScaleExists(scale){ usingWrapperScale = true; iframeZoomWrap.style.display='block'; iframeZoomWrap.innerHTML=''; const scaleEl = document.createElement('div'); scaleEl.className='iframe-scale'; scaleEl.style.setProperty('--iframe-visual-scale', String(scale)); const ifr = document.createElement('iframe'); ifr.setAttribute('title','project-preview'); ifr.setAttribute('sandbox','allow-same-origin allow-scripts allow-forms'); ifr.style.border='0'; ifr.style.width = `calc(100% / ${scale})`; ifr.style.height = `calc(100% / ${scale})`; ifr.style.display='block'; scaleEl.appendChild(ifr); iframeZoomWrap.appendChild(scaleEl); return ifr; }
-
-    function removeWrapperScale(){ usingWrapperScale = false; iframeZoomWrap.style.display='none'; iframeZoomWrap.innerHTML=''; }
-
-    // Automatic calculation to adjust visual scale so embedded page appears closer to a typical browser width
-    // We assume a "target page width" of 1200px (typical desktop layout). The code measures the available iframe cell width
-    // and computes an auto factor = (availableWidth / targetWidth) clamped to reasonable range, then applies it to CSS var
-    function recomputeAutoScaleFactor(){
+    // Injection method improved: inject viewport meta + zoom. Zoom keeps layout math intact better than transform:scale.
+    async function injectViewportAndZoom(iframeEl, visualScale){
       try{
-        const layoutEl = document.querySelector('.layout');
-        if(!layoutEl) return;
-        const imageCell = document.querySelector('.image');
-        if(!imageCell) return;
-        const style = getComputedStyle(document.documentElement);
-        const base = parseFloat(style.getPropertyValue('--iframe-base-scale')) || 0.82;
-        const leftWidth = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--left-col-width')) || 240;
-        const colGap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--col-gap')) || 220;
-        const viewportW = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
-        // available width for iframe cell (right column) is viewport - left column - column gap - paddings
-        const padX = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--viewport-padding-x')) || 0;
-        const available = Math.max(300, viewportW - leftWidth - colGap - (padX*2));
-        const targetPageWidth = 1200; // typical page design width to aim for
-        // compute factor so that base * factor * (available) ~= (available / targetPageWidth) scaled effect
-        // simpler: want final visual scale s such that (available / s) ≈ targetPageWidth  => s ≈ available / targetPageWidth
-        // then we multiply by base to not jump too far; final factor = (available/targetPageWidth) / base
-        let desiredVisual = Math.min(1, Math.max(0.55, available / targetPageWidth)); // clamp 0.55..1
-        let autoFactor = desiredVisual / base;
-        autoFactor = Math.max(0.6, Math.min(1.6, autoFactor)); // clamp to avoid extremes
-        document.documentElement.style.setProperty('--iframe-auto-factor', String(autoFactor));
-        // update wrapper if active
-        if(usingWrapperScale && iframeZoomWrap.firstElementChild){
-          const scaleEl = iframeZoomWrap.firstElementChild;
-          const newScale = base * autoFactor;
-          scaleEl.style.setProperty('--iframe-visual-scale', String(newScale));
-          const innerIframe = scaleEl.querySelector('iframe');
-          if(innerIframe){
-            innerIframe.style.width = `calc(100% / ${newScale})`;
-            innerIframe.style.height = `calc(100% / ${newScale})`;
-          }
-        } else {
-          // if persistent iframe exists and injection worked before, re-inject it at new scale
-          if(persistentIframe){
-            setIframeZoomInject(persistentIframe, base * autoFactor);
+        const win = iframeEl.contentWindow;
+        if(!win) throw new Error('no contentWindow');
+        const doc = iframeEl.contentDocument || win.document;
+        if(!doc) throw new Error('no document');
+
+        // inject or update viewport meta so responsive breakpoints use an adjusted width
+        // Set the viewport width to a surrogate that matches the intended visual scale
+        // Example: if visualScale = 0.82 and container width is W, set meta width = Math.round(W / visualScale)
+        const containerRect = imageContainer.getBoundingClientRect();
+        const containerW = Math.max(320, Math.round(containerRect.width));
+        const desiredViewportWidth = Math.max(320, Math.round(containerW / visualScale));
+
+        let meta = doc.querySelector('meta[name="viewport"]');
+        if(!meta){
+          meta = doc.createElement('meta');
+          meta.name = 'viewport';
+          doc.head && doc.head.appendChild(meta);
+          if(!doc.head && doc.documentElement){
+            const head = doc.createElement('head');
+            doc.documentElement.insertBefore(head, doc.body || null);
+            head.appendChild(meta);
           }
         }
+        meta.setAttribute('content', `width=${desiredViewportWidth}, initial-scale=1`);
+
+        // apply CSS zoom (works well in Chromium/Edge/Firefox currently)
+        // Use documentElement.style.zoom and also set body transform fallback
+        doc.documentElement.style.setProperty('zoom', String(visualScale));
+        doc.body && (doc.body.style.transform = `scale(${visualScale})`, doc.body.style.transformOrigin = '0 0', doc.body.style.width = `calc(100% / ${visualScale})`);
+
+        // small safety: ensure scrolling still visible
+        doc.documentElement.style.overflow = 'auto';
+        doc.body.style.overflow = 'auto';
+        return true;
       }catch(e){
-        console.warn('recomputeAutoScaleFactor failed', e);
+        return false;
+      }
+    }
+
+    function ensureWrapperScaleExists(scale){
+      usingWrapperScale=true;
+      iframeZoomWrap.style.display='block';
+      iframeZoomWrap.innerHTML='';
+      const scaleEl = document.createElement('div');
+      scaleEl.className='iframe-scale';
+      scaleEl.style.setProperty('--iframe-visual-scale', String(scale));
+      const ifr = document.createElement('iframe');
+      ifr.setAttribute('title','project-preview');
+      ifr.setAttribute('sandbox','allow-same-origin allow-scripts allow-forms');
+      ifr.style.border='0';
+      ifr.style.width = `calc(100% / ${scale})`;
+      ifr.style.height = `calc(100% / ${scale})`;
+      ifr.style.display='block';
+      scaleEl.appendChild(ifr);
+      iframeZoomWrap.appendChild(scaleEl);
+      return ifr;
+    }
+
+    function removeWrapperScale(){ usingWrapperScale=false; iframeZoomWrap.style.display='none'; iframeZoomWrap.innerHTML=''; }
+
+    // compute automatic scale factor like before (keeps target approx 1200px)
+    function recomputeAutoScaleFactor(){
+      try{
+        const style = getComputedStyle(document.documentElement);
+        const base = parseFloat(style.getPropertyValue('--iframe-base-scale')) || 0.82;
+        const leftWidth = parseFloat(style.getPropertyValue('--left-col-width')) || 240;
+        const colGap = parseFloat(style.getPropertyValue('--col-gap')) || 220;
+        const padX = parseFloat(style.getPropertyValue('--viewport-padding-x')) || 0;
+        const viewportW = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+        const available = Math.max(300, viewportW - leftWidth - colGap - (padX*2));
+        const targetPageWidth = 1200;
+        let desiredVisual = Math.min(1, Math.max(0.55, available / targetPageWidth));
+        let autoFactor = desiredVisual / base;
+        autoFactor = Math.max(0.6, Math.min(1.6, autoFactor));
+        document.documentElement.style.setProperty('--iframe-auto-factor', String(autoFactor));
+        return base * autoFactor;
+      }catch(e){
+        return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--iframe-base-scale')) || 0.82;
       }
     }
 
     async function switchIframeToVisibleFace(){
-      if(projectsData.length === 0) return;
+      if(projectsData.length===0) return;
       const slot = mostVisibleFace();
-      const currentVisibleValue = faceIndices[slot] ?? 0;
-      let project = projectsData.find(p=>p.value===currentVisibleValue);
+      const curVal = faceIndices[slot] ?? 0;
+      let project = projectsData.find(p=>p.value===curVal);
       if(!project && projectsData.length>0) project = projectsData[Math.abs(projectCounter)%projectsData.length] || projectsData[0];
       if(!project) return;
+
       const raw = project.iframe_link || project.image_link || '';
       const url = makeAbsoluteUrl(raw);
       if(!url){
-        if(persistentIframe && imageContainer.contains(persistentIframe)){ imageContainer.removeChild(persistentIframe); persistentIframe = null; }
+        if(persistentIframe && imageContainer.contains(persistentIframe)){ imageContainer.removeChild(persistentIframe); persistentIframe=null; }
         removeWrapperScale();
         imageContainer.innerHTML = '<div class="fallback">No iframe_link provided for this project</div>';
         return;
       }
 
-      // recompute auto factor before loading a new iframe so scale is tuned to current layout
-      recomputeAutoScaleFactor();
-      const base = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--iframe-base-scale')) || 0.82;
-      const autoFactor = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--iframe-auto-factor')) || 1;
-      const appliedScale = base * autoFactor;
+      // compute scale to apply
+      const appliedScale = recomputeAutoScaleFactor();
 
       const ifr = ensurePersistentIframe();
       if(usingWrapperScale) removeWrapperScale();
 
-      function normalizeHref(u){ try{ const a=document.createElement('a'); a.href = u; return a.href.replace(/\/$/, ''); }catch(e){ return u; } }
-      const currentSrc = ifr.src || '';
-      const nCur = normalizeHref(currentSrc);
+      function normalizeHref(u){ try{ const a=document.createElement('a'); a.href = u; return a.href.replace(/\/$/,''); }catch(e){ return u; } }
+      const nCur = normalizeHref(ifr.src || '');
       const nNew = normalizeHref(url);
 
       if(nCur === nNew){
-        const injected = await setIframeZoomInject(ifr, appliedScale);
-        if(!injected){
+        // already loaded, attempt injection re-apply at new scale
+        const ok = await injectViewportAndZoom(ifr, appliedScale);
+        if(!ok){
+          // fallback to wrapper
           const wrapperIframe = ensureWrapperScaleExists(appliedScale);
           wrapperIframe.src = url;
-          if(persistentIframe && imageContainer.contains(persistentIframe)){ imageContainer.removeChild(persistentIframe); persistentIframe = null; }
+          if(persistentIframe && imageContainer.contains(persistentIframe)){ imageContainer.removeChild(persistentIframe); persistentIframe=null; }
+        } else {
+          removeWrapperScale();
         }
         return;
       }
 
+      // set src and on load try injection
       let loadHandled=false;
       ifr.src = url;
       setTimeout(()=>{
         if(loadHandled) return;
         const onLoad = async ()=>{
           loadHandled=true;
-          const injected = await setIframeZoomInject(ifr, appliedScale);
-          if(!injected){
+          const ok = await injectViewportAndZoom(ifr, appliedScale);
+          if(!ok){
             const wrapperIframe = ensureWrapperScaleExists(appliedScale);
             wrapperIframe.src = url;
             if(persistentIframe && imageContainer.contains(persistentIframe)){ imageContainer.removeChild(persistentIframe); persistentIframe=null; }
@@ -373,71 +258,53 @@
         };
         try{ ifr.removeEventListener('load', onLoad); }catch(e){}
         ifr.addEventListener('load', onLoad, {once:true});
+        // fallback attempt after 700ms
         setTimeout(async ()=>{
           if(loadHandled) return;
-          try{
-            const injected = await setIframeZoomInject(ifr, appliedScale);
-            if(!injected){
-              const wrapperIframe = ensureWrapperScaleExists(appliedScale);
-              wrapperIframe.src = url;
-              if(persistentIframe && imageContainer.contains(persistentIframe)){ imageContainer.removeChild(persistentIframe); persistentIframe=null; }
-            } else {
-              removeWrapperScale();
-            }
-          }catch(e){}
-        }, 800);
+          const ok = await injectViewportAndZoom(ifr, appliedScale);
+          if(!ok){
+            const wrapperIframe = ensureWrapperScaleExists(appliedScale);
+            wrapperIframe.src = url;
+            if(persistentIframe && imageContainer.contains(persistentIframe)){ imageContainer.removeChild(persistentIframe); persistentIframe=null; }
+          } else {
+            removeWrapperScale();
+          }
+        }, 700);
       }, 20);
 
       imagePanel.style.borderLeft = '4px solid #19a6ff';
     }
 
-    // animation loop
+    // --- load projects and init loop ---
+    async function loadProjects(){
+      try{ const r = await fetch('projects.json'); projectsData = await r.json(); }catch(e){ console.warn('projects.json load failed', e); projectsData=[]; }
+    }
+
+    loadProjects().then(()=>{ refreshFaceContent(); updatePanelsFromVisibleFace(); switchIframeToVisibleFace(); });
+
     let lastFrame = performance.now();
     function loop(now){
-      const dt = (now - lastFrame)/1000;
-      lastFrame = now;
-      if(!isDown && Math.abs(angVel) > 0.0005){
-        rotY += angVel;
-        angVel *= Math.pow(0.92, dt * 60);
-        totalRotation = rotY;
-        applyRotation();
-      }
+      const dt=(now-lastFrame)/1000; lastFrame=now;
+      if(!isDown && Math.abs(angVel)>0.0005){ rotY += angVel; angVel *= Math.pow(0.92, dt*60); totalRotation = rotY; applyRotation(); }
       requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);
 
-    // projects load
-    async function loadProjects(){
-      try{
-        const r = await fetch('projects.json');
-        projectsData = await r.json();
-      }catch(e){ console.log('projects.json not loaded', e); projectsData = []; }
-    }
-
-    // init
-    loadProjects().then(()=>{ refreshFaceContent(); updatePanelsFromVisibleFace(); switchIframeToVisibleFace(); });
-    window.addEventListener('load', ()=>{ applyRotation(); setTimeout(()=>{ applyRotation(); switchIframeToVisibleFace(); }, 120); });
     window.addEventListener('resize', ()=>{ recomputeAutoScaleFactor(); applyRotation(); switchIframeToVisibleFace(); });
+    window.addEventListener('load', ()=>{ applyRotation(); setTimeout(()=>{ applyRotation(); switchIframeToVisibleFace(); },120); });
 
-    // API: override visual scale at runtime
+    // small convenience API for manual tuning
     window.setVisualScale = function(scale){
       if(!scale || isNaN(scale)) return;
-      // set base to this scale and recompute auto factor to 1 so it's direct
       document.documentElement.style.setProperty('--iframe-base-scale', String(scale));
       document.documentElement.style.setProperty('--iframe-auto-factor', '1');
       recomputeAutoScaleFactor();
-      // reapply to active iframe
-      if(persistentIframe){
-        setIframeZoomInject(persistentIframe, scale);
-      }
+      if(persistentIframe) injectViewportAndZoom(persistentIframe, scale);
       if(usingWrapperScale && iframeZoomWrap.firstElementChild){
         const scaleEl = iframeZoomWrap.firstElementChild;
         scaleEl.style.setProperty('--iframe-visual-scale', String(scale));
         const innerIframe = scaleEl.querySelector('iframe');
-        if(innerIframe){
-          innerIframe.style.width = `calc(100% / ${scale})`;
-          innerIframe.style.height = `calc(100% / ${scale})`;
-        }
+        if(innerIframe){ innerIframe.style.width=`calc(100%/${scale})`; innerIframe.style.height=`calc(100%/${scale})`; }
       }
     };
   </script>
